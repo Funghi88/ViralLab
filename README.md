@@ -6,6 +6,8 @@
 
 **Engineer your influence. Turn noise into viral.**
 
+**[Try it live →](https://virallab.onrender.com)**
+
 ViralLab scores content using Jonah Berger's STEPPS framework — behavioral science, not guesswork. Design content that spreads.
 
 **English and Chinese channels use different sources.** The English channel pulls from DuckDuckGo, YouTube, Hacker News, Reddit. The Chinese channel uses Bilibili, Douyin, Xiaohongshu, Weibo, Zhihu. Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
@@ -97,9 +99,9 @@ Python 3.9+. No API keys for news/videos.
 1. Click the button above (or go to [render.com](https://render.com) → New → Web Service).
 2. Connect your GitHub and select the ViralLab repo. Render detects `render.yaml`.
 3. Add env vars if needed: `OPENAI_API_KEY` or `GEMINI_API_KEY` for AI features.
-4. Deploy. Your live URL will be `https://virallab.onrender.com` (or similar).
+4. Deploy. Live at [virallab.onrender.com](https://virallab.onrender.com).
 
-**Keep content fresh:** [cron-job.org](https://cron-job.org) → Create job → URL: `https://YOUR-APP.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
+**Keep content fresh:** [cron-job.org](https://cron-job.org) → Create job → URL: `https://virallab.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
 
 See [DEPLOY.md](DEPLOY.md) for full instructions.
 
