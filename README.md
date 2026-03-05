@@ -10,9 +10,9 @@
 
 ViralLab scores content using Jonah Berger's STEPPS framework — behavioral science, not guesswork. Design content that spreads.
 
-**English and Chinese channels use different sources.** The English channel pulls from DuckDuckGo, YouTube, Hacker News, Reddit. The Chinese channel uses Bilibili, Douyin, Xiaohongshu, Weibo, Zhihu. Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
+**English and Chinese channels use different sources.** The English channel pulls from DuckDuckGo, YouTube, Hacker News, Reddit. The Chinese channel uses Weibo, Zhihu, Douyin, Baidu, Bilibili, 少数派, IT之家, 36氪, 今日头条, 掘金, and PTT (Taiwan). Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
 
-**英文与中文频道使用不同来源。** 英文频道来自 DuckDuckGo、YouTube、Hacker News、Reddit；中文频道来自 B站、抖音、小红书、微博、知乎。双语用户可按偏好切换频道，获取不同生态的内容。
+**英文与中文频道使用不同来源。** 英文频道来自 DuckDuckGo、YouTube、Hacker News、Reddit；中文频道来自微博、知乎、抖音、百度、B站、少数派、IT之家、36氪、今日头条、掘金、PTT（台湾）。双语用户可按偏好切换频道，获取不同生态的内容。
 
 ---
 

@@ -197,6 +197,7 @@ SPREAD_LINE = "ViralLab scores content by applying behavioral science - aka. STE
 TG_GROUP_URL = "https://t.me/virallab"  # Update when your TG group is created
 TG_PERSONAL_URL = "https://t.me/miccakitt"
 BLOG_URL = "https://funghi88.github.io/"
+GITHUB_REPO_URL = "https://github.com/Funghi88/ViralLab"
 X_URL = "https://x.com/miccakitt"
 
 
@@ -728,7 +729,7 @@ def _header_html(active="", lang="en"):
                 <a href="{TG_GROUP_URL}" target="_blank" rel="noopener">💬 {_html_escape(_t("camp2_comm_tg", lang))}</a>
                 <a href="{X_URL}" target="_blank" rel="noopener">{_html_escape(_t("camp2_comm_x", lang))}</a>
                 <a href="{BLOG_URL}" target="_blank" rel="noopener">📖 {_html_escape(_t("camp2_comm_blog", lang))}</a>
-                <a href="{TG_PERSONAL_URL}" target="_blank" rel="noopener">✈️ {_html_escape(_t("camp2_comm_direct", lang))}</a>
+                <a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener">✈️ {_html_escape(_t("camp2_comm_direct", lang))}</a>
             </div>
             <div class="top-bar-hover-card">{_html_escape(_t("camp2_community_p", lang))}</div>
         </div>

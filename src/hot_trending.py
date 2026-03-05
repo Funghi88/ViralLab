@@ -10,6 +10,7 @@ PLATFORMS_ZH = [
     ("zhihu", "知乎"),
     ("douyin", "抖音"),
     ("baidu", "百度"),
+    ("bilihot", "B站"),  # 哔哩哔哩热搜
     ("sspai", "少数派"),  # 效率工具、数码、创作者
 ]
 # 英文区：多源覆盖
@@ -20,6 +21,18 @@ LOBSTERS_URL = "https://lobste.rs/hottest.json"
 DEVTO_URL = "https://dev.to/api/articles?per_page=15&top=7"
 GITHUB_TRENDING_URL = "https://githubtrending.lessx.xyz/trending?since=daily"
 
+# 台湾 PTT 热門看板
+PTT_HOTBOARDS_URL = "https://www.ptt.cc/bbs/hotboards.html"
+
+# Pearktrue 今日热榜 API - 补充平台（IT之家、36氪、今日头条等）
+PEARKTRUE_DAILYHOT_URL = "https://api.pearktrue.cn/api/dailyhot/"
+PEARKTRUE_PLATFORMS = [
+    ("IT之家", "IT之家"),  # 科技数码
+    ("36氪", "36氪"),  # 创投科技
+    ("今日头条", "头条"),  # 综合热点
+    ("稀土掘金", "掘金"),  # 开发者社区
+]
+
 CACHE_FILE = Path(__file__).parent.parent / "output" / "hot_trending.json"
 CACHE_TTL = 10 * 60  # 10 min — 近实时
 
@@ -28,7 +41,7 @@ CREATOR_KEYWORDS_ZH = frozenset({
     "美妆", "护肤", "穿搭", "时尚", "种草", "直播", "带货", "短视频", "电商", "内容",
     "创作", "爆款", "网红", "UP主", "私域", "品牌", "营销", "教程", "AI", "小红书",
     "抖音", "B站", "知乎", "好物", "测评", "开箱", "vlog", "剪辑", "涨粉", "变现",
-    "流量", "算法", "运营", "干货", "攻略", "分享", "推荐", "榜单", "热门",
+    "流量", "算法", "运营", "干货", "攻略", "分享", "推荐", "榜单", "热门", "遊戲",
 })
 CREATOR_KEYWORDS_EN = frozenset({
     "creator", "viral", "trending", "AI", "YouTube", "TikTok", "content", "marketing",
@@ -53,9 +66,9 @@ def _creator_score(topic: str, lang: str = "zh") -> int:
     return min(score, 10)
 
 
-def _is_noise_zh(s: str) -> bool:
+def _is_noise_zh(s: str, max_len: int = 60) -> bool:
     """过滤纯时政/难以跟风做内容的热搜。"""
-    if len(s) < 2 or len(s) > 28:
+    if len(s) < 2 or len(s) > max_len:
         return True
     if re.match(r"^[\d\s\-\.]+$", s):
         return True
@@ -72,6 +85,56 @@ def _is_noise_en(s: str) -> bool:
     if re.match(r"^[\d\s\-\.\#]+$", s):
         return True
     return False
+
+
+def _fetch_pearktrue_dailyhot(platform_title: str, platform_name: str) -> list[tuple[str, str, int]]:
+    """Fetch from Pearktrue 今日热榜. Returns [(topic, platform_name, creator_score), ...]."""
+    try:
+        import requests
+        r = requests.get(
+            f"{PEARKTRUE_DAILYHOT_URL}?title={platform_title}",
+            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
+            timeout=8,
+        )
+        r.raise_for_status()
+        data = r.json()
+        if data.get("code") != 200 or not data.get("data"):
+            return []
+        result = []
+        for item in data["data"][:20]:
+            title = (item.get("title") or "").strip()
+            if title and not _is_noise_zh(title, max_len=80):
+                score = _creator_score(title, "zh")
+                result.append((title, platform_name, score))
+        return result
+    except Exception:
+        return []
+
+
+def _fetch_ptt_hotboards() -> list[tuple[str, str, int]]:
+    """Fetch PTT (台湾) 熱門看板. Returns [(topic, platform_name, creator_score), ...]."""
+    try:
+        import requests
+        r = requests.get(
+            PTT_HOTBOARDS_URL,
+            headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
+            timeout=6,
+        )
+        r.raise_for_status()
+        html = r.text
+        # 解析 board-class 如 <div class="board-class">棒球</div>
+        matches = re.findall(r'<div class="board-class">([^<]+)</div>', html)
+        result = []
+        seen = set()
+        for name in matches[:20]:
+            name = name.strip().rstrip(".")
+            if len(name) >= 2 and len(name) <= 12 and name not in seen and not re.match(r"^[A-Za-z]+$", name):
+                seen.add(name)
+                score = _creator_score(name, "zh")
+                result.append((name, "PTT", score))
+        return result
+    except Exception:
+        return []
 
 
 def _fetch_platform_zh(platform_id: str, platform_name: str) -> list[tuple[str, str, int]]:
@@ -203,11 +266,24 @@ def _fetch_github_trending() -> list[tuple[str, int]]:
 
 
 def fetch_all_platforms_zh() -> list[str]:
-    """Fetch ZH platforms, merge, prioritize creator-relevant."""
+    """Fetch ZH platforms (含台湾 PTT), merge, prioritize creator-relevant."""
     seen = set()
     scored = []
     for platform_id, platform_name in PLATFORMS_ZH:
         for topic, _pn, score in _fetch_platform_zh(platform_id, platform_name):
+            tl = topic.lower().strip()
+            if tl not in seen:
+                seen.add(tl)
+                scored.append((topic, score))
+    # 台湾 PTT 熱門看板
+    for topic, _pn, score in _fetch_ptt_hotboards():
+        tl = topic.lower().strip()
+        if tl not in seen:
+            seen.add(tl)
+            scored.append((topic, score))
+    # Pearktrue 补充：IT之家、36氪、今日头条
+    for platform_title, platform_name in PEARKTRUE_PLATFORMS:
+        for topic, _pn, score in _fetch_pearktrue_dailyhot(platform_title, platform_name):
             tl = topic.lower().strip()
             if tl not in seen:
                 seen.add(tl)
