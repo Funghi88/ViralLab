@@ -7,7 +7,7 @@ Where to host ViralLab when you're ready to go online.
 ## Go Live Checklist
 
 1. **Create GitHub repo** — New repo at github.com, name it `ViralLab` (or your choice).
-2. **Push code** — `git init && git add . && git commit -m "Initial commit" && git remote add origin https://github.com/YOUR_USERNAME/ViralLab.git && git push -u origin main`
+2. **Push code** — `git init && git add . && git commit -m "Initial commit" && git remote add origin https://github.com/Funghi88/ViralLab.git && git push -u origin main`
 3. **Deploy on Render** — [render.com](https://render.com) → New → Web Service → Connect your repo. Render auto-detects `render.yaml`. Add env vars (`CRON_SECRET`, `OPENAI_API_KEY` or `GEMINI_API_KEY` if needed). Deploy.
 4. **Set up cron** — [cron-job.org](https://cron-job.org) → Create job → URL: `https://YOUR-APP.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
 5. **Share** — Your live URL (e.g. `https://virallab.onrender.com`) is the shareable link.
