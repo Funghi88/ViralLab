@@ -194,7 +194,7 @@ def _get_most_searched(limit: int = 20, time_range: str = "1d", lang: str = "en"
 
 TAGLINE = "Engineer your influence. Turn noise into viral."
 SPREAD_LINE = "ViralLab scores content by applying behavioral science - aka. STEPPS, design viral content - so easy"
-TG_GROUP_URL = "https://t.me/virallab"  # Update when your TG group is created
+TG_GROUP_URL = "https://t.me/virallab8"
 TG_PERSONAL_URL = "https://t.me/miccakitt"
 BLOG_URL = "https://funghi88.github.io/"
 GITHUB_REPO_URL = "https://github.com/Funghi88/ViralLab"
