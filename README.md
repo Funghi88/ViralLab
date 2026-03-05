@@ -92,11 +92,16 @@ Python 3.9+. No API keys for news/videos.
 
 ## Deploy
 
-See [DEPLOY.md](DEPLOY.md) for full instructions. **Recommended: Render** — free tier, one-click deploy via `render.yaml`.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Funghi88/ViralLab)
 
-Once live, your app URL (e.g. `https://virallab.onrender.com`) is the shareable link. No login required. Dates use each user's local timezone.
+1. Click the button above (or go to [render.com](https://render.com) → New → Web Service).
+2. Connect your GitHub and select the ViralLab repo. Render detects `render.yaml`.
+3. Add env vars if needed: `OPENAI_API_KEY` or `GEMINI_API_KEY` for AI features.
+4. Deploy. Your live URL will be `https://virallab.onrender.com` (or similar).
 
-**Keep content fresh:** Set up a cron job (e.g. [cron-job.org](https://cron-job.org)) to hit `https://your-app.onrender.com/api/refresh-daily` daily. Optional: set `CRON_SECRET` in env and add `?key=your-secret` to the URL.
+**Keep content fresh:** [cron-job.org](https://cron-job.org) → Create job → URL: `https://YOUR-APP.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
+
+See [DEPLOY.md](DEPLOY.md) for full instructions.
 
 ---
 
