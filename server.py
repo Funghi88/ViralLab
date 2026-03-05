@@ -703,7 +703,7 @@ def _sidebar_html(active="", lang="en"):
     subtitle = _t("hero_subtitle", lang)
     return f'''<aside class="sidebar">
         <a href="/" class="sidebar-brand">
-            <span class="logo-avatar"><img src="/static/hero-thumbnail.png" alt=""></span>
+            <span class="logo-avatar"><img src="/static/logo-avatar.png" alt=""></span>
             <span class="logo-text-wrap">
                 <span class="logo-text">ViralLab</span>
                 <span class="sidebar-subtitle">{_html_escape(subtitle)}</span>
@@ -720,10 +720,6 @@ def _header_html(active="", lang="en"):
     """Compact top bar with logo, search and community links."""
     placeholder = _t("search_placeholder", lang)
     return f'''<header class="top-bar">
-        <a href="/" class="top-bar-logo">
-            <span class="top-bar-avatar"><img src="/static/hero-thumbnail.png" alt="ViralLab"></span>
-            <span class="top-bar-logo-text">ViralLab</span>
-        </a>
         <div class="header-search-wrap">
             <span class="search-icon">⌕</span>
             <input type="text" class="header-search" placeholder="{_html_escape(placeholder)}" id="headerSearch">
@@ -816,11 +812,6 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .sidebar-footer a:hover {{ color: var(--accent); }}
         .main-content {{ flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: visible; padding: 0 2rem calc(2rem + var(--footer-height)) 2rem; max-width: 1100px; }}
         .top-bar {{ position: sticky; top: 0; z-index: 50; height: var(--header-height); padding: 0 2rem; margin-bottom: 1rem; margin-left: -2rem; margin-right: -2rem; background: var(--bg); overflow: visible; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; box-sizing: border-box; }}
-        .top-bar-logo {{ display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: var(--text); flex-shrink: 0; }}
-        .top-bar-logo:hover .top-bar-logo-text {{ color: var(--accent); }}
-        .top-bar-avatar {{ width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }}
-        .top-bar-avatar img {{ width: 100%; height: 100%; object-fit: cover; }}
-        .top-bar-logo-text {{ font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }}
         .top-bar-links-wrap {{ position: relative; margin-left: auto; }}
         .top-bar-links {{ display: flex; align-items: center; gap: 1rem; }}
         .top-bar-links a {{ color: var(--muted); text-decoration: none; font-size: 0.75rem; font-weight: 300; transition: color var(--dur) var(--ease-out); }}
