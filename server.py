@@ -703,7 +703,7 @@ def _sidebar_html(active="", lang="en"):
     subtitle = _t("hero_subtitle", lang)
     return f'''<aside class="sidebar">
         <a href="/" class="sidebar-brand">
-            <span class="logo-avatar"><img src="/static/logo-avatar.png" alt=""></span>
+            <span class="logo-avatar"><img src="/static/hero-thumbnail.png" alt=""></span>
             <span class="logo-text-wrap">
                 <span class="logo-text">ViralLab</span>
                 <span class="sidebar-subtitle">{_html_escape(subtitle)}</span>
@@ -721,7 +721,7 @@ def _header_html(active="", lang="en"):
     placeholder = _t("search_placeholder", lang)
     return f'''<header class="top-bar">
         <a href="/" class="top-bar-logo">
-            <span class="top-bar-avatar"><img src="/static/logo-avatar.png" alt="ViralLab"></span>
+            <span class="top-bar-avatar"><img src="/static/hero-thumbnail.png" alt="ViralLab"></span>
             <span class="top-bar-logo-text">ViralLab</span>
         </a>
         <div class="header-search-wrap">
@@ -776,6 +776,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="/static/favicon-32.png" type="image/png" sizes="32x32">
     <title>{_html_escape(title)} — ViralLab</title>
     <meta property="og:type" content="website">
     <meta property="og:title" content="{_html_escape(og_title)}">
