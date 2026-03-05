@@ -1,0 +1,153 @@
+{
+  "fashion": {
+    "name": "时尚",
+    "trends": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "领先时尚趋势预测"},
+      {"name": "小红书热门", "url": "https://www.xiaohongshu.com/explore", "desc": "小红书爆款趋势"},
+      {"name": "抖音时尚", "url": "https://www.douyin.com", "desc": "抖音穿搭、美妆热门"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone", "url": "https://www.pantone.com", "desc": "年度色彩、色板"},
+      {"name": "WGSN 色彩", "url": "https://www.wgsn.com", "desc": "季节色彩预测"},
+      {"name": "Coloro", "url": "https://www.coloro.com", "desc": "设计用色彩系统"}
+    ],
+    "forecasting_sites": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "时尚、美妆、生活预测"},
+      {"name": "新榜", "url": "https://www.newrank.cn", "desc": "内容数据与趋势"},
+      {"name": "飞瓜数据", "url": "https://dy.feigua.cn", "desc": "抖音、小红书数据"}
+    ],
+    "resources": [
+      {"name": "Business of Fashion", "url": "https://www.businessoffashion.com", "desc": "产业新闻与分析"},
+      {"name": "Vogue Runway", "url": "https://www.vogue.com/runway", "desc": "秀场系列"},
+      {"name": "上海时装周", "url": "https://www.shanghaifashionweek.com", "desc": "中国时装周"}
+    ]
+  },
+  "tech": {
+    "name": "科技与 AI",
+    "trends": [
+      {"name": "TechNode", "url": "https://technode.com", "desc": "中国科技与新创"},
+      {"name": "36氪", "url": "https://36kr.com", "desc": "科技与创投"},
+      {"name": "虎嗅", "url": "https://www.huxiu.com", "desc": "科技商业洞察"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Gartner", "url": "https://www.gartner.com", "desc": "科技炒作周期与预测"},
+      {"name": "CB Insights", "url": "https://www.cbinsights.com", "desc": "市场趋势与报告"}
+    ],
+    "resources": [
+      {"name": "Product Hunt", "url": "https://www.producthunt.com", "desc": "新 AI 工具与产品"},
+      {"name": "即刻", "url": "https://okjike.com", "desc": "科技创作者社群"},
+      {"name": "飞书", "url": "https://www.feishu.cn", "desc": "协作与知识管理"}
+    ]
+  },
+  "beauty": {
+    "name": "美妆与护肤",
+    "trends": [
+      {"name": "小红书美妆", "url": "https://www.xiaohongshu.com/search_result?keyword=美妆", "desc": "小红书美妆爆款"},
+      {"name": "Mintel 美妆", "url": "https://www.mintel.com", "desc": "美妆消费者洞察"},
+      {"name": "抖音美妆", "url": "https://www.douyin.com", "desc": "抖音美妆趋势"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone 美妆", "url": "https://www.pantone.com", "desc": "美妆色板"}
+    ],
+    "forecasting_sites": [
+      {"name": "NPD 美妆", "url": "https://www.npd.com", "desc": "美妆市场数据"},
+      {"name": "Cosmetics Design Asia", "url": "https://www.cosmeticsdesign-asia.com", "desc": "亚洲美妆趋势"}
+    ],
+    "resources": [
+      {"name": "小红书", "url": "https://www.xiaohongshu.com", "desc": "美妆种草、爆款笔记"},
+      {"name": "抖音", "url": "https://www.douyin.com", "desc": "短视频美妆内容"},
+      {"name": "B站美妆", "url": "https://www.bilibili.com", "desc": "长视频美妆教程"}
+    ]
+  },
+  "travel": {
+    "name": "旅游与酒店",
+    "trends": [
+      {"name": "Skift", "url": "https://skift.com", "desc": "旅游产业趋势"},
+      {"name": "小红书旅游", "url": "https://www.xiaohongshu.com/search_result?keyword=旅游", "desc": "小红书旅游攻略"},
+      {"name": "马蜂窝", "url": "https://www.mafengwo.cn", "desc": "中国旅游攻略"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Euromonitor 旅游", "url": "https://www.euromonitor.com", "desc": "旅游市场预测"},
+      {"name": "Phocuswright", "url": "https://www.phocuswright.com", "desc": "旅游研究与趋势"}
+    ],
+    "resources": [
+      {"name": "小红书", "url": "https://www.xiaohongshu.com", "desc": "旅游种草、攻略"},
+      {"name": "马蜂窝", "url": "https://www.mafengwo.cn", "desc": "旅游攻略与灵感"},
+      {"name": "抖音旅游", "url": "https://www.douyin.com", "desc": "短视频旅游内容"}
+    ]
+  },
+  "food": {
+    "name": "饮食与饮料",
+    "trends": [
+      {"name": "Mintel", "url": "https://www.mintel.com", "desc": "饮食趋势"},
+      {"name": "小红书美食", "url": "https://www.xiaohongshu.com/search_result?keyword=美食", "desc": "小红书美食爆款"},
+      {"name": "抖音美食", "url": "https://www.douyin.com", "desc": "抖音美食趋势"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Datassential", "url": "https://www.datassential.com", "desc": "菜单与风味趋势"},
+      {"name": "Technomic", "url": "https://www.technomic.com", "desc": "餐饮研究"}
+    ],
+    "resources": [
+      {"name": "小红书", "url": "https://www.xiaohongshu.com", "desc": "美食种草、食谱"},
+      {"name": "抖音", "url": "https://www.douyin.com", "desc": "美食短视频"},
+      {"name": "下厨房", "url": "https://www.xiachufang.com", "desc": "食谱与料理灵感"}
+    ]
+  },
+  "automotive": {
+    "name": "汽车",
+    "trends": [
+      {"name": "MotorTrend", "url": "https://www.motortrend.com", "desc": "车评与趋势"},
+      {"name": "汽车之家", "url": "https://www.autohome.com.cn", "desc": "中国汽车资讯"},
+      {"name": "懂车帝", "url": "https://www.dongchedi.com", "desc": "汽车评测与资讯"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "J.D. Power", "url": "https://www.jdpower.com", "desc": "汽车市场洞察"},
+      {"name": "Cox Automotive", "url": "https://www.coxautoinc.com", "desc": "产业趋势"}
+    ],
+    "resources": [
+      {"name": "B站汽车", "url": "https://www.bilibili.com", "desc": "汽车评测、改装"},
+      {"name": "懂车帝", "url": "https://www.dongchedi.com", "desc": "汽车评测与资讯"},
+      {"name": "抖音汽车", "url": "https://www.douyin.com", "desc": "汽车短视频"}
+    ]
+  },
+  "fitness": {
+    "name": "健身与健康",
+    "trends": [
+      {"name": "Mintel 健康", "url": "https://www.mintel.com", "desc": "健康消费者趋势"},
+      {"name": "小红书健身", "url": "https://www.xiaohongshu.com/search_result?keyword=健身", "desc": "小红书健身笔记"},
+      {"name": "抖音健身", "url": "https://www.douyin.com", "desc": "抖音健身内容"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "IHRSA", "url": "https://www.ihrsa.org", "desc": "健身产业研究"},
+      {"name": "Mindbody", "url": "https://www.mindbodyonline.com", "desc": "健康趋势"}
+    ],
+    "resources": [
+      {"name": "小红书", "url": "https://www.xiaohongshu.com", "desc": "健身笔记、饮食"},
+      {"name": "B站健身", "url": "https://www.bilibili.com", "desc": "健身教学、跟练"},
+      {"name": "Keep", "url": "https://www.gotokeep.com", "desc": "健身 App 与社群"}
+    ]
+  },
+  "content": {
+    "name": "内容创作",
+    "trends": [
+      {"name": "新榜", "url": "https://www.newrank.cn", "desc": "公众号、短视频数据"},
+      {"name": "飞瓜数据", "url": "https://dy.feigua.cn", "desc": "抖音、小红书数据"},
+      {"name": "千瓜数据", "url": "https://www.qian-gua.com", "desc": "小红书数据分析"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "新榜", "url": "https://www.newrank.cn", "desc": "内容趋势与榜单"},
+      {"name": "飞瓜数据", "url": "https://dy.feigua.cn", "desc": "短视频趋势报告"}
+    ],
+    "resources": [
+      {"name": "即刻", "url": "https://okjike.com", "desc": "创作者社群"},
+      {"name": "知识星球", "url": "https://www.zsxq.com", "desc": "付费社群与知识付费"},
+      {"name": "飞书", "url": "https://www.feishu.cn", "desc": "协作、文档、多维表格"}
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+---
+description: ViralLab project evaluation - systematic review of all pages for engagement, UX, and improvement
+alwaysApply: false
+---
+
+# ViralLab Project Evaluation
+
+When the user asks to **evaluate**, **review**, or **audit** ViralLab (or the project), run this systematic evaluation.
+
+## Project Context
+
+**ViralLab** — Engineer your influence. Turn noise into viral. A creator-focused app that surfaces viral content and scores it with Jonah Berger's STEPPS. Target: content creators (YouTubers, newsletter writers, social managers).
+
+**Tech:** Flask, server-rendered HTML, Poppins font, green/cream palette (`--accent: #2d4a2b`, `--cta: #e8a54d`).
+
+## Pages to Evaluate
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Home — hero, feature cards, nav |
+| `/daily` | Daily news — top 3 topics, digest cards |
+| `/news` | News search — topic search, raw results |
+| `/viral` | Viral videos — YouTube/Bilibili search, Berger score, content angles |
+| `/field` | Your field — curated resources by creator niche |
+| `/science` | STEPPS & Magic Words — Berger framework, books, scoring |
+| `/video-to-text` | Paste YouTube URL → transcript + Berger score |
+| `/view/<file>` | View digest/transcript file |
+| `/china-access` | China sources info |
+| `/setup` | Setup instructions |
+
+## Evaluation Criteria
+
+For each page, assess:
+
+1. **Engagement** — Does it hook? Clear value prop? CTA obvious?
+2. **Clarity** — Can a new user understand what to do in 5 seconds?
+3. **Conversion** — Does it move users toward core actions (search, score, explore)?
+4. **Tone** — Confident, evidence-based, not academic or passive?
+5. **UX** — Empty states, loading, errors, mobile? Any friction?
+
+## Output Format
+
+Provide feedback in this structure:
+
+```
+## Summary (2–3 sentences)
+Overall strength and top 1–2 priorities.
+
+## By Page
+For each page: 1 strength, 1–2 concrete improvements (actionable, not vague).
+
+## Cross-Cutting
+- Copy: specific lines to tighten or replace
+- Missing: features or content that would help
+- Quick wins: changes under 30 min
+
+## Prioritized Next Steps
+1. [Highest impact]
+2. [Next]
+3. [Next]
+```
+
+## How to Run
+
+1. Read `server.py` (routes, `_base`, key page bodies)
+2. Read `README.md` for product intent
+3. Optionally browse live pages if server is running
+4. Produce the structured output above
+5. Be specific: cite file:line or component names; suggest exact copy when useful

@@ -1,0 +1,18 @@
+---
+description: ViralLab main content footer - fixed at bottom of viewport, aligned with sidebar
+alwaysApply: false
+---
+
+# Main Content Footer Layout
+
+When making UI updates to ViralLab, **do not change the footer's position** in the main content area.
+
+The footer must remain:
+- **Fixed at bottom of viewport** — stays visible when scrolling (`position: fixed; bottom: 0`)
+- **Aligned with sidebar footer** — same height (80px), left edge at 220px (sidebar width)
+
+Required CSS on `footer`:
+- `position: fixed; bottom: 0; left: 220px; right: 0; height: var(--footer-height)`
+
+Required on `main.main-content`:
+- `padding-bottom: calc(2rem + var(--footer-height))` so content doesn't hide behind footer

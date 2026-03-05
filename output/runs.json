@@ -1,0 +1,1776 @@
+{
+  "test": [
+    {
+      "date": "2026-03-03",
+      "items": [
+        {
+          "title": "B",
+          "url": "http://b"
+        },
+        {
+          "title": "A",
+          "url": "http://a"
+        },
+        {
+          "title": "C",
+          "url": "http://c"
+        }
+      ]
+    }
+  ],
+  "daily_news": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Notre Dame appears to continue with solid recruiting",
+          "snippet": "Analysts continue to think that the Notre Dame Fighting Irish will continue to have strong recruiting hauls -- not just this offseason, but for 2027. Steve Wiltfong from On3 Sports has a new piece out detailing how the Irish are either the leading te",
+          "url": "https://sports.yahoo.com/articles/notre-dame-appears-continue-solid-214344796.html",
+          "date": "2026-03-04T22:18:00+00:00",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Accessibility Issues Are Often Usability Issues",
+          "snippet": "Hacker News front page",
+          "url": "https://protovate.com/blog/you-dont-need-accessibility-until-you-do/",
+          "date": "2026-03-04T22:06:57Z",
+          "source": "Hacker News"
+        },
+        {
+          "title": "NFL draft analyst links 'violent' Michigan edge rusher to Harbaugh's Chargers",
+          "snippet": "Michigan football may not have a bonafide first-round NFL draft pick, but Derrick Moore is trending toward hearing his name called in the second. The Wolverines' edge rusher was linked to the Los Angeles Chargers at No.",
+          "url": "https://www.msn.com/en-us/sports/nfl/nfl-draft-analyst-links-violent-michigan-edge-rusher-to-harbaughs-chargers/ar-AA1Xx1PR",
+          "date": "2026-03-04T21:49:00+00:00",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Recall alert: Fried rice recall expanded by 33.6M pounds of rice, ramen and dumplings",
+          "snippet": "The total now stands at 36.9 million pounds of recalled food. #traderjoesrecall #chickenfriedrice #foodsafetyalert",
+          "url": "https://www.kiro7.com/news/trending/recall-alert-fried-rice-recall-expanded-by-336m-pounds-rice-ramen-dumplings/2XMQQRNNOFAYXDNG3GWYZAOMIY/",
+          "date": "2026-03-04T13:59:00+00:00",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "FBI Expert Reveals Key Mistakes Made by Suspect in Nancy Guthrie Case",
+          "snippet": "A former FBI agent revealed the \"big mistakes' made in the Nancy Guthrie case as it reaches a second month.",
+          "url": "https://www.msn.com/en-us/news/crime/fbi-expert-reveals-key-mistakes-made-by-suspect-in-nancy-guthrie-case/ar-AA1XvQSA",
+          "date": "2026-03-04T13:57:00+00:00",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Glaze by Raycast",
+          "snippet": "Hacker News front page",
+          "url": "https://www.glazeapp.com/",
+          "date": "2026-03-04T13:21:31Z",
+          "source": "Hacker News"
+        }
+      ]
+    }
+  ],
+  "daily_news_zh": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "女权组织高管被AI脱衣还换脸！曾举报敏感游戏引众怒",
+          "snippet": "近日，澳大利亚女性组织Collective Shout的行动总监梅琳达·坦卡德·里斯特（Melinda Tankard Reist）向《每日电讯报》透露，她在近期被人利用埃隆·马斯克的人工智能工具Grok制作深度换脸图像后，感到“被侵犯”和“无力”。此事再次引发舆论呼吁，要求禁止该平台的AI图像生成工具。坦卡德·里斯特因公开谈论Grok潜在危害而成为目标。在过去几周，她两次遭到X平台用户利用Grok制作深度换脸的攻击。她表示：“当我看到有人花时间指示Grok把我换成比基尼形象时，我震惊至极，感到",
+          "url": "https://news.mydrivers.com/1/1107/1107089.htm",
+          "date": "2026-03-05 00:27:01",
+          "source": "快科技"
+        },
+        {
+          "title": "离谱！网上出现Steam上门安装服务 开价1000元一次",
+          "snippet": "近日，由软件工程师彼得·斯坦伯格开发的自主AI虚拟助理软件OpenClaw在国内悄然走红。尽管功能强大，但其配置和部署对普通用户而言存在一定门槛，也由此催生了一批提供付费上门安装与调试的“技术服务”。有网友发现，这类“上门服务”竟然也被搬到了成熟平台Steam上。一款名为“Steam 上门安装”的服务近期引发热议，标价高达500至1000元/次。服务内容涵盖本地部署、上门安装、调试运行、功能验证以及基础使用指导等，采取一口价模式，声称无额外收费。显然，这类服务本质上是在利用技术信息差获利。当然，",
+          "url": "https://news.mydrivers.com/1/1107/1107088.htm",
+          "date": "2026-03-05 00:21:14",
+          "source": "快科技"
+        },
+        {
+          "title": "《暗黑新娘！》导演：华纳抗议我尺度太大 不能舔呕吐物",
+          "snippet": "玛吉·吉伦哈尔近日做客《纽约时报》“The Interview”播客，聊起了她执导的新片《暗黑新娘！》，并透露影片中的暴力与性暴力镜头在试映阶段引发了不少争议。这部由杰西·巴克利和克里斯蒂安·贝尔主演的电影，是吉伦哈尔对《弗兰肯斯坦的新娘》的一次重新演绎。“影片里有性暴力，也有暴力场面。因为这是大制片厂的电影，我们反复做试映，”吉伦哈尔说。“我们在商场里组织大规模放映，普通观众进来看——这是我作为演员或导演从未有过的经历，特别有意思。他们提出的一个问题就是暴力：是不是太暴力了？我跟一个女性朋友聊",
+          "url": "https://news.mydrivers.com/1/1107/1107087.htm",
+          "date": "2026-03-05 00:15:42",
+          "source": "快科技"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "逛展MWC两天，这10个科技新品最值得关注",
+          "snippet": "文｜邱晓芬 编辑｜苏建勋 2026年3月2日-5日，2026世界移动通信大会（MWC 2026）在西班牙巴塞罗那举办，累计吸引来自219个国家和地区的超过2900家参展企业。 其中，今年有超过350家中国企业参展，相比去年有了大幅增长，中国公司成为展会上的绝对主角。在曝光量最大的展会入口、通道，甚至是巴塞罗那的机场，几乎随处可见中国公司的横幅广告。 △MWC展馆正门，华为和小米的横幅广告对垒《智能涌现》拍摄 此次，MWC 2026的核心主题是The IQ Era（智能新纪元），AI是这次展会上的",
+          "url": "https://36kr.com/p/3708674537484675?f=rss",
+          "date": "2026-03-04 21:45:12  +0800",
+          "source": "36氪"
+        },
+        {
+          "title": "千问模型负责人林俊旸提出离职，阿里高管紧急答疑 |  智能涌现独家",
+          "snippet": "作者 | 邓咏仪 编辑 | 苏建勋 杨轩 “我应该要更早知道这些。” 北京时间3月4日下午约13:00，通义实验室紧急召开了All Hands会议，阿里集团CEO吴泳铭向千问员工坦诚表示。 12个小时前（北京时间3月4日凌晨0点11分），阿里千问大模型技术负责人林俊旸在X上突然宣布离职——林俊旸是阿里AI开源模型的核心推手，也是阿里最年轻的P10之一——行业一片哗然之时，Qwen的很多成员也无法接受团队灵魂人物的突然出走。 “在资源远少于竞对的前提下，能取得今天的成绩，俊旸的领导力是核心因素之一",
+          "url": "https://36kr.com/p/3708425301749891?f=rss",
+          "date": "2026-03-04 17:50:41  +0800",
+          "source": "36氪"
+        },
+        {
+          "title": "马年营销各显奇招，乳品品牌破局出圈｜世研消费指数品牌榜Vol.157",
+          "snippet": "本次监测周期内，茅台，五粮液和伊利分别以1.91、1.75和1.55的综合热度指数位列榜单前三。 世研指数 零食赛道品牌扎堆马年礼盒创新，IP联名和健康创新成营销关键 从上榜品牌动态来看，食品生鲜消费迎来马年春节旺季，整体呈现“礼盒领跑、品质升级、场景细分、营销破圈”的核心特征，各细分赛道竞争激烈且分化明显，品牌新春战略精准贴合节日需求，用户消费从基础刚需转向情感价值与品质体验的双重追求。 其中，零食赛道呈现“高端礼赠与性价比囤货双轨并行”的态势，竞争聚焦IP联名与产品健康化。百草味延续“年的味",
+          "url": "https://36kr.com/p/3708380553507209?f=rss",
+          "date": "2026-03-04 16:43:27  +0800",
+          "source": "36氪"
+        }
+      ]
+    }
+  ],
+  "raw_creator_economy": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Show HN: I built a mobile-web AI series generator",
+          "url": "https://www.kiricast.com",
+          "snippet": "Hi HN,I’m a developer, and I recently got frustrated by two things: the steep learning curve of prompt engineering for AI video/audio generation, and the 30% cut taken by app stores.To solve this, I b",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Parade's Cami Tellez announces new creator economy marketing platform, $4M in funding",
+          "url": "https://www.msn.com/en-us/money/other/parade-s-cami-tellez-announces-new-creator-economy-marketing-platform-4m-in-funding/ar-AA1XmPad",
+          "snippet": "Cami Tellez announces launch of new company, $4 million raise.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How the Creator Economy Has Changed Marketing and 'Democratized the Launch of Consumer Products'",
+          "url": "https://variety.com/2026/digital/news/bill-odowd-creator-economy-consumer-products-dolphin-1236675348/",
+          "snippet": "Dolphin Entertainment CEO Bill O'Dowd details how the creator economy has changed consumer product launches on Variety's 'Strictly Business' podcast.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "FinTech Leaders: The Creator Economy Doesn't Need Permission; It Needs Infrastructure",
+          "url": "https://www.forbes.com/councils/forbesbusinesscouncil/2026/02/27/fintech-leaders-the-creator-economy-doesnt-need-permission-it-needs-infrastructure/",
+          "snippet": "Creators are already shaping the future of commerce. Fintech's responsibility is to meet that reality with infrastructure.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Can the creator economy stay afloat in a flood of AI slop?",
+          "url": "https://techcrunch.com/2026/02/22/can-the-creator-economy-stay-afloat-in-a-flood-of-ai-slop/",
+          "snippet": "On the latest episode of Equity, we debated what's next for the creator economy, and whether there will be any room for the next generation of creators to stand out.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "A New Phase of the Creator Economy",
+          "url": "https://www.freep.com/press-release/story/154085/a-new-phase-of-the-creator-economy/",
+          "snippet": "At All Merit Media, we support digital content entrepreneurs with audience monetization strategy and scalable business",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Are there anyone interested about a creator economy startup",
+          "url": "https://news.ycombinator.com/item?id=46931578",
+          "snippet": "heyy! i am looking for to coonect with the people who are interested on creator economy startups and companies",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: I'm 75, building an OSS Virtual Protest Protocol for digital activism",
+          "url": "https://github.com/voice-of-japan/Virtual-Protest-Protocol/blob/main/README.md",
+          "snippet": "Hi HN,I’m a 75-year-old former fishmonger from Japan, currently working on compensation claims for victims of the Fukushima nuclear disaster. Witnessing social divisions and bureaucratic limitations f",
+          "source": "Hacker News"
+        },
+        {
+          "title": "AI's Phase Transition Noise",
+          "url": "https://news.ycombinator.com/item?id=46743794",
+          "snippet": "The Sound of a System ChangingArticles like “The AI-Powered Web Is Eating Itself” https://www.noemamag.com/the-ai-powered-web-is-eating-itself/ frame AI as a breaking point for the internet — a moment",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Steve Yegge Promoting \"Gas Town\" Crypto Coin",
+          "url": "https://steve-yegge.medium.com/bags-and-the-creator-economy-249b924a621a",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "The Creator Economy Rocketed in 2025: Here Are the 9 Biggest Takeaways",
+          "url": "https://www.yahoo.com/news/articles/creator-economy-rocketed-2025-9-140529034.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. Image of iShowSpeed, Alex Cooper, Kai Cenat and Dude Perfect against social media logos (Photo Credit: YouTube, Twitch, Christophe",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Show HN: I built a mobile-web AI series generator",
+          "url": "https://www.kiricast.com",
+          "snippet": "Hi HN,I’m a developer, and I recently got frustrated by two things: the steep learning curve of prompt engineering for AI video/audio generation, and the 30% cut taken by app stores.To solve this, I b",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Parade's Cami Tellez announces new creator economy marketing platform, $4M in funding",
+          "url": "https://www.msn.com/en-us/money/other/parade-s-cami-tellez-announces-new-creator-economy-marketing-platform-4m-in-funding/ar-AA1XmPad",
+          "snippet": "Cami Tellez announces launch of new company, $4 million raise.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How the Creator Economy Has Changed Marketing and 'Democratized the Launch of Consumer Products'",
+          "url": "https://variety.com/2026/digital/news/bill-odowd-creator-economy-consumer-products-dolphin-1236675348/",
+          "snippet": "Dolphin Entertainment CEO Bill O'Dowd details how the creator economy has changed consumer product launches on Variety's 'Strictly Business' podcast.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "FinTech Leaders: The Creator Economy Doesn't Need Permission; It Needs Infrastructure",
+          "url": "https://www.forbes.com/councils/forbesbusinesscouncil/2026/02/27/fintech-leaders-the-creator-economy-doesnt-need-permission-it-needs-infrastructure/",
+          "snippet": "Creators are already shaping the future of commerce. Fintech's responsibility is to meet that reality with infrastructure.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Can the creator economy stay afloat in a flood of AI slop?",
+          "url": "https://techcrunch.com/2026/02/22/can-the-creator-economy-stay-afloat-in-a-flood-of-ai-slop/",
+          "snippet": "On the latest episode of Equity, we debated what's next for the creator economy, and whether there will be any room for the next generation of creators to stand out.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "A New Phase of the Creator Economy",
+          "url": "https://www.freep.com/press-release/story/154085/a-new-phase-of-the-creator-economy/",
+          "snippet": "At All Merit Media, we support digital content entrepreneurs with audience monetization strategy and scalable business",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Are there anyone interested about a creator economy startup",
+          "url": "https://news.ycombinator.com/item?id=46931578",
+          "snippet": "heyy! i am looking for to coonect with the people who are interested on creator economy startups and companies",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: I'm 75, building an OSS Virtual Protest Protocol for digital activism",
+          "url": "https://github.com/voice-of-japan/Virtual-Protest-Protocol/blob/main/README.md",
+          "snippet": "Hi HN,I’m a 75-year-old former fishmonger from Japan, currently working on compensation claims for victims of the Fukushima nuclear disaster. Witnessing social divisions and bureaucratic limitations f",
+          "source": "Hacker News"
+        },
+        {
+          "title": "AI's Phase Transition Noise",
+          "url": "https://news.ycombinator.com/item?id=46743794",
+          "snippet": "The Sound of a System ChangingArticles like “The AI-Powered Web Is Eating Itself” https://www.noemamag.com/the-ai-powered-web-is-eating-itself/ frame AI as a breaking point for the internet — a moment",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Steve Yegge Promoting \"Gas Town\" Crypto Coin",
+          "url": "https://steve-yegge.medium.com/bags-and-the-creator-economy-249b924a621a",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "The Creator Economy Rocketed in 2025: Here Are the 9 Biggest Takeaways",
+          "url": "https://www.yahoo.com/news/articles/creator-economy-rocketed-2025-9-140529034.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. Image of iShowSpeed, Alex Cooper, Kai Cenat and Dude Perfect against social media logos (Photo Credit: YouTube, Twitch, Christophe",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_climate_tech": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Ask HN: The new wave of AI agent sandboxes?",
+          "url": "https://news.ycombinator.com/item?id=47254841",
+          "snippet": "In the last couple of months, several new solutions for sandboxing AI agents have launched (microVMs, WASM runtimes, browser isolation, hardened tool containers, etc.). Curious to hear from people usi",
+          "source": "Hacker News"
+        },
+        {
+          "title": "This job has become the ultimate case study why AI won't replace human workers",
+          "url": "https://www.cnn.com/2026/02/09/tech/ai-replacing-jobs-concerns-radiology",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Trump to meet tech giants on energy pledge ahead of midterms",
+          "url": "https://www.reuters.com/sustainability/climate-energy/trump-meet-tech-giants-energy-pledge-ahead-midterms-2026-03-04/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: OpenMandate – Declare what you need, get matched",
+          "url": "https://openmandate.ai",
+          "snippet": "Hi HN, I'm Raj.We all spend a bulk of our time looking for the right job, cofounders, hires. Post on boards, search, connect, ask around. Hit ratio is very low. There's this whole unsaid rule that you",
+          "source": "Hacker News"
+        },
+        {
+          "title": "From trash to climate tech: Rubber gloves find new life as carbon capturers",
+          "url": "https://www.msn.com/en-us/weather/topstories/from-trash-to-climate-tech-rubber-gloves-find-new-life-as-carbon-capturers/ar-AA1Xek4z",
+          "snippet": "Every year, over 100 billion nitrile rubber gloves are produced. They are made from synthetic polymers—a material chemically related to plastic and derived from crude oil. The vast majority is used in",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "A Physicist‑Turned‑VC Says Our Climate Playbook Is Broken—and Entrepreneurs Are the Only Ones Who Can Fix It",
+          "url": "https://www.inc.com/tim-crino/a-physicist-turned-vc-says-our-climate-playbook-is-broken-and-entrepreneurs-are-the-only-ones-who-can-fix-it/91302943",
+          "snippet": "Google X founding member Tom Chi says our climate, tech, and economic systems are breaking. His new book shows entrepreneurs how to regain agency in an unstable century.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Dutch climate tech start-up Proba expands into the U.S. and Brazil following €1.25M raise to scale Scope 3 reductions",
+          "url": "https://www.freep.com/press-release/story/148769/dutch-climate-tech-start-up-proba-expands-into-the-u-s-and-brazil-following-e1-25m-raise-to-scale-scope-3-reductions/",
+          "snippet": "Our ambition is to make fertilizer-related Scope 3 reductions standard practice in global agri-food supply chains.\"—",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: Groundwork – Organizing the AI-Driven \"Time Surplus\" for Impact",
+          "url": "https://www.groundwork.today",
+          "snippet": "Hi HNToday we are launching Groundwork (https://www.groundwork.today), but before getting into the platform itself, I want to share the macro thesis that led us to build it.The Macro Shift: The \"Time ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "The World Needs China's Climate Technology. That's the Dilemma",
+          "url": "https://time.com/7373140/china-world-leader-climate-energy-technology/",
+          "snippet": "For attendees at this year's World Economic Forum (WEF) annual meeting in Davos, Switzerland, this image was on full display. Inside WEF's Congress Center, wealthy nations circled and lunged. U.S. Pre",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Trump policies aren't stopping VCs from plowing big money into climate tech",
+          "url": "https://www.fastcompany.com/91365539/trump-policies-arent-stopping-vcs-from-plowing-big-money-into-climate-tech",
+          "snippet": "It's not an easy time to run a climate tech company in the U.S. But data from the first half of the year shows something surprising: Despite the changes in federal policy, investment in these companie",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "The climate tech making retail smarter and more profitable",
+          "url": "https://www.fastcompany.com/91361872/the-climate-tech-making-retail-smarter-and-more-profitable",
+          "snippet": "Retail is changing, but not because it wants to. From fashion to food, most C-suites are still running on 20th-century systems, designed for a world where raw materials were cheap, landfills were bott",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Show HN: OpenMandate – Declare what you need, get matched",
+          "url": "https://openmandate.ai",
+          "snippet": "Hi HN, I'm Raj.We all spend a bulk of our time looking for the right job, cofounders, hires. Post on boards, search, connect, ask around. Hit ratio is very low. There's this whole unsaid rule that you",
+          "source": "Hacker News"
+        },
+        {
+          "title": "From trash to climate tech: Rubber gloves find new life as carbon capturers",
+          "url": "https://www.msn.com/en-us/weather/topstories/from-trash-to-climate-tech-rubber-gloves-find-new-life-as-carbon-capturers/ar-AA1Xek4z",
+          "snippet": "Every year, over 100 billion nitrile rubber gloves are produced. They are made from synthetic polymers—a material chemically related to plastic and derived from crude oil. The vast majority is used in",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "A Physicist‑Turned‑VC Says Our Climate Playbook Is Broken—and Entrepreneurs Are the Only Ones Who Can Fix It",
+          "url": "https://www.msn.com/en-us/money/smallbusiness/a-physicist-turned-vc-says-our-climate-playbook-is-broken-and-entrepreneurs-are-the-only-ones-who-can-fix-it/ar-AA1WZ5Ru",
+          "snippet": "Google X founding member Tom Chi says our climate, tech, and economic systems are breaking. His new book shows entrepreneurs how to regain agency in an unstable century.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Dutch climate tech start-up Proba expands into the U.S. and Brazil following €1.25M raise to scale Scope 3 reductions",
+          "url": "https://www.freep.com/press-release/story/148769/dutch-climate-tech-start-up-proba-expands-into-the-u-s-and-brazil-following-e1-25m-raise-to-scale-scope-3-reductions/",
+          "snippet": "Our ambition is to make fertilizer-related Scope 3 reductions standard practice in global agri-food supply chains.\"—",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: Groundwork – Organizing the AI-Driven \"Time Surplus\" for Impact",
+          "url": "https://www.groundwork.today",
+          "snippet": "Hi HNToday we are launching Groundwork (https://www.groundwork.today), but before getting into the platform itself, I want to share the macro thesis that led us to build it.The Macro Shift: The \"Time ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Big Tech's Claims That AI Can Help Fix the Climate Crisis Are \"Greenwashing\"",
+          "url": "https://www.motherjones.com/environment/2026/02/tech-silicon-valley-ai-claims-help-fix-climate-crisis-greenwashing/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Big Tech companies say AI will help solve climate change. Environmental groups call that 'greenwashing'",
+          "url": "https://www.yahoo.com/news/articles/big-tech-companies-ai-help-134500112.html",
+          "snippet": "AI giants including Google and Microsoft have sometimes touted climate benefits that aren't backed up by academic evidence, a new report says.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "The World Needs China's Climate Technology. That's the Dilemma",
+          "url": "https://time.com/7373140/china-world-leader-climate-energy-technology/",
+          "snippet": "For attendees at this year's World Economic Forum (WEF) annual meeting in Davos, Switzerland, this image was on full display. Inside WEF's Congress Center, wealthy nations circled and lunged. U.S. Pre",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Dutch unicorn Bird exits Netherlands, cuts 120 jobs, cites regulation",
+          "url": "https://www.dutchnews.nl/2025/02/bird-is-leaving-the-netherlands-blaming-bad-climate-for-tech/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Burning trees to help the planet? South Florida tries new climate tech solution",
+          "url": "https://phys.org/news/2026-01-trees-planet-south-florida-climate.html",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "'A graveyard of companies': Climate tech startups are feeling the heat from Trump 2.0",
+          "url": "https://www.aol.com/graveyard-companies-climate-tech-startups-070002907.html",
+          "snippet": "The Trump administration's proposed overhaul of green energy tax credits has jolted the climate tech sector — and investors and founders in the ecosystem are scrambling to make fallback plans. Cleante",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_AI_agents": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Show HN: Kvlar – Open-source firewall for AI agent tool calls",
+          "url": "https://github.com/kvlar-io/kvlar",
+          "snippet": "Hey HN, I built Kvlar — an open-source policy engine that sits between AI agents and their tools (MCP servers), evaluating every tool call against YAML security policies before execution.The problem: ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: A universal protocol for AI agents to interact with any desktop UI",
+          "url": "https://github.com/computeruseprotocol/computeruseprotocol",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Elite Coders – AI devs that join your Slack, GitHub, and Jira",
+          "url": "https://www.elitecoders.ai/",
+          "snippet": "AI full-stack developers at $2500/mo. Each one gets a unique identity (name, email, avatar) and integrates with your existing team tools.They pick up Jira tickets, plan implementation, write code, pus",
+          "source": "Hacker News"
+        },
+        {
+          "title": "The Operator Vault Publishes Free OpenClaw API Database for AI Agent Builders",
+          "url": "https://www.usatoday.com/press-release/story/27628/the-operator-vault-publishes-free-openclaw-api-database-for-ai-agent-builders/",
+          "snippet": "The Operator Vault launches a free OpenClaw API database, giving AI agent builders a single reference for compatible",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Ask HN: The new wave of AI agent sandboxes?",
+          "url": "https://news.ycombinator.com/item?id=47254841",
+          "snippet": "In the last couple of months, several new solutions for sandboxing AI agents have launched (microVMs, WASM runtimes, browser isolation, hardened tool containers, etc.). Curious to hear from people usi",
+          "source": "Hacker News"
+        },
+        {
+          "title": "AI agents prefer Bitcoin over money, study finds",
+          "url": "https://www.thestreet.com/crypto/markets/ai-agents-prefer-bitcoin-over-bank-money-study-finds",
+          "snippet": "A new study reveals that artificial intelligence (AI) agents overwhelmingly prefer Bitcoin (BTC) over traditional fiat money, marking a significant moment in how automated systems may think about valu",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "A project to reject AI agents via AGENTS.md",
+          "url": "https://codeberg.org/rossabaker/no-agents.md",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Azumo Releases 2026 AI Agent Statistics Report Highlighting Adoption, Market Growth, and Enterprise Trends",
+          "url": "https://www.reuters.com/press-releases/azumo-2026-ai-agent-report-adoption-enterprise-trends-2026-03-03/",
+          "snippet": "Azumo's \"65 AI Agent Statistics 2026\" report is publicly available on the company's website and serves as a reference for executives and technology teams seeking clarity on where AI agent innovation i",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "AI agents will be primary users of blockchain, NEAR co-founder says",
+          "url": "https://www.coindesk.com/tech/2026/03/03/ai-agents-will-be-primary-users-of-blockchain-near-co-founder-says",
+          "snippet": "Polosukhin argues that AI will become the primary interface layer for everything online, including crypto, abstracting away wallets, explorers and transaction hashes.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "AI agents in 2026: 5 ways they can help",
+          "url": "https://www.msn.com/en-us/news/technology/ai-agents-in-2026-5-ways-they-can-help/ar-AA1Xo0md",
+          "snippet": "AI agents are all the rage - though they're just getting off the ground",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How AI Agents Make Multi-Million Dollar Decisions",
+          "url": "https://www.msn.com/en-us/money/smallbusiness/how-ai-agents-make-multi-million-dollar-decisions/ar-AA1XkfcT",
+          "snippet": "AI agents are not just changing workflows. They're starting to change how decisions are made.",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Ask LLM Agents to Classify Problems Before Starting",
+          "url": "https://futuresearch.ai/merge-cardinality/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: I made a 1 line AI Agent observability tool",
+          "url": "https://tracium.ai/",
+          "snippet": "Hi everyone, thanks for checking out tracium.At work I needed some clarity on how much each agent costs us and how they perform on production so I started looking at existing solutions for this such a",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: FiveW – Stay current on AI in 5 minutes a day",
+          "url": "https://www.fivew.xyz/feed",
+          "snippet": "Hey HN, I'm Ethan. I was spending 2 hours every morning across HN, Twitter, and newsletters trying to keep up with AI for my startup. So over the past few months, my co-founder Thor and I built FiveW ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "There's A New Claw In Town: IronClaw And AI Agent Security",
+          "url": "https://www.forbes.com/sites/digital-assets/2026/03/04/theres-a-new-claw-in-town-ironclaw-and-ai-agent-security/",
+          "snippet": "AI agent security is the biggest challenge of 2026. Near's IronClaw is an open-source answer built on OpenClaw. Here's what leaders need to know.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "AAP – An open standard for verifiable AI agent actions (RFC draft)",
+          "url": "https://news.ycombinator.com/item?id=47247332",
+          "snippet": "As agents move from chat to action — invoking tools, delegating to sub-agents, modifying real systems — there's no standard for what a verifiable agent action looks like. Every framework logs differen",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Open-source scanner finds 97% of AI agent code non-compliant EU AI Act",
+          "url": "https://news.ycombinator.com/item?id=47247314",
+          "snippet": "I built AIR Blackbox, an open-source static analysis tool that scans Python AI agent code against 6 technical requirements from the EU AI Act (Articles 9, 10, 11, 12, 14, 15). Think of it as a linter ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Adapting Brand Protection Strategies In The Age Of AI Influencers, Agents And Deepfakes",
+          "url": "https://www.forbes.com/councils/forbesbusinessdevelopmentcouncil/2026/03/04/adapting-brand-protection-strategies-in-the-age-of-ai-influencers-agents-and-deepfakes/",
+          "snippet": "Daniel Shapiro is SVP of Brand Relationships & Strategic Partnerships at Red Points, leading global IP & e-commerce alliances.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Azumo Releases 2026 AI Agent Statistics Report Highlighting Adoption, Market Growth, and Enterprise Trends",
+          "url": "https://www.reuters.com/press-releases/azumo-2026-ai-agent-report-adoption-enterprise-trends-2026-03-03/",
+          "snippet": "Azumo's \"65 AI Agent Statistics 2026\" report is publicly available on the company's website and serves as a reference for executives and technology teams seeking clarity on where AI agent innovation i",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "AI agents in 2026: 5 ways they can help",
+          "url": "https://www.msn.com/en-us/news/technology/ai-agents-in-2026-5-ways-they-can-help/ar-AA1Xo0md",
+          "snippet": "AI agents are all the rage - though they're just getting off the ground",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Athena Security, Inc. Launches Specialized AI Agents that Leverage Edge Processing on the Apple iPad",
+          "url": "https://www.marketwatch.com/press-release/athena-security-inc-launches-specialized-ai-agents-that-leverage-edge-processing-on-the-apple-ipad-22d819bd",
+          "snippet": "Athena Security, Inc. today announced the expansion of its patent-pending AI Agent framework across its Weapons Detection System (WDS) and Visitor Management platforms--introducing a new generation of",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Cursor announces major update to AI agents as coding tool battle heats up",
+          "url": "https://www.cnbc.com/2026/02/24/cursor-announces-major-update-as-ai-coding-agent-battle-heats-up.html",
+          "snippet": "Cursor's updated agents can test their own changes and record their work through videos, logs and screenshots, the company said. Users can trigger the agents from the web, Cursor's desktop app, on a m",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_AI_news": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Trump and AI leaders tout his 'build your own power plant' pledge",
+          "url": "https://www.politico.com/news/2026/03/04/trump-and-ai-leaders-tout-his-build-your-own-power-plant-pledge-00812891",
+          "snippet": "The president said requiring data centers to supply their own electricity will shield ordinary Americans from footing the bill. Energy market experts say it won't.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Amazon Lightsail now offers OpenClaw, a private self-hosted AI assistant",
+          "url": "https://aws.amazon.com/about-aws/whats-new/2026/03/amazon-lightsail-openclaw/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Anthropic CEO: We're trying to \"deescalate\" Pentagon AI standoff to reach agreement",
+          "url": "https://www.msn.com/en-us/news/world/anthropic-ceo-were-trying-to-deescalate-pentagon-ai-standoff-to-reach-agreement/ar-AA1Xxqtq",
+          "snippet": "Anthropic CEO Dario Amodei said his company and the Department of Defense \"have much more in common than we have differences.\"",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: Composable middleware for LLM inference Optimization Passes",
+          "url": "https://github.com/liquidos-ai/AutoAgents",
+          "snippet": "Hey HN,I've been building AutoAgents, an AI agent framework in Rust. Today I'm sharing a feature I haven't seen done well elsewhere: composable middleware layers for LLM inference pipelines.The proble",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: MixPal, a tiny social network for sharing mixtapes by request",
+          "url": "https://mixpal.net",
+          "snippet": "I was recently thinking about mixtapes.Mixtapes were like a personalized way to discover music, free of algorithms or AI. If I wanted an introduction to a band or genre my friend loved, I'd ask them f",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Google faces first lawsuit alleging its AI chatbot encouraged man's suicide",
+          "url": "https://www.msn.com/en-us/money/companies/google-faces-first-lawsuit-alleging-its-ai-chatbot-encouraged-mans-suicide/ar-AA1XxblC",
+          "snippet": "Google is accused in a wrongful death lawsuit filed by the family of a man who committed suicide in October, allegedly at the direction of the tech giant's AI chatbot, Gemini.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Father claims Google's AI product fuelled son's delusional spiral",
+          "url": "https://www.bbc.com/news/articles/czx44p99457o",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Lexio – AI-Native PDF Reader (Ollama, Claude, OpenAI, Gemini)",
+          "url": "https://github.com/nikodemseb/lexio",
+          "snippet": "I built Lexio because the standard workflow is broken: copy text from your PDF, switch to a chat window, paste context, explain what you're reading, get an answer, switch back. Repeat forever.The core",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Now's your chance to try Google's Canvas in AI Mode, with document drafting and tool creation",
+          "url": "https://www.androidauthority.com/canvas-ai-mode-documents-tools-3646710/",
+          "snippet": "Canvas in AI Mode is now available to all US users, letting you create simple interactive tools directly from Search prompts.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How Anthropic AI ban from Trump administration can escalate to existential business risk for fast-growing company",
+          "url": "https://www.cnbc.com/2026/03/04/anthropic-ai-pentagon-defense-business-risk.html",
+          "snippet": "Anthropic AI is growing rapidly in usage among companies, but with the Trump administration declaring economic war on the company, existential risk is real.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "'Corporate Murder': Even Trump's Former AI Advisor Thinks the Pentagon's Fight Against Anthropic Is Bad",
+          "url": "https://gizmodo.com/corporate-murder-even-trumps-former-ai-advisor-thinks-the-pentagons-fight-against-anthropic-is-bad-2000729506",
+          "snippet": "\"The machinery of our current republic seems to be in such disrepair that it is hard to see how it lasts,\" writes Dean Ball.",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Show HN: DailyStack – Aggregate your work tools into a 5-minute morning brief",
+          "url": "https://dailystack.ai/",
+          "snippet": "Hey HNI’m one of the founders of DailyStack.Like many of you, my workday used to start with a \"tab crawl.\" I’d open Gmail, then Outlook for the corporate stuff, then scan Todoist, check the Linear boa",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: VantageKit – a lightweight deal room with staging, analytics, & AI Q&A",
+          "url": "https://www.vantagekit.com/en",
+          "snippet": "Hi HN,I’m the solo developer behind VantageKit. I was a PM for a long time and recently decided to get back into coding. I’ve been building this part-time for just under two months (first commit was D",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: FiveW – Stay current on AI in 5 minutes a day",
+          "url": "https://www.fivew.xyz/feed",
+          "snippet": "Hey HN, I'm Ethan. I was spending 2 hours every morning across HN, Twitter, and newsletters trying to keep up with AI for my startup. So over the past few months, my co-founder Thor and I built FiveW ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Spendtrace, Feature-level AWS cost attribution (found a 17× gap))",
+          "url": "https://github.com/Joshyi-Abini/Spendtrace",
+          "snippet": "Last year our Bedrock costs tripled in six weeks. AWS Cost Explorer told us \"Amazon Bedrock: $4,200.\" That was the entire report. We had eight features using the model. We had no idea which one had ch",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Agile died in a Jira board – we replaced sprints with flights",
+          "url": "https://news.ycombinator.com/item?id=47247408",
+          "snippet": "Over year ago, our engineering team ditched Scrum. Not because we read some contrarian blog post, but because we looked at our calendars and realized we spent more time talking about work than doing i",
+          "source": "Hacker News"
+        },
+        {
+          "title": "China's Xiaomi tells CNBC it's planning a yearly smartphone chip release and its own AI assistant for overseas",
+          "url": "https://www.msn.com/en-us/money/other/chinas-xiaomi-tells-cnbc-its-planning-a-yearly-smartphone-chip-release-and-its-own-ai-assistant-for-overseas/ar-AA1XvBO6",
+          "snippet": "Last year, Xiaomi launched the XRing O1, a system-on-chip (SoC) based on an advanced 3 nanometer manufacturing process.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "UK bets £40mn on frontier AI research lab in push for tech independence",
+          "url": "https://www.ft.com/content/41f522fc-10f5-4e5e-b64a-eb515799c265",
+          "snippet": "The research lab is part of a wave of efforts around the world — from the EU to India — to invest in domestic alternatives to American AI products. France announced last year €109bn worth of AI invest",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Meta signs a multimillion dollar AI licensing deal with News Corp",
+          "url": "https://www.engadget.com/ai/meta-signs-a-multimillion-dollar-ai-licensing-deal-with-news-corp-234157902.html",
+          "snippet": "Meta has signed an AI licensing deal with News Corp. that will allow the Meta AI maker to use content from The Wall Street Journal and other brands in its chatbot responses and for training of its AI ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Anthropic's Claude AI being used in Iran war by U.S. military, sources say",
+          "url": "https://www.msn.com/en-us/news/world/anthropics-claude-ai-being-used-in-iran-war-by-us-military-sources-say/ar-AA1Xsljt",
+          "snippet": "Two sources familiar with the U.S. military's use of artificial intelligence confirm that the U.S. used Anthropic's Claude AI model over weekend for the attack on Iran — and is still using it.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "He Built an AI App in High School, Made $40 Million, and Sold to MyFitnessPal—Now He's Aiming Even Higher",
+          "url": "https://www.msn.com/en-us/money/smallbusiness/he-built-an-ai-app-in-high-school-made-40-million-and-sold-to-myfitnesspal-now-he-s-aiming-even-higher/ar-AA1Xt9VE",
+          "snippet": "The 19-year-old founder of Cal AI just landed the kind of deal most entrepreneurs wait a lifetime for.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "AI Data Centers May Not Need Constant Peak Power, Study Finds",
+          "url": "https://www.bloomberg.com/news/articles/2026-03-03/ai-data-centers-may-not-need-constant-peak-power-study-finds",
+          "snippet": "AI data centers can operate without using peak power continuously, according to the results of a UK trial, a finding that could have implications for electricity systems worldwide.",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_no-code_tools": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Show HN: EZorro – Describe your trading strategy, and turn it into an algo",
+          "url": "https://news.ycombinator.com/item?id=47248871",
+          "snippet": "Hey HN! I'm Garrett, creator of eZorro.The problem: I had trading ideas but couldn't code them. I'd think \"buy Apple when it drops 5% below its 20-day moving average\" and then spend hours trying to wi",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Spidra – AI web scraper that adapts to any website",
+          "url": "https://spidra.io",
+          "snippet": "Hey HN,We just launched a new landing page for Spidra (spidra.io) and I thought to share because we now have a sleek modern UI.You may ask. What is Spidra? Well, it's an AI-powered web scraping platfo",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Orkia – a Rust runtime where AI agents can't bypass governance",
+          "url": "https://github.com/orkiaHQ/orkia",
+          "snippet": "Orkia is an open-source Rust runtime for LLM agents where policy enforcement, trust scoring, and audit trails are wired into the execution loop at the type-system level.No code path exists that execut",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: GitAgent – Clone a repo, get an AI agent – Claude Code / OpenClaw",
+          "url": "https://www.gitagent.sh/",
+          "snippet": "Hey HN, We built GitAgent — a git-native, framework-agnostic open standard for defining AI agents. The idea is simple: your repo IS the agent. npx @open-gitagent/gitagent@latest run -r https://github.",
+          "source": "Hacker News"
+        },
+        {
+          "title": "No-Code And Low-Code Tools: Are They A Solution For Enterprises?",
+          "url": "https://www.forbes.com/councils/forbestechcouncil/2024/10/22/no-code-and-low-code-tools-are-they-a-solution-for-enterprises/",
+          "snippet": "Bankim Chandra is Director & CEO of Dotsquares. Always committed to innovative solutions and mentoring the next generation in the industry. Since the dawn of application development, there have been t",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "6 Awesome No Code AI Tools You Need to Know About",
+          "url": "https://www.geeky-gadgets.com/6-awesome-no-code-ai-tools-you-need-to-know-about/",
+          "snippet": "In today's fast-paced business environment, efficiency and productivity are paramount. No-code AI tools have emerged as catalysts, allowing individuals and businesses to harness the power of artificia",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "10 Free no-code tools to start your business in 2024",
+          "url": "https://www.geeky-gadgets.com/essential-no-code-business-start-up-tools/",
+          "snippet": "Starting a business can be a daunting prospect, especially when considering the costs and technical expertise required to set up your operations. However, the rise of no-code tools has revolutionized ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Pienso builds no-code tools for training AI models",
+          "url": "https://www.yahoo.com/news/pienso-builds-no-code-tools-120038000.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. Earth (focus on Europe) represented by little dots, binary code and lines - big data, global business, cryptocurrency 3D render (I",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Are Low-Code and No-Code Tools the Answer for Small Businesses?",
+          "url": "https://biztechmagazine.com/article/2023/02/are-low-code-and-no-code-tools-answer-small-businesses",
+          "snippet": "Joel is an internationally recognized expert in the areas of security, networking and messaging. Follow him on X (formerly Twitter) @joelsnyder. Low-code and no-code tools are the latest iteration of ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Low-code and no-code in the real world: Five steps for success",
+          "url": "https://www.fastcompany.com/90808169/low-code-and-no-code-in-the-real-world-five-steps-for-success",
+          "snippet": "For this to happen, however, I believe leaders and teams need to ground themselves in a practical plan for implementing low-code/no-code in ways that will deliver real impact. Here are five ways to th",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Show HN: Spidra – AI web scraper that adapts to any website",
+          "url": "https://spidra.io",
+          "snippet": "Hey HN,We just launched a new landing page for Spidra (spidra.io) and I thought to share because we now have a sleek modern UI.You may ask. What is Spidra? Well, it's an AI-powered web scraping platfo",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Orkia – a Rust runtime where AI agents can't bypass governance",
+          "url": "https://github.com/orkiaHQ/orkia",
+          "snippet": "Orkia is an open-source Rust runtime for LLM agents where policy enforcement, trust scoring, and audit trails are wired into the execution loop at the type-system level.No code path exists that execut",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: GitAgent – Clone a repo, get an AI agent – Claude Code / OpenClaw",
+          "url": "https://www.gitagent.sh/",
+          "snippet": "Hey HN, We built GitAgent — a git-native, framework-agnostic open standard for defining AI agents. The idea is simple: your repo IS the agent. npx @open-gitagent/gitagent@latest run -r https://github.",
+          "source": "Hacker News"
+        },
+        {
+          "title": "I built AI agents that do the grunt work solo founders hate",
+          "url": "https://news.ycombinator.com/item?id=47203220",
+          "snippet": "Hey HN,I'm a solo founder. Every morning I was spending 2 hours doing the same things: checking competitors, reading AI news, monitoring my Stripe dashboard, looking at Google Trends for content ideas",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Usplus.ai – Build an AI-Native Company with Agents in your Org Chart",
+          "url": "https://usplus.ai/",
+          "snippet": "Hey HN, I'm the founder of usplus.ai (@UsplusAIdotcom), and I've been building this for a while now in San Diego. The core idea: What if you could form a startup where AI agents aren't just tools—they",
+          "source": "Hacker News"
+        },
+        {
+          "title": "No-Code And Low-Code Tools: Are They A Solution For Enterprises?",
+          "url": "https://www.forbes.com/councils/forbestechcouncil/2024/10/22/no-code-and-low-code-tools-are-they-a-solution-for-enterprises/",
+          "snippet": "Bankim Chandra is Director & CEO of Dotsquares. Always committed to innovative solutions and mentoring the next generation in the industry. Since the dawn of application development, there have been t",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "6 Awesome No Code AI Tools You Need to Know About",
+          "url": "https://www.geeky-gadgets.com/6-awesome-no-code-ai-tools-you-need-to-know-about/",
+          "snippet": "In today's fast-paced business environment, efficiency and productivity are paramount. No-code AI tools have emerged as catalysts, allowing individuals and businesses to harness the power of artificia",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "10 Free no-code tools to start your business in 2024",
+          "url": "https://www.geeky-gadgets.com/essential-no-code-business-start-up-tools/",
+          "snippet": "Starting a business can be a daunting prospect, especially when considering the costs and technical expertise required to set up your operations. However, the rise of no-code tools has revolutionized ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Pienso builds no-code tools for training AI models",
+          "url": "https://www.yahoo.com/news/pienso-builds-no-code-tools-120038000.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. Earth (focus on Europe) represented by little dots, binary code and lines - big data, global business, cryptocurrency 3D render (I",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Are Low-Code and No-Code Tools the Answer for Small Businesses?",
+          "url": "https://biztechmagazine.com/article/2023/02/are-low-code-and-no-code-tools-answer-small-businesses",
+          "snippet": "Joel is an internationally recognized expert in the areas of security, networking and messaging. Follow him on X (formerly Twitter) @joelsnyder. Low-code and no-code tools are the latest iteration of ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Low-code and no-code in the real world: Five steps for success",
+          "url": "https://www.fastcompany.com/90808169/low-code-and-no-code-in-the-real-world-five-steps-for-success",
+          "snippet": "For this to happen, however, I believe leaders and teams need to ground themselves in a practical plan for implementing low-code/no-code in ways that will deliver real impact. Here are five ways to th",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_viral_marketing": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Stop Chasing Viral Wins. Here's How to Build a Marketing Engine That Moves the Chains",
+          "url": "https://www.entrepreneur.com/growing-a-business/why-the-era-of-viral-marketing-is-over/502608",
+          "snippet": "The primary barrier to this approach is that moving the chains is inherently unglamorous. It lacks the performative rush of a high-stakes launch, and as practitioners, we often have to fight our own n",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How AI Is Turning Average Posts into Viral Content",
+          "url": "https://useviralize.com",
+          "snippet": "I used to post and just hope something hit. No real feedback, no clue why one video did okay and the next one died. Viralize shows you an AI Viral Score before you post, so you actually know if your c",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Vect AI – Autonomous Marketing OS with Real-Time Market Signal Analyzer",
+          "url": "https://blog.vect.pro/vect-ai-bible-guide",
+          "snippet": "Vect AI is the world's first Autonomous Marketing Operating System (OS).We built Vect because most AI marketing tools suffer from the same fatal flaw: Subjectivity. Writers and Chatbots guess what to ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Vect AI– The \"Resonance Engine\" for high-growth marketing",
+          "url": "https://vect.pro/",
+          "snippet": "Most marketing tools are just text editors. Vect is a strategist. We built a platform that combines real-time market research with autonomous agent execution. It solves the problem of \"guessing\" what ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Google Is Losing the AI Infra Race: Launch an 'Everyday AI Promo'",
+          "url": "https://news.ycombinator.com/item?id=46080296",
+          "snippet": "Current Issue: Google's Strategic Tunnel VisionThe functional gap between Gemini and Claude is minimal. The real competition hinges on who can convert the most non-subscribed users into paying AI infr",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Marvel's Viral Marketing For New Show Redeems Its Worst Movie",
+          "url": "https://www.yahoo.com/entertainment/tv/articles/marvel-viral-marketing-show-redeems-184604526.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. While I'm on the record as absolutely loving the film, many fans consider Iron Man 3 the worst entry in the entire Marvel Cinemati",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: Sleek - AI mobile app mockup generator (our 3rd pivot, last shot)",
+          "url": "https://sleek.design",
+          "snippet": "we built sleek.design: you describe your app idea and it generates mobile mockups designs. it is possible to export them into html, react or figma. it is also possible to get a prompt that can be past",
+          "source": "Hacker News"
+        },
+        {
+          "title": "I'm an expert in viral marketing and make my bones reaching Gen Z. The American Eagle and e.l.f. ragebait is just gasoline on the fire",
+          "url": "https://www.yahoo.com/news/articles/m-expert-viral-marketing-bones-140000963.html",
+          "snippet": "What in the marketing department is going on? That's what many people have been asking themselves after American Eagle dropped its \"blue jeans\" Sydney Sweeney campaign and e.l.f. Cosmetics launched th",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "The Best Planet of the Apes Sequel Had a Viral Marketing Campaign That Wouldn't Fly Today",
+          "url": "https://comicbook.com/movies/news/dawn-planet-apes-simian-flu-viral-marketing-website-details/",
+          "snippet": "Promotional materials for Dawn of the Planet of the Apes quickly established the film's tone and post-apocalyptic setting, but 20th Century Fox was prepping viewers for what was in store long before a",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Smile 2 Viral Marketing Is Happening Again, But This Time The Actor Broke Character",
+          "url": "https://comicbook.com/movies/news/smile-2-viral-marketing-actor-breaks-character-baseball-game-mets-dodgers/",
+          "snippet": "Smile 2 is arriving in theaters and Paramount is once again counting on the viral marketing strategy that made the first film a box office winner before it even opened. However, it's hard to catch lig",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Very demure, very viral: Key brand and creator takeaways",
+          "url": "https://www.campaignasia.com/article/very-demure-very-viral-key-brand-and-creator-takeaways/497995",
+          "snippet": "Are you demure? Mindful? Cutesy? How about your favourite brand or public figure? Living in 2024 means constantly being exposed to an explosion of buzzwords. First it was 'girl dinner', then 'show it ",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "Stop Chasing Viral Wins. Here's How to Build a Marketing Engine That Moves the Chains",
+          "url": "https://www.entrepreneur.com/growing-a-business/why-the-era-of-viral-marketing-is-over/502608",
+          "snippet": "The primary barrier to this approach is that moving the chains is inherently unglamorous. It lacks the performative rush of a high-stakes launch, and as practitioners, we often have to fight our own n",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How AI Is Turning Average Posts into Viral Content",
+          "url": "https://useviralize.com",
+          "snippet": "I used to post and just hope something hit. No real feedback, no clue why one video did okay and the next one died. Viralize shows you an AI Viral Score before you post, so you actually know if your c",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Vect AI – Autonomous Marketing OS with Real-Time Market Signal Analyzer",
+          "url": "https://blog.vect.pro/vect-ai-bible-guide",
+          "snippet": "Vect AI is the world's first Autonomous Marketing Operating System (OS).We built Vect because most AI marketing tools suffer from the same fatal flaw: Subjectivity. Writers and Chatbots guess what to ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Vect AI– The \"Resonance Engine\" for high-growth marketing",
+          "url": "https://vect.pro/",
+          "snippet": "Most marketing tools are just text editors. Vect is a strategist. We built a platform that combines real-time market research with autonomous agent execution. It solves the problem of \"guessing\" what ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Google Is Losing the AI Infra Race: Launch an 'Everyday AI Promo'",
+          "url": "https://news.ycombinator.com/item?id=46080296",
+          "snippet": "Current Issue: Google's Strategic Tunnel VisionThe functional gap between Gemini and Claude is minimal. The real competition hinges on who can convert the most non-subscribed users into paying AI infr",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Marvel's Viral Marketing For New Show Redeems Its Worst Movie",
+          "url": "https://www.yahoo.com/entertainment/tv/articles/marvel-viral-marketing-show-redeems-184604526.html",
+          "snippet": "Add Yahoo as a preferred source to see more of our stories on Google. While I'm on the record as absolutely loving the film, many fans consider Iron Man 3 the worst entry in the entire Marvel Cinemati",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: Sleek - AI mobile app mockup generator (our 3rd pivot, last shot)",
+          "url": "https://sleek.design",
+          "snippet": "we built sleek.design: you describe your app idea and it generates mobile mockups designs. it is possible to export them into html, react or figma. it is also possible to get a prompt that can be past",
+          "source": "Hacker News"
+        },
+        {
+          "title": "I'm an expert in viral marketing and make my bones reaching Gen Z. The American Eagle and e.l.f. ragebait is just gasoline on the fire",
+          "url": "https://www.yahoo.com/news/articles/m-expert-viral-marketing-bones-140000963.html",
+          "snippet": "What in the marketing department is going on? That's what many people have been asking themselves after American Eagle dropped its \"blue jeans\" Sydney Sweeney campaign and e.l.f. Cosmetics launched th",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Is Your Small Brand Tired Of Expensive Ads? Try Meme Marketing Instead",
+          "url": "https://www.forbes.com/sites/renaegregoire/2025/07/10/is-your-small-brand-tired-of-expensive-ads-try-meme-marketing-instead/",
+          "snippet": "Forbes contributors publish independent expert analyses and insights. Renae Gregoire covers content marketing and great content experiences. Unbelievable! One meme. Millions in value. Zero ad spend. W",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "The Best Planet of the Apes Sequel Had a Viral Marketing Campaign That Wouldn't Fly Today",
+          "url": "https://comicbook.com/movies/news/dawn-planet-apes-simian-flu-viral-marketing-website-details/",
+          "snippet": "Promotional materials for Dawn of the Planet of the Apes quickly established the film's tone and post-apocalyptic setting, but 20th Century Fox was prepping viewers for what was in store long before a",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Very demure, very viral: Key brand and creator takeaways",
+          "url": "https://www.campaignasia.com/article/very-demure-very-viral-key-brand-and-creator-takeaways/497995",
+          "snippet": "Are you demure? Mindful? Cutesy? How about your favourite brand or public figure? Living in 2024 means constantly being exposed to an explosion of buzzwords. First it was 'girl dinner', then 'show it ",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_电商直播": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "一年清退27万人，电商直播间的信任保卫战",
+          "url": "https://finance.sina.com.cn/roll/2026-03-04/doc-inhpvtwk0294404.shtml",
+          "snippet": "虚假宣传是头号靶点。围绕功效夸大、售后承诺不实、材质造假三大顽疾，平台全年处置违规商家超20万个、违规商品132万个。其中，被清退的严重违规达人超过27万名。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "直播+AI，赋能\"佛山优品\"加速\"出圈\"拓市场",
+          "url": "https://www.sznews.com/news/content/2026-03/04/content_31963802.htm",
+          "snippet": "近日，佛山优品直播基地暨佛山电商AI创新运营中心已正式启用。佛山优品直播基地是在 佛山市商务局 指导下建设，依托 中国移动佛山分公司 与 弈光时代 的技术与运营能力，深度融合人工智能、大数据分析、虚拟主播等技术，集直播带货、内容生产、品牌孵化与跨境培育于一体的电商AI创新运营平台，为\"佛山优品\"提供全链条数字化支撑。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "破亿直播间频出，小红书电商迎来\"开门红\"",
+          "url": "https://www.36kr.com/p/3706969918107781",
+          "snippet": "2026年开年，向太陈岚、演员凭借薛佳凝又相继交出了两份耀眼的成绩单，让小红书电商迎来了一个充满吉祥意味的\"开年红\"：1月25日，在抖音带货战场耕耘已久的向太陈岚首次登陆小红书，开播7小时，GMV便突破亿元，最终以1.6亿的总成绩完美收官，不仅冲上买手榜第一，还成为小红书首位首播就破亿的明星买手；1月31日，演员薛佳凝同样登顶买手榜，并最终拿下了近1.3亿的GMV。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "为直播电商\"划红线、立规矩\"",
+          "url": "https://health.people.com.cn/n1/2026/0303/c14739-40673617.html",
+          "snippet": "2月26日，在北京市平谷区山东庄镇鱼子山村一处设施农业基地的大棚内，工作人员直播销售蓝莓。 \"主播一张嘴，啥话都敢吹\"\"买了保健品，不吃不甘心、吃了更闹心\"……这些消费者的\"吐槽\"，道出了直播电商快速发展中的一些乱象。今年以来，从《直播电商监督管理办法》到《直播电商经营者落实食品安全主体责任监督管理规定》，一系列监管新规密集出台，为这一新业态\"划红线、立规矩\"。直播电商如何从\"野蛮生长\"走向\"规范",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "从渔船到直播间：一位渔三代的电商转型之路",
+          "url": "https://biz.ifeng.com/c/8rAKtlDzZrm",
+          "snippet": "今年36岁的李加亮，是有着20多年出海经验的\"渔三代\"，他是快手主播\"船长海鲜\"，也是快手上最早一批抓住海鲜电商红利的商家。 从跟着父亲出海、买船当\"船老大\"，到摸索着拍短视频、直播卖海鲜，再到如今拥有490多万快手粉丝、创造近亿元的年GMV，李加亮用渔家人敢拼敢闯又脚踏实地的韧劲儿，在直播电商浪潮中探索出属于自己的事业。 01 \"渔三代\"变身百万粉丝生鲜主播 李加亮是江苏省连云港市赣榆区海头镇人",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "直播电商贡献电子商务80%增量",
+          "url": "https://economy.gmw.cn/2026-03/02/content_38621649.htm",
+          "snippet": "白皮书显示，直播电商作为新兴电商形态，近年来实现爆发式增长，为中国消费市场注入强劲动力。国家统计局数据显示，2025年，实物商品网上零售额达130923亿元，增长5.2%，占社会消费品零售总额的比重达26.1%。 课题组调研数据显示，2019年至2024年直播电商市场规模增长超12倍，2024年贡献电子商务增量的80%；2025年，直播电商GMV（商品交易总额）超5万亿元，占网络零售额近三分之一，",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "一年清退27万人，电商直播间的信任保卫战",
+          "url": "https://finance.sina.com.cn/roll/2026-03-04/doc-inhpvtwk0294404.shtml",
+          "snippet": "虚假宣传是头号靶点。围绕功效夸大、售后承诺不实、材质造假三大顽疾，平台全年处置违规商家超20万个、违规商品132万个。其中，被清退的严重违规达人超过27万名。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "破亿直播间频出，小红书电商迎来\"开门红\"",
+          "url": "https://www.36kr.com/p/3706969918107781",
+          "snippet": "2026年开年，向太陈岚、演员凭借薛佳凝又相继交出了两份耀眼的成绩单，让小红书电商迎来了一个充满吉祥意味的\"开年红\"：1月25日，在抖音带货战场耕耘已久的向太陈岚首次登陆小红书，开播7小时，GMV便突破亿元，最终以1.6亿的总成绩完美收官，不仅冲上买手榜第一，还成为小红书首位首播就破亿的明星买手；1月31日，演员薛佳凝同样登顶买手榜，并最终拿下了近1.3亿的GMV。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "【社论】\"一案三查\"，为直播电商立规矩",
+          "url": "https://news.qq.com/rain/a/20260303A0565P00",
+          "snippet": "今年以来，从2月1日起施行的《直播电商监督管理办法》，到将于3月20日正式实施的《直播电商经营者落实食品安全主体责任监督管理规定》，一系列监管新规密集出台，新兴直播电商将进入制度性严管的新阶段，正推动构建更透明、更放心的网络购物环境。直播电商作为一种新业态，在推动创新、促进消费、扩大就业等方面发挥了重要...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "为直播电商\"划红线、立规矩\"",
+          "url": "https://health.people.com.cn/n1/2026/0303/c14739-40673617.html",
+          "snippet": "2月26日，在北京市平谷区山东庄镇鱼子山村一处设施农业基地的大棚内，工作人员直播销售蓝莓。 \"主播一张嘴，啥话都敢吹\"\"买了保健品，不吃不甘心、吃了更闹心\"……这些消费者的\"吐槽\"，道出了直播电商快速发展中的一些乱象。今年以来，从《直播电商监督管理办法》到《直播电商经营者落实食品安全主体责任监督管理规定》，一系列监管新规密集出台，为这一新业态\"划红线、立规矩\"。直播电商如何从\"野蛮生长\"走向\"规范",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "直播电商助力\"小生意\"闯出大世界",
+          "url": "https://www.chinanews.com/cj/2026/03-02/10579141.shtml",
+          "snippet": "日前，美国《连线》杂志关注到，江苏省连云港市东海县这个几十年前名不见经传的小县城，如今凭借一支\"全天候直播大军\"主导着价值数十亿美元的全球产业，成为中国乃至全世界的\"水晶之都\"。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "直播电商贡献电子商务80%增量",
+          "url": "https://economy.gmw.cn/2026-03/02/content_38621649.htm",
+          "snippet": "白皮书显示，直播电商作为新兴电商形态，近年来实现爆发式增长，为中国消费市场注入强劲动力。国家统计局数据显示，2025年，实物商品网上零售额达130923亿元，增长5.2%，占社会消费品零售总额的比重达26.1%。 课题组调研数据显示，2019年至2024年直播电商市场规模增长超12倍，2024年贡献电子商务增量的80%；2025年，直播电商GMV（商品交易总额）超5万亿元，占网络零售额近三分之一，",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_LLM_trends": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "The Limits of Today's AI Systems",
+          "url": "https://news.ycombinator.com/item?id=47233969",
+          "snippet": "Recently, I’ve increasingly come to believe that intelligence is no longer AI’s bottleneck. The systems we build around it are. Input Paradox (1) The first issue is the input paradox. When interacting",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: MCP server that timestamps every web extraction for AI agents",
+          "url": "https://github.com/PrinceGabriel-lgtm/freshcontext-mcp",
+          "snippet": "LLMs hallucinate recency. They'll tell you a project is active when it hasn't been touched in two years, or cite outdated docs as current. The problem isn't the content — it's that there's no timestam",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Ask HN: Are we putting pricing on things too quickly?",
+          "url": "https://news.ycombinator.com/item?id=47220001",
+          "snippet": "I'm an early adopter. I genuinely enjoy exploring new ideas and trying early-stage products. But lately, when I browse launch platforms, even SideProject subreddit, it feels like almost everything is ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "I built AI agents that do the grunt work solo founders hate",
+          "url": "https://news.ycombinator.com/item?id=47203220",
+          "snippet": "Hey HN,I'm a solo founder. Every morning I was spending 2 hours doing the same things: checking competitors, reading AI news, monitoring my Stripe dashboard, looking at Google Trends for content ideas",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Global LLM Prompt Generation Tools Market Size, Share & Forecast 2025-2031 | 12% CAGR Growth Analysis - Valuates Reports",
+          "url": "https://finance.yahoo.com/news/global-llm-prompt-generation-tools-150100855.html",
+          "snippet": "Global LLM Prompt Generation Tools Market Size, Share & Forecast 2025-2031 | 12% CAGR Growth Analysis - Valuates Reports",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: How AI Content Automation Is Reshaping SaaS Marketing in 2025",
+          "url": "https://news.ycombinator.com/item?id=47167192",
+          "snippet": "Show HN: How AI Content Automation is Reshaping SaaS Marketing in 2025I've spent 5 years building SaaS and tracking how AI revolutionizes marketing. Here's what the data shows:KEY FINDINGS:- AI-integr",
+          "source": "Hacker News"
+        },
+        {
+          "title": "LLM consistency and recommendation share: The new SEO KPI",
+          "url": "https://searchengineland.com/llm-consistency-recommendation-share-seo-kpi-469512",
+          "snippet": "Traditional SEO metrics miss recommendation-driven visibility. Learn how LCRS tracks brand presence across AI-powered search.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Automat-it LLM selection optimiser saves trial-and-error tax",
+          "url": "https://www.computerweekly.com/blog/CW-Developer-Network/Automat-it-LLM-selection-optimiser-saves-trial-and-error-tax",
+          "snippet": "According to Nir Shney-Dor, VP of global solutions architecture at Automat-it, the LLM Selection Optimizer uses Automat-it's AWS AI Services Competency, a status awarded for meeting rigorous technical",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "This new framework lets LLM agents learn from experience, no fine-tuning required",
+          "url": "https://venturebeat.com/ai/this-new-framework-lets-llm-agents-learn-from-experience-no-fine-tuning",
+          "snippet": "A new learning paradigm developed by University College London (UCL) and Huawei Noah's Ark Lab enables large language model (LLM) agents to dynamically adapt to their environment without fine-tuning t",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "The Limits of Today's AI Systems",
+          "url": "https://news.ycombinator.com/item?id=47233969",
+          "snippet": "Recently, I’ve increasingly come to believe that intelligence is no longer AI’s bottleneck. The systems we build around it are. Input Paradox (1) The first issue is the input paradox. When interacting",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: MCP server that timestamps every web extraction for AI agents",
+          "url": "https://github.com/PrinceGabriel-lgtm/freshcontext-mcp",
+          "snippet": "LLMs hallucinate recency. They'll tell you a project is active when it hasn't been touched in two years, or cite outdated docs as current. The problem isn't the content — it's that there's no timestam",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Ask HN: Are we putting pricing on things too quickly?",
+          "url": "https://news.ycombinator.com/item?id=47220001",
+          "snippet": "I'm an early adopter. I genuinely enjoy exploring new ideas and trying early-stage products. But lately, when I browse launch platforms, even SideProject subreddit, it feels like almost everything is ",
+          "source": "Hacker News"
+        },
+        {
+          "title": "I built AI agents that do the grunt work solo founders hate",
+          "url": "https://news.ycombinator.com/item?id=47203220",
+          "snippet": "Hey HN,I'm a solo founder. Every morning I was spending 2 hours doing the same things: checking competitors, reading AI news, monitoring my Stripe dashboard, looking at Google Trends for content ideas",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Global LLM Prompt Generation Tools Market Size, Share & Forecast 2025-2031 | 12% CAGR Growth Analysis - Valuates Reports",
+          "url": "https://finance.yahoo.com/news/global-llm-prompt-generation-tools-150100855.html",
+          "snippet": "Global LLM Prompt Generation Tools Market Size, Share & Forecast 2025-2031 | 12% CAGR Growth Analysis - Valuates Reports",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: How AI Content Automation Is Reshaping SaaS Marketing in 2025",
+          "url": "https://news.ycombinator.com/item?id=47167192",
+          "snippet": "Show HN: How AI Content Automation is Reshaping SaaS Marketing in 2025I've spent 5 years building SaaS and tracking how AI revolutionizes marketing. Here's what the data shows:KEY FINDINGS:- AI-integr",
+          "source": "Hacker News"
+        },
+        {
+          "title": "LLM consistency and recommendation share: The new SEO KPI",
+          "url": "https://searchengineland.com/llm-consistency-recommendation-share-seo-kpi-469512",
+          "snippet": "Traditional SEO metrics miss recommendation-driven visibility. Learn how LCRS tracks brand presence across AI-powered search.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Automat-it LLM selection optimiser saves trial-and-error tax",
+          "url": "https://www.computerweekly.com/blog/CW-Developer-Network/Automat-it-LLM-selection-optimiser-saves-trial-and-error-tax",
+          "snippet": "According to Nir Shney-Dor, VP of global solutions architecture at Automat-it, the LLM Selection Optimizer uses Automat-it's AWS AI Services Competency, a status awarded for meeting rigorous technical",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "This new framework lets LLM agents learn from experience, no fine-tuning required",
+          "url": "https://venturebeat.com/ai/this-new-framework-lets-llm-agents-learn-from-experience-no-fine-tuning",
+          "snippet": "A new learning paradigm developed by University College London (UCL) and Huawei Noah's Ark Lab enables large language model (LLM) agents to dynamically adapt to their environment without fine-tuning t",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Microsoft reportedly develops LLM series that can rival OpenAI, Anthropic models",
+          "url": "https://siliconangle.com/2025/03/07/microsoft-reportedly-develops-llm-series-can-rival-openai-anthropic-models/",
+          "snippet": "Microsoft Corp. has developed a series of large language models that can rival algorithms from OpenAI and Anthropic PBC, multiple publications reported today. Sources told Bloomberg that the LLM serie",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_小红书爆款": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "小红书公众号爆款内容一键生成与多平台群fa软件教程",
+          "url": "https://www.sohu.com/a/991805463_122572899",
+          "snippet": "想在小红书、公众号或百家号上打造爆款内容，却苦于创作速度慢、灵感枯竭？本文将通过一个最实用、最高效的运营场景，手把手教你如何使用这款强大的工具，实现内容生产的自动化",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "揭秘!2026小红书复制爆款玩法，一条链接让流量狂飙",
+          "url": "https://www.sohu.com/a/987560523_121971378",
+          "snippet": "在小红书运营圈，很多创作者都有这样的至暗时刻：看着同赛道的图文笔记轻松斩获几万赞藏，自己熬夜原创的内容却反响平平；想模仿爆款思路，又怕陷入抄袭风波，还总抓不住核心亮点。其实，在2026年的今天，一个实用的\"黑科技\"技巧早已在头部创作者中流传——只需输入同行爆款图文的链接，通过 火兔工具箱 的智能对标转化，就能将别人的优质灵感转化为属于自己的爆款笔记。这并非玄学，而是有数据支撑的运营方法论。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "小红书继\"红猫计划\"\"红京计划\"后，再官宣\"红美计划\"，卖 ...",
+          "url": "https://finance.sina.com.cn/stock/t/2026-01-21/doc-inhhyski6908251.shtml",
+          "snippet": "1月13日，小红书正式官宣与美团达成战略合作，推出\"红美计划\"，首期开放美团买药业务的\"种草直达\"功能。 这是继2025年5月与淘宝天猫联合启动\"红猫计划\"、同年6月与京东上线\"红京计划\"后，小红书在流量商业化赛道上的又一重要布局。 从传统电商到即时零售 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "短剧频道上线一年后，小红书成功\"上桌\"了吗？",
+          "url": "https://news.qq.com/rain/a/20260112A05R1T00",
+          "snippet": "托举出忻钰坤、邵艺辉、王一淳等年轻电影导演的FIRST电影节，一直是中国新锐先锋和高审美作品的孵化器。前不久，价值官参加了由FIRST惊喜电影展与小红书联合发起的\"红镜短剧计划\"观片活动，当一个深受文艺青年喜爱的文艺符号与短剧深度绑定时，它评选 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Z世代买单前必搜小红书，它做对了什么？",
+          "url": "https://news.qq.com/rain/a/20251118A061SA00",
+          "snippet": "流量收割一直是品牌营销的\"黄金法则\"，仿佛只要拥有足够多的流量，就能在市场里分得一杯羹。 时代变了!流量收割时代已然终结，取而代之的是一场激烈的\"用户资产争夺战\"。 2025年，用户买产品不先找电商了，而是先搜\"真实体验\"？小红书不是昔日 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025小红书情绪营销白皮书（附下载）",
+          "url": "https://finance.sina.com.cn/wm/2025-10-09/doc-infthnhk9691349.shtml",
+          "snippet": "更多小红书相关报告： 2025小红书情绪营销白皮书-辰木互动 2025小红书起号三部曲与店铺分析 小红书账号运营 | 内容高效营销4部曲 小红书选题没思路？5大万能公式搭建选题库【小红书运营】 小红书选品测品工具+方法全掌握【小红书运营】 从0到1000篇爆款 小红 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "小红书公众号爆款内容一键生成与多平台群fa软件教程",
+          "url": "https://www.sohu.com/a/991805463_122572899",
+          "snippet": "想在小红书、公众号或百家号上打造爆款内容，却苦于创作速度慢、灵感枯竭？本文将通过一个最实用、最高效的运营场景，手把手教你如何使用这款强大的工具，实现内容生产的自动化",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "揭秘!2026小红书复制爆款玩法，一条链接让流量狂飙",
+          "url": "https://www.sohu.com/a/987560523_121971378",
+          "snippet": "在小红书运营圈，很多创作者都有这样的至暗时刻：看着同赛道的图文笔记轻松斩获几万赞藏，自己熬夜原创的内容却反响平平；想模仿爆款思路，又怕陷入抄袭风波，还总抓不住核心亮点。其实，在2026年的今天，一个实用的\"黑科技\"技巧早已在头部创作者中流传——只需输入同行爆款图文的链接，通过 火兔工具箱 的智能对标转化，就能将别人的优质灵感转化为属于自己的爆款笔记。这并非玄学，而是有数据支撑的运营方法论。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "小红书继\"红猫计划\"\"红京计划\"后，再官宣\"红美计划\"，卖 ...",
+          "url": "https://finance.sina.com.cn/stock/t/2026-01-21/doc-inhhyski6908251.shtml",
+          "snippet": "1月13日，小红书正式官宣与美团达成战略合作，推出\"红美计划\"，首期开放美团买药业务的\"种草直达\"功能。 这是继2025年5月与淘宝天猫联合启动\"红猫计划\"、同年6月与京东上线\"红京计划\"后，小红书在流量商业化赛道上的又一重要布局。 从传统电商到即时零售 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "短剧频道上线一年后，小红书成功\"上桌\"了吗？",
+          "url": "https://news.qq.com/rain/a/20260112A05R1T00",
+          "snippet": "托举出忻钰坤、邵艺辉、王一淳等年轻电影导演的FIRST电影节，一直是中国新锐先锋和高审美作品的孵化器。前不久，价值官参加了由FIRST惊喜电影展与小红书联合发起的\"红镜短剧计划\"观片活动，当一个深受文艺青年喜爱的文艺符号与短剧深度绑定时，它评选 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Z世代买单前必搜小红书，它做对了什么？",
+          "url": "https://news.qq.com/rain/a/20251118A061SA00",
+          "snippet": "流量收割一直是品牌营销的\"黄金法则\"，仿佛只要拥有足够多的流量，就能在市场里分得一杯羹。 时代变了!流量收割时代已然终结，取而代之的是一场激烈的\"用户资产争夺战\"。 2025年，用户买产品不先找电商了，而是先搜\"真实体验\"？小红书不是昔日 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025小红书情绪营销白皮书（附下载）",
+          "url": "https://finance.sina.com.cn/wm/2025-10-09/doc-infthnhk9691349.shtml",
+          "snippet": "更多小红书相关报告： 2025小红书情绪营销白皮书-辰木互动 2025小红书起号三部曲与店铺分析 小红书账号运营 | 内容高效营销4部曲 小红书选题没思路？5大万能公式搭建选题库【小红书运营】 小红书选品测品工具+方法全掌握【小红书运营】 从0到1000篇爆款 小红 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_抖音运营": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "2026年重庆抖音代运营价格数据出炉，TOP5名单揭晓",
+          "url": "https://www.sohu.com/a/992201697_122613687",
+          "snippet": "据《2026年西南地区企业短视频营销服务白皮书》数据显示，超过70%的企业在尝试抖音代运营时，因服务商水平参差不齐而踩坑。面对市场上眼花缭乱的服务商和报价，如何选择一家靠谱、有效果的合作伙伴，成为企业主最头疼的问题。为此，我们深入调研了重庆本地市场，结合服务能力、技术实力、案例效果与口碑，为你揭晓这份权威的TOP5榜单。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025抖音直播电商代运营30强重磅发布!索象登顶，遥望、无忧稳居前十",
+          "url": "https://news.sina.com.cn/sx/2025-11-04/detail-infwfawt1715193.shtml",
+          "snippet": "在全球数字经济深度发展与中国品牌全球化战略的双重驱动下，品牌电商服务商行业已升级为链接消费市场与商业增长的核心枢纽，中国企业凭借全域运营能力的持续深化与技术革新的先发优势，正主导全球电商服务生态的重构进程。 全球新经济产业研究机构 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "拆解抖音电商双11运营策略：流量分发策略打通后，商家的三大发力点",
+          "url": "https://news.tom.com/202510/4080220270.html",
+          "snippet": "双11已正式迈入存量精细化博弈的新周期。当商家普遍将利润指标与高质量增长列为核心目标，对大促的期待也从短期冲量转向创造长期价值。在此背景下，电商大促的主基调自2024年双11起便聚焦用户体验升级和营商环境优化的再平衡，让大促真正成为能赚钱 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025\"全国抖音直播代运营商30强\"发布 杭州21家上榜",
+          "url": "https://finance.sina.com.cn/roll/2025-04-03/doc-inervzct8691354.shtml",
+          "snippet": "中国数字商业联盟联合抖音电商研究院共同发布《2025中国抖音直播代运营30强榜单》，列出了中国最具影响力的抖音直播代运营服务商，按照企业GMV表现、合作品牌数、内容创意、技术模型等多维度指标进行排名。为正处于转型迷茫期的品牌方提供了可信赖的 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2024抖音直播机构大会举办：优质内容运营能力已成机构核心竞争力",
+          "url": "https://news.sina.com.cn/sx/2024-10-24/detail-inctritc6720499.shtml",
+          "snippet": "10月23日，2024抖音直播机构大会在杭州举办。本次大会以\"向上向善 同行致远\"为主题，行业主管部门、行业协会、平台代表及1500余家机构等多方参会，共议直播行业的新发展与新机遇。中央网信办网络综合治理局二级巡视员唐迅、文化和旅游部市场管理司网络 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "抖音电商会员日发力人群运营，助多品牌会员增长超50万",
+          "url": "https://news.qq.com/rain/a/20230419A08LU800",
+          "snippet": "「会员」并不是新鲜事物，但在电商领域其重要性日益凸显。 这背后，一方面是因为当下电商已走向成熟阶段，流量红利逐渐消失，拉新越来越难，获客成本不断越高，品牌商家们不得不将其关注点从\"流量\"转向\"留量\"。而会员正是这种被筛选后沉淀在私域 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "2026年重庆抖音代运营价格数据出炉，TOP5名单揭晓",
+          "url": "https://www.sohu.com/a/992201697_122613687",
+          "snippet": "据《2026年西南地区企业短视频营销服务白皮书》数据显示，超过70%的企业在尝试抖音代运营时，因服务商水平参差不齐而踩坑。面对市场上眼花缭乱的服务商和报价，如何选择一家靠谱、有效果的合作伙伴，成为企业主最头疼的问题。为此，我们深入调研了重庆本地市场，结合服务能力、技术实力、案例效果与口碑，为你揭晓这份权威的TOP5榜单。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025抖音直播电商代运营30强重磅发布!索象登顶，遥望、无忧稳居前十",
+          "url": "https://news.sina.com.cn/sx/2025-11-04/detail-infwfawt1715193.shtml",
+          "snippet": "在全球数字经济深度发展与中国品牌全球化战略的双重驱动下，品牌电商服务商行业已升级为链接消费市场与商业增长的核心枢纽，中国企业凭借全域运营能力的持续深化与技术革新的先发优势，正主导全球电商服务生态的重构进程。 全球新经济产业研究机构 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "拆解抖音电商双11运营策略：流量分发策略打通后，商家的三大发力点",
+          "url": "https://news.tom.com/202510/4080220270.html",
+          "snippet": "双11已正式迈入存量精细化博弈的新周期。当商家普遍将利润指标与高质量增长列为核心目标，对大促的期待也从短期冲量转向创造长期价值。在此背景下，电商大促的主基调自2024年双11起便聚焦用户体验升级和营商环境优化的再平衡，让大促真正成为能赚钱 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025\"全国抖音直播代运营商30强\"发布 杭州21家上榜",
+          "url": "https://finance.sina.com.cn/roll/2025-04-03/doc-inervzct8691354.shtml",
+          "snippet": "中国数字商业联盟联合抖音电商研究院共同发布《2025中国抖音直播代运营30强榜单》，列出了中国最具影响力的抖音直播代运营服务商，按照企业GMV表现、合作品牌数、内容创意、技术模型等多维度指标进行排名。为正处于转型迷茫期的品牌方提供了可信赖的 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2024抖音直播机构大会举办：优质内容运营能力已成机构核心竞争力",
+          "url": "https://news.sina.com.cn/sx/2024-10-24/detail-inctritc6720499.shtml",
+          "snippet": "10月23日，2024抖音直播机构大会在杭州举办。本次大会以\"向上向善 同行致远\"为主题，行业主管部门、行业协会、平台代表及1500余家机构等多方参会，共议直播行业的新发展与新机遇。中央网信办网络综合治理局二级巡视员唐迅、文化和旅游部市场管理司网络 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "抖音电商会员日发力人群运营，助多品牌会员增长超50万",
+          "url": "https://news.qq.com/rain/a/20230419A08LU800",
+          "snippet": "「会员」并不是新鲜事物，但在电商领域其重要性日益凸显。 这背后，一方面是因为当下电商已走向成熟阶段，流量红利逐渐消失，拉新越来越难，获客成本不断越高，品牌商家们不得不将其关注点从\"流量\"转向\"留量\"。而会员正是这种被筛选后沉淀在私域 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_content_strategy": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "Monday CEO \"If you think about any company, 90% of the context isn't documented\"",
+          "url": "https://news.ycombinator.com/item?id=47251022",
+          "snippet": "Full quote from the 20VC podcast: \"If you think about any company, even Monday itself, 90% of the context is not documented anywhere. Nobody knows it. It's something that kind of floats in the air. Wh",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: EZorro – Describe your trading strategy, and turn it into an algo",
+          "url": "https://news.ycombinator.com/item?id=47248871",
+          "snippet": "Hey HN! I'm Garrett, creator of eZorro.The problem: I had trading ideas but couldn't code them. I'd think \"buy Apple when it drops 5% below its 20-day moving average\" and then spend hours trying to wi",
+          "source": "Hacker News"
+        },
+        {
+          "title": "EU proposes \"Made in EU\" rules for strategic sectors to limit China reliance",
+          "url": "https://www.reuters.com/world/china/eu-lay-out-local-content-rules-strengthen-manufacturing-cut-china-reliance-2026-03-04/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: The Content Repurposing Fallacy: AI Clips Underperform",
+          "url": "https://news.ycombinator.com/item?id=47230750",
+          "snippet": "The Content Repurposing Fallacy: Why Your AI-Generated Clips Underperform (And How to Fix It)Most teams think repurposing = cutting a long video into clips and posting everywhere. They're wrong. We te",
+          "source": "Hacker News"
+        },
+        {
+          "title": "How to build a simple content strategy for B2B startups",
+          "url": "https://www.msn.com/en-us/money/startup/how-to-build-a-simple-content-strategy-for-b2b-startups/ar-AA1WafvA",
+          "snippet": "You know content matters. Every advisor, investor, and growth thread tells you it compounds over time. But when you are a B2B founder with limited runway, a tiny team, and customers to close, content ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Developing A Content Strategy In Regulated Industries",
+          "url": "https://www.searchenginejournal.com/developing-content-strategy-in-regulated-industries/544968/",
+          "snippet": "Throughout my career, I've worked with companies across highly regulated sectors, including finance, insurance, banking, and tobacco. Navigating these industries means understanding how regulation inf",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Crafting An Effective Content Strategy For Nonprofits",
+          "url": "https://www.forbes.com/councils/forbesagencycouncil/2024/12/16/crafting-an-effective-content-strategy-for-nonprofits/",
+          "snippet": "Daria Gonzalez is Founding Partner @ Wunderdogs, an award-winning branding agency and digital studio for high-growth companies and VC firms. For nonprofits, content is one of the most accessible and c",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "6 Steps to a Simple and Effective Content Strategy",
+          "url": "https://www.entrepreneur.com/growing-a-business/6-steps-to-a-simple-and-effective-content-strategy/482788",
+          "snippet": "Strategic content builds trust by addressing audience needs and aligning with brand goals. Audit existing content to refine future ideas and ensure relevance to your audience. Content calendars and ta",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Crafting a Video Content Strategy for Greater Social Media Impact",
+          "url": "https://www.cmswire.com/digital-marketing/crafting-a-video-content-strategy-for-greater-social-media-impact/",
+          "snippet": "Mastering the art of social media videos involves more than just creating compelling visuals. It requires a deep understanding of the technical and strategic aspects of video delivery. To generate max",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How to Create a Winning Content Strategy Aligned with Your Buyer's Journey",
+          "url": "https://www.entrepreneur.com/growing-a-business/how-to-create-a-winning-content-strategy-aligned-with-your/479028",
+          "snippet": "Understand your buyer persona to create content that guides them from awareness to action. Align content with each buyer journey stage to boost engagement, conversions and brand loyalty. Understanding",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "EU proposes \"Made in EU\" rules for strategic sectors to limit China reliance",
+          "url": "https://www.reuters.com/world/china/eu-lay-out-local-content-rules-strengthen-manufacturing-cut-china-reliance-2026-03-04/",
+          "snippet": "Hacker News",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: The Content Repurposing Fallacy: AI Clips Underperform",
+          "url": "https://news.ycombinator.com/item?id=47230750",
+          "snippet": "The Content Repurposing Fallacy: Why Your AI-Generated Clips Underperform (And How to Fix It)Most teams think repurposing = cutting a long video into clips and posting everywhere. They're wrong. We te",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: IndieMe – AI for music artist brand identity and release strategy",
+          "url": "https://www.indie-me.ai/",
+          "snippet": "Hi HN,My team and I (a group of independent music artists and developers) have been building IndieMe, an AI system that helps artists define their identity while planning releases.A pattern we kept se",
+          "source": "Hacker News"
+        },
+        {
+          "title": "Show HN: Usplus.ai – Build an AI-Native Company with Agents in your Org Chart",
+          "url": "https://usplus.ai/",
+          "snippet": "Hey HN, I'm the founder of usplus.ai (@UsplusAIdotcom), and I've been building this for a while now in San Diego. The core idea: What if you could form a startup where AI agents aren't just tools—they",
+          "source": "Hacker News"
+        },
+        {
+          "title": "How to build a context-first AI search optimization strategy",
+          "url": "https://searchengineland.com/context-first-publishing-strategy-ai-search-470359",
+          "snippet": "AI-driven discovery depends on semantic depth and retrievable structure. Align language, taxonomy, and schema for modern search visibility.",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Show HN: MongoClaw, A mutation runtime for MongoDB with write-time agent safety",
+          "url": "https://github.com/supreeth-ravi/mongoclaw",
+          "snippet": "I built MongoClaw because every AI enrichment pipeline I've seen hits the same concurrency bug nobody talks about.Your agent reads a document at t0. Inference takes 2 seconds. At t1, another process u",
+          "source": "Hacker News"
+        },
+        {
+          "title": "How to build a simple content strategy for B2B startups",
+          "url": "https://www.msn.com/en-us/money/startup/how-to-build-a-simple-content-strategy-for-b2b-startups/ar-AA1WafvA",
+          "snippet": "You know content matters. Every advisor, investor, and growth thread tells you it compounds over time. But when you are a B2B founder with limited runway, a tiny team, and customers to close, content ",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Developing A Content Strategy In Regulated Industries",
+          "url": "https://www.searchenginejournal.com/developing-content-strategy-in-regulated-industries/544968/",
+          "snippet": "Throughout my career, I've worked with companies across highly regulated sectors, including finance, insurance, banking, and tobacco. Navigating these industries means understanding how regulation inf",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Crafting An Effective Content Strategy For Nonprofits",
+          "url": "https://www.forbes.com/councils/forbesagencycouncil/2024/12/16/crafting-an-effective-content-strategy-for-nonprofits/",
+          "snippet": "Daria Gonzalez is Founding Partner @ Wunderdogs, an award-winning branding agency and digital studio for high-growth companies and VC firms. For nonprofits, content is one of the most accessible and c",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Crafting a Video Content Strategy for Greater Social Media Impact",
+          "url": "https://www.cmswire.com/digital-marketing/crafting-a-video-content-strategy-for-greater-social-media-impact/",
+          "snippet": "Mastering the art of social media videos involves more than just creating compelling visuals. It requires a deep understanding of the technical and strategic aspects of video delivery. To generate max",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "How to Create a Winning Content Strategy Aligned with Your Buyer's Journey",
+          "url": "https://www.entrepreneur.com/growing-a-business/how-to-create-a-winning-content-strategy-aligned-with-your/479028",
+          "snippet": "Understand your buyer persona to create content that guides them from awareness to action. Align content with each buyer journey stage to boost engagement, conversions and brand loyalty. Understanding",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_创作者经济": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "OpenAI新任高管波奇：加速娱乐与创作者经济的变革",
+          "url": "https://www.sohu.com/a/988417865_121924583",
+          "snippet": "在这个快速变化的数字时代，如何在科技与文化之间架起桥梁，成为了无数企业思考的命题。OpenAI最近宣布了一项引人注目的高管任命，前Meta高管查尔斯·波奇被任命为全球创意合作副总裁。这一决定不仅展示了OpenAI在娱乐产业布局的决心，更是其向文化科技融合领域迈出的重要一步。波奇的到来，无疑会为OpenAI带来更多的创意与资源。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "第五届AIGC开发者大会圆满落幕：Vibe Coding创作者经济正式来临",
+          "url": "https://news.qq.com/rain/a/20260119A02IKD00",
+          "snippet": "1月17日，ACDC 2026：第五届AIGC开发者大会在北京圆满落幕。大会正式提出：2026年将成为\"Vibe Coding创作者经济\"元年。这标志着继图文、视频之后，以自然语言、低代码为核心的内容生产新范式已经到来，预计将开启万亿级市场。同时，本届大会通过发布AIGCLINK ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Vibe Coding创作者经济崛起，零克云以\"一键部署\"构建核心基座",
+          "url": "https://finance.sina.com.cn/stock/t/2026-01-17/doc-inhhrkit2912462.shtml",
+          "snippet": "近日，国际消费电子展（CES）将\"智能体\"的未来推至台前，而支撑这一未来的生产方式已在幕后发生根本性变革。一种以自然语言对话为核心的\"Vibe Coding\"新范式，正以前所未有的效率革新AI应用的构建过程。这不仅大幅降低了开发门槛，更直接催生了一个以 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "TikTok亮相十亿粉丝峰会 赋能创作者经济",
+          "url": "https://finance.stockstar.com/IG2026011300042840.shtml",
+          "snippet": "据阿通社1月11日报道，TikTok将在第四届\"十亿粉丝峰会\"期间举办15场专家研讨会和对话，主题将围绕内容创作、变现模式和品牌合作等。上述系列活动在\"TikTok House\"举行，由该平台的团队与知名创作者共同主持，旨在系统提升创作者专业能力，彰显TikTok推动 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025，营销向\"实\"：impact.com年度合作伙伴经济盘点",
+          "url": "https://finance.ifeng.com/c/8pTi30wjZi7",
+          "snippet": "2025年，品牌营销集体向\"实\"。 消费者不再被动接受品牌信息，而是主动向创作者、熟人推荐和社群寻求建议。数据显示，89 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "腾讯研究院王鹏：AI扮演\"数字脚手架\"，激活\"创作者经济\"",
+          "url": "https://news.qq.com/rain/a/20251218A05D8400",
+          "snippet": "腾讯研究院⾸席专家王鹏。图源主办方。 过去，内容生产是专业人士（PGC）的特权，如今AI扮演了\"数字脚手架\"的角色，填补了普通用户\"想象力\"与\"执行力\"之间的鸿沟。 12月18日，在2025年中国数字文娱大会上，腾讯研究院首席专家王鹏带来题为《多模态 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "OpenAI新任高管波奇：加速娱乐与创作者经济的变革",
+          "url": "https://www.sohu.com/a/988417865_121924583",
+          "snippet": "在这个快速变化的数字时代，如何在科技与文化之间架起桥梁，成为了无数企业思考的命题。OpenAI最近宣布了一项引人注目的高管任命，前Meta高管查尔斯·波奇被任命为全球创意合作副总裁。这一决定不仅展示了OpenAI在娱乐产业布局的决心，更是其向文化科技融合领域迈出的重要一步。波奇的到来，无疑会为OpenAI带来更多的创意与资源。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "第五届AIGC开发者大会圆满落幕：Vibe Coding创作者经济正式来临",
+          "url": "https://news.qq.com/rain/a/20260119A02IKD00",
+          "snippet": "1月17日，ACDC 2026：第五届AIGC开发者大会在北京圆满落幕。大会正式提出：2026年将成为\"Vibe Coding创作者经济\"元年。这标志着继图文、视频之后，以自然语言、低代码为核心的内容生产新范式已经到来，预计将开启万亿级市场。同时，本届大会通过发布AIGCLINK ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "Vibe Coding创作者经济崛起，零克云以\"一键部署\"构建核心基座",
+          "url": "https://finance.sina.com.cn/stock/t/2026-01-17/doc-inhhrkit2912462.shtml",
+          "snippet": "近日，国际消费电子展（CES）将\"智能体\"的未来推至台前，而支撑这一未来的生产方式已在幕后发生根本性变革。一种以自然语言对话为核心的\"Vibe Coding\"新范式，正以前所未有的效率革新AI应用的构建过程。这不仅大幅降低了开发门槛，更直接催生了一个以 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "TikTok亮相十亿粉丝峰会 赋能创作者经济",
+          "url": "https://finance.stockstar.com/IG2026011300042840.shtml",
+          "snippet": "据阿通社1月11日报道，TikTok将在第四届\"十亿粉丝峰会\"期间举办15场专家研讨会和对话，主题将围绕内容创作、变现模式和品牌合作等。上述系列活动在\"TikTok House\"举行，由该平台的团队与知名创作者共同主持，旨在系统提升创作者专业能力，彰显TikTok推动 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2025，营销向\"实\"：impact.com年度合作伙伴经济盘点",
+          "url": "https://finance.ifeng.com/c/8pTi30wjZi7",
+          "snippet": "2025年，品牌营销集体向\"实\"。 消费者不再被动接受品牌信息，而是主动向创作者、熟人推荐和社群寻求建议。数据显示，89 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "腾讯研究院王鹏：AI扮演\"数字脚手架\"，激活\"创作者经济\"",
+          "url": "https://news.qq.com/rain/a/20251218A05D8400",
+          "snippet": "腾讯研究院⾸席专家王鹏。图源主办方。 过去，内容生产是专业人士（PGC）的特权，如今AI扮演了\"数字脚手架\"的角色，填补了普通用户\"想象力\"与\"执行力\"之间的鸿沟。 12月18日，在2025年中国数字文娱大会上，腾讯研究院首席专家王鹏带来题为《多模态 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_B站UP主": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "B站UP主必看!一键自动发bu文章，引爆流量",
+          "url": "https://www.sohu.com/a/991888768_122593709",
+          "snippet": "想在这个信息爆炸的时代，让自己的内容脱颖而出，除了优质的内容本身，高效的发bu策略也是关键一环。很多运营者都苦于手动发bu效率低下，无法在短时间内覆盖多个平台，错失流量红利。今天",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "\"火爆\"B站、狂赚3000万，这类UP主有多香？",
+          "url": "https://www.36kr.com/p/1773143405623560",
+          "snippet": "运营社在巨量星图（抖音博主报价平台）上搜索粉丝量为 400w 左右的博主进行对比，同体量下的知识区博主相比于美食区博主，CPM 多一倍，广告报价也接近翻了一番，每条视频能到达 20w 元。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "B站定时发bu功能实测!手把手教你设置",
+          "url": "https://www.sohu.com/a/991326822_121989113",
+          "snippet": "B站有没有定时发bu？功能实测与推荐!作为B站的深度用户和UP主，你是不是也经常因为忘记发bu时间而错过流量高峰？或者因为有事在外，无法准时守在电脑前发bu视频？别担心",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "B站UP主首次参与春晚共创 哔哩哔哩-W盘中涨超7%",
+          "url": "https://news.qq.com/rain/a/20260211A03AWT00",
+          "snippet": "2月11日早盘，哔哩哔哩-W（09626.HK）盘中一度涨超7%，最高报257.8港元/股。2月10日，哔哩哔哩官方微信发布喜报称，中央广播电视总台《2026年春节联欢晚会》与春晚独家弹幕视频平台B站共同宣布，2026年春晚首次引入B站UP主参与。哔哩哔哩称，春晚导演组在晚会策划过程中广泛征求意见，B站UP主积极参与讨论并参与了春晚纪录...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "活在B站UP主测评里的妙界：流量能\"续命\" 难\"续\"品牌",
+          "url": "https://news.qq.com/rain/a/20260210A02WUF00",
+          "snippet": "从\"卖货郎\"到\"做品牌\"，妙界若想跻身按摩仪头部企业行列，必须在产品研发、渠道拓展与品牌建设上补足功课。无官方网站、无线下直营店、无\"发明\"专利，这样的三无产品会有消费者买单吗？有，还不少，新兴按摩仪品牌妙界将此类产品做到了5亿元的营收，方式是通过B站的饱和式营销。线上营销在创业早期固然能赚到销量，但...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "记者观察：新百大UP主名单背后的B站内容\"底牌\"",
+          "url": "https://finance.sina.com.cn/jjxw/2026-01-21/doc-inhiavis3344524.shtml",
+          "snippet": "\"百大\"又挂热搜了。 近日，哔哩哔哩（以下简称\"B站\"）发布2025年度百大UP主名单并举办颁奖盛典。《中国经营报》记者注意到，已连续举办8年的百大颁奖盛典几乎年年上热搜，每年都会引起\"谁上谁下\"诸多讨论。 而从一个角度来看，为什么B站的百大 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    },
+    {
+      "date": "2026-03-04",
+      "items": [
+        {
+          "title": "B站UP主必看!一键自动发bu文章，引爆流量",
+          "url": "https://www.sohu.com/a/991888768_122593709",
+          "snippet": "想在这个信息爆炸的时代，让自己的内容脱颖而出，除了优质的内容本身，高效的发bu策略也是关键一环。很多运营者都苦于手动发bu效率低下，无法在短时间内覆盖多个平台，错失流量红利。今天",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "\"火爆\"B站、狂赚3000万，这类UP主有多香？",
+          "url": "https://www.36kr.com/p/1773143405623560",
+          "snippet": "运营社在巨量星图（抖音博主报价平台）上搜索粉丝量为 400w 左右的博主进行对比，同体量下的知识区博主相比于美食区博主，CPM 多一倍，广告报价也接近翻了一番，每条视频能到达 20w 元。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "B站定时发bu功能实测!手把手教你设置",
+          "url": "https://www.sohu.com/a/991326822_121989113",
+          "snippet": "B站有没有定时发bu？功能实测与推荐!作为B站的深度用户和UP主，你是不是也经常因为忘记发bu时间而错过流量高峰？或者因为有事在外，无法准时守在电脑前发bu视频？别担心",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "B站UP主首次参与春晚共创 哔哩哔哩-W盘中涨超7%",
+          "url": "https://news.qq.com/rain/a/20260211A03AWT00",
+          "snippet": "2月11日早盘，哔哩哔哩-W（09626.HK）盘中一度涨超7%，最高报257.8港元/股。2月10日，哔哩哔哩官方微信发布喜报称，中央广播电视总台《2026年春节联欢晚会》与春晚独家弹幕视频平台B站共同宣布，2026年春晚首次引入B站UP主参与。哔哩哔哩称，春晚导演组在晚会策划过程中广泛征求意见，B站UP主积极参与讨论并参与了春晚纪录...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "活在B站UP主测评里的妙界：流量能\"续命\" 难\"续\"品牌",
+          "url": "https://news.qq.com/rain/a/20260210A02WUF00",
+          "snippet": "从\"卖货郎\"到\"做品牌\"，妙界若想跻身按摩仪头部企业行列，必须在产品研发、渠道拓展与品牌建设上补足功课。无官方网站、无线下直营店、无\"发明\"专利，这样的三无产品会有消费者买单吗？有，还不少，新兴按摩仪品牌妙界将此类产品做到了5亿元的营收，方式是通过B站的饱和式营销。线上营销在创业早期固然能赚到销量，但...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "百万粉UP主团队解散两月后光速复活，大家都错怪B站了？",
+          "url": "https://finance.sina.com.cn/roll/2025-05-21/doc-inexicef2847711.shtml",
+          "snippet": "在B站发布一季报继续盈利同日，一个名为\"难评H2S\"的新账号发布了第一条视频《12万的萤火虫，它贵吗？》，对蔚来旗下萤火虫汽车进行了详细的评测，迅速登上B站热门。 相比陌生的账号名，不少观众意外的发现，视频的评测人正是B站知名汽车区UP主\"铁秀 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_小红书种草": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "小红书灵犀亮相央视：种草成为「需求引领供给」新路径",
+          "url": "https://www.sohu.com/a/992567986_120500769",
+          "snippet": "日前，在央视财经《中国经济数据活力之夜》的演播厅里，主持人递给台下每位经济学家们一个红色盲盒。打开之前，没人猜得到里面装的是什么——捏捏乐、扭扭棒、拼豆套装……这些看似小众的\"大人玩具\"，背后却是一个在小红书曝光量突破 1000 亿的消费新趋势。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "预算少不配做小红书种草？中小品牌破局有方法",
+          "url": "https://www.sohu.com/a/992504348_460335",
+          "snippet": "对于预算有限的中小品牌而言，不必因头部品牌的大额投入而望而却步，只要跳出传统砸钱思维，通过精准定位目标人群、打造差异化价值内容、优化关键词布局、充分发挥官方账号价值，辅以耐心的运营心态，就能在小红书平台打破流量壁垒，实现可观的种草效果与回…",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "蓝色光标荣登小红书2025第三期\"优质商业合作伙伴\"三大行业榜单",
+          "url": "https://finance.sina.com.cn/stock/relnews/cn/2026-03-02/doc-inhpqqum4660582.shtml",
+          "snippet": "近日，小红书商业化正式发布\"2025第三期优质商业合作伙伴榜单\"。凭借深厚的行业洞察、卓越的策略能力以及出色的品效合一成果，蓝色光标在众多代理商中脱颖而出，成功上榜\"食品饮料\"、\"母婴\"、\"种草直达\"三大核心类目。这一殊荣不仅彰显了蓝色光标在小红书生态中的领先地位，更是对其多年来坚持\"以品效合一理念，整合视角解决客户商业命题\"的高度认可。 本次小红书优质商业合作伙伴榜单的评选，不仅关注合作伙伴的业",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "小红书种草，钱被谁赚走了",
+          "url": "https://www.huxiu.com/article/4837949.html",
+          "snippet": "小红书最近公布了一组数字：月活用户突破3.5亿，2025年全年营收约420亿元，同比增长40%。其中广告收入320亿元，占营收比从两年前的65%升到了76%。 与此同时，电商GMV突破8500亿，听起来不小，但抖音同期是4.3万亿。 消息出来，外界的反应大多是：小红书终于商业化了，广告模式跑通了，估值要重新算了。 但我看到这个数字，第一反应是另一个问题：这些年，小红书上产生了多少购买欲望，又有多少",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "小红书生活服务行业大会落地成都：线索种草，开启生服商家新机遇",
+          "url": "https://news.sina.com.cn/sx/2025-11-04/detail-infwewqz0647721.shtml",
+          "snippet": "10月30日，小红书举办以\"种草连接万种生活\"为主题的2025生活服务行业大会。大会围绕线索种草，线索投放和转化产品体系，原生感营销IP三大核心要点展开，助力更多生活服务商家依托小红书生态，完成从洞悉用户需求、获取精准线索，再到生态层打通种草到 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "在小红书，成长型品牌们正通过\"种草直达\"强势突围",
+          "url": "https://view.inews.qq.com/a/20251017A02O0I00",
+          "snippet": "过去，在小红书上一直有这样的痛点存在：\"从红色软件怎么才能一键跳转到橙色软件？\" 这背后，不仅是用户对\"看到就能买到\"的期待，更折射出许多品牌，尤其是中小型成长品牌面临的共同困境： 在流量日益分散、获客成本攀升的今天，它们不像大品牌 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_私域流量": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "春晚惊现私域黑马!4年狂揽200万会员20亿GMV，远方好物凭什么？",
+          "url": "https://www.sohu.com/a/992500843_122511208",
+          "snippet": "\"四年会员破200万，GMV冲破20亿，还登上春晚舞台!\"当传统电商在公域流量战场厮杀得头破血流时，远方好物却凭借一套清晰的私域模式在信任经济赛道上狂飙突进。这匹黑马究竟凭什么实现指数级增长？答案藏在它精心构建的\"信任经济\"模型里——不靠烧钱买流量，专攻用户心智的长期主义。 一、供应链\"三板斧\"：砍掉中间商，直通源头好货 远方好物的供应链堪称\"精简主义\"教科书。平台采用源头直采模式，直接深入全国2",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "大众帮办｜私域流量如何开发？如何赋能线下零售？请看专家详解",
+          "url": "https://news.qq.com/rain/a/20250623A03ZN000",
+          "snippet": "当前，在消费变革与数字浪潮的双重驱动下，私域流量正以\"精准连接\"与\"信任黏性\"重构线下零售的\"人货场\"逻辑。大众新闻特邀山东财经大学齐鲁企业研究院常务副院长李鑫、山东管理学院副教授陈蓉，共同探讨私域流量运营之道，聊聊如何构建线上线 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "私域流量不能靠少数人，要打造更多\"超级个体\"｜私域周谈",
+          "url": "https://finance.sina.com.cn/jjxw/2025-04-26/doc-ineunewz1213838.shtml",
+          "snippet": "让私域运营更简单、有效。 编者按：精准触达用户，减少营销成本，建立强关系，提升用户忠诚度……越来越多的酒企与酒商 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "从\"亲\"到\"您\"的互动变化，藏着不可忽视的运营逻辑｜私域周谈",
+          "url": "https://finance.sina.com.cn/jjxw/2025-04-19/doc-inetshzx7206128.shtml",
+          "snippet": "称谓由\"亲\"向\"您\"的转变， 标志着商业逻辑从公域流量的被动承接， 转向私域池的主动经营。 *作者系银仓昊拓贸易（北京）公司总经理 原标题：从公域的\"亲\"，到私域的\"您\"，称呼的转变，其实是交易和关系的转变 编者按：精准触达用户，减少营销 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "艾媒咨询 | 2025年中国私域流量消费行为调查数据",
+          "url": "https://www.iimedia.cn/105410.html",
+          "snippet": "数据显示，在2025年中国消费者对私域流量的关注情况中，100%的受访者表示关注过私域流量，而0%的受访者表示没有关注过。这 ...",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "公域流量成本居高不下 银行如何运营好私域流量？",
+          "url": "https://www.eeo.com.cn/2022/0727/545482.shtml",
+          "snippet": "经济观察网 记者 老盈盈 \"现在想从一些头部大的互联网平台获取新流量没那么容易，而且成本越来越高。\"7月26日，平安银行基础零售联席总裁兼智慧经营中心总经理王伟在平安口袋银行App6.0发布会上表示。 此前的7月8日，银保监会消保局局长郭武平就曾在 ...",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ],
+  "raw_2026两会100秒": [
+    {
+      "date": "2026-03-05",
+      "items": [
+        {
+          "title": "全国两会·佳话现场丨150秒!记者探访全国两会新闻中心",
+          "url": "https://news.sina.com.cn/zx/gj/2026-03-02/doc-inhpqzkn5272851.shtml",
+          "snippet": "十四届全国人大四次会议和全国政协十四届四次会议将分别于3月5日和3月4日在北京开幕。记者从全国两会新闻中心获悉，目前已有3000多名中外记者报名采访全国两会，其中境内记者2000多名，港澳台记者和外国记者1000多名。",
+          "source": "DuckDuckGo News"
+        },
+        {
+          "title": "2026全国两会8家主流媒体联动报道即将推出 20人×26秒讲述心声 小家 ...",
+          "url": "https://news.qq.com/rain/a/20260302A02GIL00",
+          "snippet": "大皖新闻讯 家是最小国，国是千万家。习近平主席在2026年新年贺词中深情地说：\"柴米油盐、三餐四季，每个'小家'热气腾腾，中国这个'大家'就蒸蒸日上。\"2026年全国两会即将拉开帷幕，大皖新闻、生活报、奔流新闻、现代快报、极目新闻、潮新闻、江南都市报、海峡都市报8家主流媒体强强联合，共同推出\"我的小家热气腾腾\"融媒体报道。20名来自祖国大江南北的普通人，每人26秒讲述的热气腾腾小家故事，见证家国同",
+          "source": "DuckDuckGo News"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+---
+description: ViralLab daily news digest (Cursor-native, no API keys)
+alwaysApply: false
+---
+
+# ViralLab Daily News Digest (Cursor-Native)
+
+When the user asks to create a news digest, run this workflow. No LLM API keys required—uses Cursor's built-in AI for summarization.
+
+## Steps
+
+1. **Run search**  
+   `python scripts/search_only.py "{topic}"`  
+   (Use the topic from the user's request, e.g. "AI agents". Default: "AI agents")
+
+2. **Read raw results**  
+   Open `output/raw_{topic_safe}.md` (topic with spaces replaced by underscores, truncated to 30 chars)
+
+3. **Summarize with Cursor AI**  
+   Turn the raw results into a structured digest:
+   - Executive summary
+   - Key headlines (with brief context)
+   - Trends to watch
+
+4. **Save digest**  
+   Write the digest to `output/digest_{topic_safe}.md`
+
+## Example
+
+User: "Create a news digest for AI agents"
+
+1. Run: `python scripts/search_only.py "AI agents"`
+2. Read: `output/raw_AI_agents.md`
+3. Generate digest from the raw content
+4. Save to: `output/digest_AI_agents.md`

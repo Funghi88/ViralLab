@@ -1,0 +1,153 @@
+{
+  "fashion": {
+    "name": "Fashion",
+    "trends": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "Leading fashion trend forecasting"},
+      {"name": "Heuritech", "url": "https://www.heuritech.com", "desc": "AI-powered social & runway trends"},
+      {"name": "Refinery29 Fashion", "url": "https://www.refinery29.com", "desc": "Creator-driven trend forecasts"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone", "url": "https://www.pantone.com", "desc": "Color of the Year, palettes"},
+      {"name": "WGSN Color", "url": "https://www.wgsn.com", "desc": "Seasonal color forecasts"},
+      {"name": "Coloro", "url": "https://www.coloro.com", "desc": "Color system for design"}
+    ],
+    "forecasting_sites": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "Fashion, beauty, lifestyle forecasts"},
+      {"name": "Edited", "url": "https://edited.com", "desc": "Retail analytics & trends"},
+      {"name": "WeArisma", "url": "https://www.wearisma.com", "desc": "Influencer & fashion data"}
+    ],
+    "resources": [
+      {"name": "Business of Fashion", "url": "https://www.businessoffashion.com", "desc": "Industry news & analysis"},
+      {"name": "Vogue Runway", "url": "https://www.vogue.com/runway", "desc": "Runway collections"},
+      {"name": "Fashion Week Online", "url": "https://fashionweekonline.com", "desc": "Global fashion weeks"}
+    ]
+  },
+  "tech": {
+    "name": "Tech & AI",
+    "trends": [
+      {"name": "TechCrunch", "url": "https://techcrunch.com", "desc": "Startup & AI news"},
+      {"name": "The Verge", "url": "https://www.theverge.com", "desc": "Tech culture & gadgets"},
+      {"name": "Wired", "url": "https://www.wired.com", "desc": "Tech trends & future"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Gartner", "url": "https://www.gartner.com", "desc": "Tech hype cycles & predictions"},
+      {"name": "CB Insights", "url": "https://www.cbinsights.com", "desc": "Market trends & reports"}
+    ],
+    "resources": [
+      {"name": "Product Hunt", "url": "https://www.producthunt.com", "desc": "New AI tools & launches"},
+      {"name": "Hacker News", "url": "https://news.ycombinator.com", "desc": "Tech discussions"},
+      {"name": "Substack", "url": "https://substack.com", "desc": "Creator-led tech newsletters"}
+    ]
+  },
+  "beauty": {
+    "name": "Beauty & Skincare",
+    "trends": [
+      {"name": "WGSN Beauty", "url": "https://www.wgsn.com", "desc": "Beauty trend forecasts"},
+      {"name": "Mintel Beauty", "url": "https://www.mintel.com", "desc": "Beauty consumer insights"},
+      {"name": "Allure", "url": "https://www.allure.com", "desc": "K-beauty, skincare, fragrance trends"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone Beauty", "url": "https://www.pantone.com", "desc": "Color palettes for beauty"}
+    ],
+    "forecasting_sites": [
+      {"name": "NPD Beauty", "url": "https://www.npd.com", "desc": "Beauty market data"},
+      {"name": "Cosmetics Design", "url": "https://www.cosmeticsdesign.com", "desc": "Industry trends"}
+    ],
+    "resources": [
+      {"name": "Allure", "url": "https://www.allure.com", "desc": "Beauty trends & reviews"},
+      {"name": "Glossy", "url": "https://www.glossy.co", "desc": "Beauty business news"},
+      {"name": "TikTok Beauty", "url": "https://www.tiktok.com/tag/beauty", "desc": "Viral beauty trends & formats"}
+    ]
+  },
+  "travel": {
+    "name": "Travel & Hospitality",
+    "trends": [
+      {"name": "Skift", "url": "https://skift.com", "desc": "Travel industry trends"},
+      {"name": "Phocuswire", "url": "https://www.phocuswire.com", "desc": "Travel tech & hospitality"},
+      {"name": "Wanderlust", "url": "https://www.wanderlust.co.uk", "desc": "Sustainable & niche travel"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Euromonitor Travel", "url": "https://www.euromonitor.com", "desc": "Travel market forecasts"},
+      {"name": "Phocuswright", "url": "https://www.phocuswright.com", "desc": "Travel research & trends"}
+    ],
+    "resources": [
+      {"name": "Travel + Leisure", "url": "https://www.travelandleisure.com", "desc": "Destinations & inspiration"},
+      {"name": "Atlas Obscura", "url": "https://www.atlasobscura.com", "desc": "Unique, underrated destinations"},
+      {"name": "YouTube Travel", "url": "https://www.youtube.com", "desc": "Cost breakdowns, practical guides"}
+    ]
+  },
+  "food": {
+    "name": "Food & Beverage",
+    "trends": [
+      {"name": "Mintel", "url": "https://www.mintel.com", "desc": "Food & drink trends"},
+      {"name": "Innova Market Insights", "url": "https://innovamarketinsights.com", "desc": "Product trends"},
+      {"name": "TikTok Food", "url": "https://www.tiktok.com/tag/food", "desc": "Viral recipes, QSR, secret menus"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Datassential", "url": "https://www.datassential.com", "desc": "Menu & flavor trends"},
+      {"name": "Technomic", "url": "https://www.technomic.com", "desc": "Foodservice research"}
+    ],
+    "resources": [
+      {"name": "Eater", "url": "https://www.eater.com", "desc": "Restaurant & food culture"},
+      {"name": "Food & Wine", "url": "https://www.foodandwine.com", "desc": "Culinary trends"},
+      {"name": "Taste of Home", "url": "https://www.tasteofhome.com", "desc": "Viral recipes, comfort food trends"}
+    ]
+  },
+  "automotive": {
+    "name": "Automotive",
+    "trends": [
+      {"name": "MotorTrend", "url": "https://www.motortrend.com", "desc": "Car reviews & trends"},
+      {"name": "Car and Driver", "url": "https://www.caranddriver.com", "desc": "EV, design, performance"},
+      {"name": "Electrek", "url": "https://electrek.co", "desc": "EV & green mobility"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "J.D. Power", "url": "https://www.jdpower.com", "desc": "Auto market insights"},
+      {"name": "Cox Automotive", "url": "https://www.coxautoinc.com", "desc": "Industry trends"}
+    ],
+    "resources": [
+      {"name": "YouTube Automotive", "url": "https://www.youtube.com", "desc": "Gearhead communities, reviews"},
+      {"name": "Doug DeMuro", "url": "https://www.youtube.com/@dougdemuro", "desc": "Car culture & quirks"},
+      {"name": "Top Gear", "url": "https://www.topgear.com", "desc": "Performance & design content"}
+    ]
+  },
+  "fitness": {
+    "name": "Fitness & Wellness",
+    "trends": [
+      {"name": "Mintel Wellness", "url": "https://www.mintel.com", "desc": "Wellness consumer trends"},
+      {"name": "Global Wellness Institute", "url": "https://globalwellnessinstitute.org", "desc": "Wellness market data"},
+      {"name": "TikTok Fitness", "url": "https://www.tiktok.com/tag/gym", "desc": "Gym content, Gymrats"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "IHRSA", "url": "https://www.ihrsa.org", "desc": "Fitness industry research"},
+      {"name": "Mindbody", "url": "https://www.mindbodyonline.com", "desc": "Wellness trends"}
+    ],
+    "resources": [
+      {"name": "Peloton Blog", "url": "https://blog.onepeloton.com", "desc": "Fitness & wellness content"},
+      {"name": "Well+Good", "url": "https://www.wellandgood.com", "desc": "Wellness trends & routines"},
+      {"name": "YouTube Fitness", "url": "https://www.youtube.com", "desc": "Workouts, form, motivation"}
+    ]
+  },
+  "content": {
+    "name": "Content Creation",
+    "trends": [
+      {"name": "Tubular Labs", "url": "https://tubularlabs.com", "desc": "Video & social analytics"},
+      {"name": "Social Blade", "url": "https://socialblade.com", "desc": "Creator stats & rankings"},
+      {"name": "CreatorIQ", "url": "https://www.creatoriq.com", "desc": "Creator economy reports"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Tubular", "url": "https://tubularlabs.com", "desc": "Viral video trends"},
+      {"name": "Hootsuite", "url": "https://www.hootsuite.com/resources", "desc": "Social trends reports"}
+    ],
+    "resources": [
+      {"name": "Creator Economy", "url": "https://creatoreconomy.com", "desc": "Creator business news"},
+      {"name": "Later Blog", "url": "https://later.com/blog", "desc": "Social media trends"},
+      {"name": "CreatorIQ Blog", "url": "https://www.creatoriq.com/blog", "desc": "Industry benchmarks & strategy"}
+    ]
+  }
+}

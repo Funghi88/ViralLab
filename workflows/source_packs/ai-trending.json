@@ -1,0 +1,31 @@
+{
+  "name": "AI & Agent Trending",
+  "description": "Curated sources for AI agents, LLMs, and trending news",
+  "sources": [
+    {
+      "type": "hackernews",
+      "name": "Hacker News AI",
+      "config": {}
+    },
+    {
+      "type": "github_trending",
+      "name": "GitHub AI Trending",
+      "config": { "language": "python" }
+    },
+    {
+      "type": "rss",
+      "name": "Anthropic News",
+      "config": { "url": "https://www.anthropic.com/news/rss" }
+    },
+    {
+      "type": "rss",
+      "name": "OpenAI Blog",
+      "config": { "url": "https://openai.com/blog/rss" }
+    }
+  ],
+  "curation_rules": [
+    "Filter for AI/ML/agents/LLM relevance",
+    "Prioritize breaking news and major releases",
+    "Include framework updates (CrewAI, LangGraph, AutoGen)"
+  ]
+}

@@ -1,0 +1,153 @@
+{
+  "fashion": {
+    "name": "时尚",
+    "trends": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "领先时尚趋势预测"},
+      {"name": "Heuritech", "url": "https://www.heuritech.com", "desc": "AI 社群与秀场趋势"},
+      {"name": "Refinery29 时尚", "url": "https://www.refinery29.com", "desc": "创作者视角趋势预测"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone", "url": "https://www.pantone.com", "desc": "年度色彩、色板"},
+      {"name": "WGSN 色彩", "url": "https://www.wgsn.com", "desc": "季节色彩预测"},
+      {"name": "Coloro", "url": "https://www.coloro.com", "desc": "设计用色彩系统"}
+    ],
+    "forecasting_sites": [
+      {"name": "WGSN", "url": "https://www.wgsn.com", "desc": "时尚、美妆、生活预测"},
+      {"name": "Edited", "url": "https://edited.com", "desc": "零售分析与趋势"},
+      {"name": "WeArisma", "url": "https://www.wearisma.com", "desc": "网红与时尚数据"}
+    ],
+    "resources": [
+      {"name": "Business of Fashion", "url": "https://www.businessoffashion.com", "desc": "产业新闻与分析"},
+      {"name": "Vogue Runway", "url": "https://www.vogue.com/runway", "desc": "秀场系列"},
+      {"name": "Fashion Week Online", "url": "https://fashionweekonline.com", "desc": "全球时装周"}
+    ]
+  },
+  "tech": {
+    "name": "科技与 AI",
+    "trends": [
+      {"name": "TechCrunch", "url": "https://techcrunch.com", "desc": "新创与 AI 新闻"},
+      {"name": "The Verge", "url": "https://www.theverge.com", "desc": "科技文化与产品"},
+      {"name": "Wired", "url": "https://www.wired.com", "desc": "科技趋势与未来"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Gartner", "url": "https://www.gartner.com", "desc": "科技炒作周期与预测"},
+      {"name": "CB Insights", "url": "https://www.cbinsights.com", "desc": "市场趋势与报告"}
+    ],
+    "resources": [
+      {"name": "Product Hunt", "url": "https://www.producthunt.com", "desc": "新 AI 工具与产品"},
+      {"name": "Hacker News", "url": "https://news.ycombinator.com", "desc": "科技讨论"},
+      {"name": "Substack", "url": "https://substack.com", "desc": "创作者科技电子报"}
+    ]
+  },
+  "beauty": {
+    "name": "美妆与护肤",
+    "trends": [
+      {"name": "WGSN 美妆", "url": "https://www.wgsn.com", "desc": "美妆趋势预测"},
+      {"name": "Mintel 美妆", "url": "https://www.mintel.com", "desc": "美妆消费者洞察"},
+      {"name": "Allure", "url": "https://www.allure.com", "desc": "韩妆、护肤、香氛趋势"}
+    ],
+    "color_forecasting": [
+      {"name": "Pantone 美妆", "url": "https://www.pantone.com", "desc": "美妆色板"}
+    ],
+    "forecasting_sites": [
+      {"name": "NPD 美妆", "url": "https://www.npd.com", "desc": "美妆市场数据"},
+      {"name": "Cosmetics Design", "url": "https://www.cosmeticsdesign.com", "desc": "产业趋势"}
+    ],
+    "resources": [
+      {"name": "Allure", "url": "https://www.allure.com", "desc": "美妆趋势与评测"},
+      {"name": "Glossy", "url": "https://www.glossy.co", "desc": "美妆商业新闻"},
+      {"name": "TikTok 美妆", "url": "https://www.tiktok.com/tag/beauty", "desc": "爆款美妆趋势与格式"}
+    ]
+  },
+  "travel": {
+    "name": "旅游与酒店",
+    "trends": [
+      {"name": "Skift", "url": "https://skift.com", "desc": "旅游产业趋势"},
+      {"name": "Phocuswire", "url": "https://www.phocuswire.com", "desc": "旅游科技与酒店"},
+      {"name": "Wanderlust", "url": "https://www.wanderlust.co.uk", "desc": "永续与小众旅游"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Euromonitor 旅游", "url": "https://www.euromonitor.com", "desc": "旅游市场预测"},
+      {"name": "Phocuswright", "url": "https://www.phocuswright.com", "desc": "旅游研究与趋势"}
+    ],
+    "resources": [
+      {"name": "Travel + Leisure", "url": "https://www.travelandleisure.com", "desc": "目的地与灵感"},
+      {"name": "Atlas Obscura", "url": "https://www.atlasobscura.com", "desc": "独特小众目的地"},
+      {"name": "YouTube 旅游", "url": "https://www.youtube.com", "desc": "预算攻略、实用指南"}
+    ]
+  },
+  "food": {
+    "name": "饮食与饮料",
+    "trends": [
+      {"name": "Mintel", "url": "https://www.mintel.com", "desc": "饮食趋势"},
+      {"name": "Innova Market Insights", "url": "https://innovamarketinsights.com", "desc": "产品趋势"},
+      {"name": "TikTok 美食", "url": "https://www.tiktok.com/tag/food", "desc": "爆款食谱、速食、隐藏菜单"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Datassential", "url": "https://www.datassential.com", "desc": "菜单与风味趋势"},
+      {"name": "Technomic", "url": "https://www.technomic.com", "desc": "餐饮研究"}
+    ],
+    "resources": [
+      {"name": "Eater", "url": "https://www.eater.com", "desc": "餐厅与饮食文化"},
+      {"name": "Food & Wine", "url": "https://www.foodandwine.com", "desc": "料理趋势"},
+      {"name": "Taste of Home", "url": "https://www.tasteofhome.com", "desc": "爆款食谱、疗愈美食"}
+    ]
+  },
+  "automotive": {
+    "name": "汽车",
+    "trends": [
+      {"name": "MotorTrend", "url": "https://www.motortrend.com", "desc": "车评与趋势"},
+      {"name": "Car and Driver", "url": "https://www.caranddriver.com", "desc": "电动车、设计、性能"},
+      {"name": "Electrek", "url": "https://electrek.co", "desc": "电动车与绿色出行"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "J.D. Power", "url": "https://www.jdpower.com", "desc": "汽车市场洞察"},
+      {"name": "Cox Automotive", "url": "https://www.coxautoinc.com", "desc": "产业趋势"}
+    ],
+    "resources": [
+      {"name": "YouTube 汽车", "url": "https://www.youtube.com", "desc": "车迷社群、评测"},
+      {"name": "Doug DeMuro", "url": "https://www.youtube.com/@dougdemuro", "desc": "汽车文化与趣闻"},
+      {"name": "Top Gear", "url": "https://www.topgear.com", "desc": "性能与设计内容"}
+    ]
+  },
+  "fitness": {
+    "name": "健身与健康",
+    "trends": [
+      {"name": "Mintel 健康", "url": "https://www.mintel.com", "desc": "健康消费者趋势"},
+      {"name": "Global Wellness Institute", "url": "https://globalwellnessinstitute.org", "desc": "健康市场数据"},
+      {"name": "TikTok 健身", "url": "https://www.tiktok.com/tag/gym", "desc": "健身房内容、Gymrats"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "IHRSA", "url": "https://www.ihrsa.org", "desc": "健身产业研究"},
+      {"name": "Mindbody", "url": "https://www.mindbodyonline.com", "desc": "健康趋势"}
+    ],
+    "resources": [
+      {"name": "Peloton Blog", "url": "https://blog.onepeloton.com", "desc": "健身与健康内容"},
+      {"name": "Well+Good", "url": "https://www.wellandgood.com", "desc": "健康趋势与日常"},
+      {"name": "YouTube 健身", "url": "https://www.youtube.com", "desc": "训练、姿势、动力"}
+    ]
+  },
+  "content": {
+    "name": "内容创作",
+    "trends": [
+      {"name": "Tubular Labs", "url": "https://tubularlabs.com", "desc": "影片与社群分析"},
+      {"name": "Social Blade", "url": "https://socialblade.com", "desc": "创作者数据与排名"},
+      {"name": "CreatorIQ", "url": "https://www.creatoriq.com", "desc": "创作者经济报告"}
+    ],
+    "color_forecasting": [],
+    "forecasting_sites": [
+      {"name": "Tubular", "url": "https://tubularlabs.com", "desc": "爆款影片趋势"},
+      {"name": "Hootsuite", "url": "https://www.hootsuite.com/resources", "desc": "社群趋势报告"}
+    ],
+    "resources": [
+      {"name": "Creator Economy", "url": "https://creatoreconomy.com", "desc": "创作者商业新闻"},
+      {"name": "Later Blog", "url": "https://later.com/blog", "desc": "社群媒体趋势"},
+      {"name": "CreatorIQ", "url": "https://www.creatoriq.com/blog", "desc": "产业基准与策略"}
+    ]
+  }
+}
