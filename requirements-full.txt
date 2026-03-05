@@ -1,0 +1,5 @@
+# Full deps including CrewAI (for main.py --daily-news). Python 3.10–3.13.
+-r requirements.txt
+crewai>=0.80.0
+crewai-tools>=0.14.0
+crewai[litellm]>=0.80.0
