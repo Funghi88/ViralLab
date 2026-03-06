@@ -167,7 +167,7 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False)
     return [], False, None
 
 
-def _get_most_searched(limit: int = 20, time_range: str = "1d", lang: str = "en", force_hot_refresh: bool = False) -> tuple[list[str], str, Optional[int]]:
+def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en", force_hot_refresh: bool = False) -> tuple[list[str], str, Optional[int]]:
     """Top topics. Returns (topics, source, hot_cache_age_sec). source: 'platform'|'app'|'default'. hot_cache_age only when platform."""
     from datetime import datetime, timezone
     defaults = DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS
@@ -2588,10 +2588,10 @@ def _render_news():
             <button type="submit">{_t("search_by_topic", lang)}</button>
         </form>'''
     force_hot = request.args.get("refresh_hot") == "1"
-    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=20, time_range=time_range, lang=lang, force_hot_refresh=force_hot)
+    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=10, time_range=time_range, lang=lang, force_hot_refresh=force_hot)
     tip_chips = "".join(
         f'<form method="post" action="/api/search-news" class="tip-chip-form"><input type="hidden" name="topic" value="{_html_escape(t)}"><input type="hidden" name="range" value="{_html_escape(time_range)}"><button type="submit" class="tip-chip{" tip-chip-active" if topic_filter and t.replace(" ", "_")[:30] == topic_filter else ""}">{_html_escape(t)}</button></form>'
-        for t in tip_topics
+        for t in tip_topics[:10]
     )
     range_links = "".join(
         f'<a href="/news?range={r}" class="tip-range{" active" if r == time_range else ""}">{_html_escape(l)}</a>'
