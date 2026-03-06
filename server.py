@@ -381,6 +381,7 @@ def _t(key: str, lang: str) -> str:
         "news_tip_suggestions": ("Suggestions — try these", "建议 — 试试这些"),
         "news_topic_label": ("Topic", "主题"),
         "news_no_results": ("Search a topic above to get curated news.", "搜索上方主题即可获取精选新闻"),
+        "news_searching": ("Searching… Refresh in a few seconds.", "正在搜索… 几秒后刷新页面"),
         "news_english_topic_in_zh": ("This topic has English content. Please select a Chinese topic above.", "此主题为英文内容，请选择上方中文主题"),
         "news_chinese_topic_in_en": ("This topic has Chinese content. Switch to 中文 to view.", "此主题为中文内容，请切换至英文查看"),
         "news_show_all": ("Show all topics", "显示全部主题"),
@@ -1584,25 +1585,29 @@ def api_refresh_daily():
 
 @app.route("/api/search-news", methods=["POST"])
 def api_search_news():
-    """Search news by topic. Writes raw_{topic}.md and redirects to /news."""
+    """Search news by topic. Runs search in background, redirects immediately (avoids timeout on Render)."""
     topic = (request.form.get("topic") or request.args.get("topic") or "").strip()
     if not topic:
         return redirect("/news")
     _record_topic_search(topic)
-    try:
-        script = Path(__file__).parent / "scripts" / "search_only.py"
-        env = _env_no_proxy()
-        env["PYTHONPATH"] = str(Path(__file__).parent)
-        subprocess.run([sys.executable, str(script), topic], check=True, env=env, cwd=Path(__file__).parent, timeout=45)
-    except subprocess.TimeoutExpired:
-        return jsonify({"error": "Search timeout"}), 504
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
     safe_topic = topic.replace(" ", "_")[:30]
     range_param = request.form.get("range") or request.args.get("range") or "1d"
     if range_param not in ("60m", "1d", "7d"):
         range_param = "1d"
-    return redirect(f"/news?topic={quote(safe_topic, safe='')}&range={range_param}")
+    redirect_url = f"/news?topic={quote(safe_topic, safe='')}&range={range_param}"
+
+    def _run_search():
+        try:
+            script = Path(__file__).parent / "scripts" / "search_only.py"
+            env = _env_no_proxy()
+            env["PYTHONPATH"] = str(Path(__file__).parent)
+            subprocess.run([sys.executable, str(script), topic], check=True, env=env, cwd=Path(__file__).parent, timeout=45)
+        except Exception:
+            pass
+
+    import threading
+    threading.Thread(target=_run_search, daemon=True).start()
+    return redirect(redirect_url)
 
 
 STEPPS_ORDER = ["social_currency", "triggers", "emotion", "public", "practical", "stories"]
@@ -2607,7 +2612,12 @@ def _render_news():
         switch_url = f"/news?lang=zh&range={r}" if lang == "en" else f"/news?range={r}"
         news_html = f'<div class="card"><p class="muted">{_t(msg_key, lang)}</p><p class="browse-more"><a href="{switch_url}">{_t("news_show_all", lang)}</a></p></div>'
     else:
-        news_html = "\n".join(news_cards) if news_cards else f'<div class="card"><p class="muted">{_t("news_no_results", lang)}</p></div>'
+        if news_cards:
+            news_html = "\n".join(news_cards)
+        elif topic_filter:
+            news_html = f'<div class="card"><p class="muted">{_t("news_searching", lang)}</p><p class="browse-more"><a href="{request.url}">↻ {_t("news_refresh_all", lang)}</a></p></div>'
+        else:
+            news_html = f'<div class="card"><p class="muted">{_t("news_no_results", lang)}</p></div>'
 
     refresh_label = _t("news_refresh_all", lang)
     refresh_interval = _t("news_refresh_interval", lang)
