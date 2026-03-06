@@ -9,7 +9,7 @@ Where to host ViralLab when you're ready to go online.
 1. **Create GitHub repo** — New repo at github.com, name it `ViralLab` (or your choice).
 2. **Push code** — `git init && git add . && git commit -m "Initial commit" && git remote add origin https://github.com/Funghi88/ViralLab.git && git push -u origin main`
 3. **Deploy on Render** — [render.com](https://render.com) → New → Web Service → Connect your repo. Render auto-detects `render.yaml`. Add env vars (`CRON_SECRET`, `OPENAI_API_KEY` or `GEMINI_API_KEY` if needed). Deploy.
-4. **Set up cron** — [cron-job.org](https://cron-job.org) → Create job → URL: `https://YOUR-APP.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
+4. **Set up cron** — [cron-job.org](https://cron-job.org) → Create jobs: `refresh-daily` (daily at 8:00), `refresh-videos` (every 6 hours). Both use `?key=YOUR_CRON_SECRET`.
 5. **Share** — Your live URL (e.g. `https://virallab.onrender.com`) is the shareable link.
 
 **Note:** `docs/` is in `.gitignore` — internal docs stay private. The rest is open source.
@@ -57,9 +57,9 @@ Where to host ViralLab when you're ready to go online.
    - `CRON_SECRET` — optional; protects refresh endpoints (generate a random string)
    - `OPENAI_API_KEY` or `GEMINI_API_KEY` — if using AI features (video-to-text, content angles)
 5. Deploy. URL: `https://virallab.onrender.com` (or your service name).
-6. **Cron for fresh content**: [cron-job.org](https://cron-job.org) → Create job:
-   - URL: `https://your-app.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET`
-   - Schedule: daily at 8:00 (or your preferred time)
+6. **Cron for fresh content**: [cron-job.org](https://cron-job.org) → Create jobs:
+   - `refresh-daily`: `https://your-app.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` — daily at 8:00
+   - `refresh-videos`: `https://your-app.onrender.com/api/refresh-videos?key=YOUR_CRON_SECRET` — every 6 hours (optional; scheduler also refreshes every 60 mins when server is running)
 
 ### Optional: Reduce Cold Start
 

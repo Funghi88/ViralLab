@@ -106,21 +106,45 @@ def _matches_lang(topic: str, lang: str) -> bool:
 
 
 def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False) -> tuple[list[str], bool, Optional[int]]:
-    """Platform-wide hot topics. ZH: 微博、知乎、抖音、百度. EN: Hacker News, Reddit. Returns (topics, ok, cache_age_sec)."""
+    """Platform-wide hot topics. ZH: 微博、知乎、抖音、百度. EN: Hacker News, Reddit. Returns (topics, ok, cache_age_sec).
+    Never blocks >2s — uses stale cache or defaults, refreshes in background."""
+    import threading
     cache_file = OUTPUT / "hot_trending.json"
-    cache_ttl = 10 * 60  # 10 min — 近实时
+    cache_ttl = 10 * 60  # 10 min
     key = "topics_zh" if lang == "zh" else "topics_en"
     now = __import__("time").time()
+
+    def _run_refresh():
+        try:
+            script = Path(__file__).parent / "scripts" / "fetch_hot_trending.py"
+            env = _env_no_proxy()
+            env["PYTHONPATH"] = str(Path(__file__).parent)
+            subprocess.run(
+                [sys.executable, str(script)],
+                capture_output=True,
+                env=env,
+                cwd=Path(__file__).parent,
+                timeout=45,
+            )
+        except Exception:
+            pass
+
+    # Use fresh cache if available
     if not force_refresh and cache_file.exists():
         try:
             data = json.loads(cache_file.read_text(encoding="utf-8"))
             ts = data.get("ts", 0)
-            if now - ts < cache_ttl:
-                topics = data.get(key, data.get("topics", []))  # backward compat
-                if topics:
+            topics = data.get(key, data.get("topics", []))
+            if topics:
+                if now - ts < cache_ttl:
                     return topics[:limit], True, int(now - ts)
+                # Stale but usable — return immediately, refresh in background
+                threading.Thread(target=_run_refresh, daemon=True).start()
+                return topics[:limit], True, int(now - ts)
         except Exception:
             pass
+
+    # No usable cache: try quick sync (8s max) so page loads fast
     try:
         script = Path(__file__).parent / "scripts" / "fetch_hot_trending.py"
         env = _env_no_proxy()
@@ -130,14 +154,16 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False)
             capture_output=True,
             env=env,
             cwd=Path(__file__).parent,
-            timeout=45,
+            timeout=8,
         )
         if cache_file.exists():
             data = json.loads(cache_file.read_text(encoding="utf-8"))
             topics = data.get(key, data.get("topics", []))
-            return topics[:limit], len(topics) > 0, 0
+            if topics:
+                return topics[:limit], True, 0
     except Exception:
         pass
+    threading.Thread(target=_run_refresh, daemon=True).start()
     return [], False, None
 
 
@@ -1537,6 +1563,7 @@ def api_info():
             "viral_videos": "GET /api/viral-videos?q=<query>&source=global|china",
             "health": "/api/health",
             "refresh_daily": "GET /api/refresh-daily (for cron)",
+            "refresh_videos": "GET /api/refresh-videos (for cron)",
         },
     })
 
@@ -1577,6 +1604,23 @@ def api_refresh_daily():
     try:
         _run_refresh_daily()
         return jsonify({"status": "ok", "message": "Daily news refreshed"})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Timeout"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/refresh-videos")
+def api_refresh_videos():
+    """Refresh viral videos (videos_trending_viral.md). Optional: ?key=CRON_SECRET for cron."""
+    import os
+    key = request.args.get("key", "")
+    secret = os.environ.get("CRON_SECRET", "")
+    if secret and key != secret:
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        _run_refresh_videos()
+        return jsonify({"status": "ok", "message": "Viral videos refreshed"})
     except subprocess.TimeoutExpired:
         return jsonify({"error": "Timeout"}), 504
     except Exception as e:
@@ -2747,8 +2791,8 @@ def _render_viral():
         if (q) {{
             input.value = q;
             setTimeout(function() {{ form.dispatchEvent(new Event('submit', {{ bubbles: true }})); }}, 100);
-        }} else if (isZh) {{
-            input.value = '热门';
+        }} else {{
+            input.value = isZh ? '热门' : 'viral trending';
             setTimeout(function() {{ form.dispatchEvent(new Event('submit', {{ bubbles: true }})); }}, 100);
         }}
     }})();
@@ -2871,6 +2915,23 @@ def daily_refresh():
     return redirect(next_url)
 
 
+def _run_refresh_videos():
+    """Refresh trending viral videos (videos_trending_viral.md). Used by scheduler and /api/refresh-videos."""
+    script = Path(__file__).parent / "scripts" / "video_trending.py"
+    env = _env_no_proxy()
+    env["PYTHONPATH"] = str(Path(__file__).parent)
+    try:
+        subprocess.run(
+            [sys.executable, str(script), "trending viral"],
+            capture_output=True,
+            env=env,
+            cwd=Path(__file__).parent,
+            timeout=45,
+        )
+    except Exception:
+        pass
+
+
 def _run_refresh_news():
     """Re-search all raw topics and refresh platform hot trends. Used by /news/refresh and scheduler."""
     # Refresh platform hot topics (微博、知乎、抖音、百度)
@@ -2947,19 +3008,26 @@ if __name__ == "__main__":
                 _run_refresh_news()
             except Exception:
                 pass
+        def _job_videos():
+            try:
+                _run_refresh_videos()
+            except Exception:
+                pass
         sched = BackgroundScheduler()
         sched.add_job(_job_daily, "interval", minutes=60, id="daily_news")
         sched.add_job(_job_news, "interval", minutes=60, id="news_by_topic")
+        sched.add_job(_job_videos, "interval", minutes=60, id="viral_videos")
         sched.start()
-        print("Daily news & News by topic: auto-refresh every 60 mins")
+        print("Daily news, News by topic & Viral videos: auto-refresh every 60 mins")
         # Bootstrap: run once on startup if output is empty (fixes deploy/restart with no content)
-        if not (OUTPUT / "daily_news.md").exists() or not list(OUTPUT.glob("raw_*.md")):
+        if not (OUTPUT / "daily_news.md").exists() or not list(OUTPUT.glob("raw_*.md")) or not (OUTPUT / "videos_trending_viral.md").exists():
             import threading
             def _bootstrap():
                 try:
                     _run_refresh_daily()
                     _run_refresh_news()
-                    print("Bootstrap: news content populated")
+                    _run_refresh_videos()
+                    print("Bootstrap: news and videos content populated")
                 except Exception as e:
                     print(f"Bootstrap refresh failed: {e}")
             threading.Thread(target=_bootstrap, daemon=True).start()
