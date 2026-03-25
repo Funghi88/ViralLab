@@ -1,8 +1,8 @@
-"""News search for ViralLab. Uses duckduckgo-search (no API key)."""
+"""News search for ViralLab. Uses DDGS (no API key)."""
 from crewai.tools import BaseTool
 from typing import Type
 from pydantic import BaseModel, Field
-from duckduckgo_search import DDGS
+from src.ddg_client import get_ddgs_class
 
 
 class NewsSearchInput(BaseModel):
@@ -18,6 +18,7 @@ class NewsSearchTool(BaseTool):
 
     def _run(self, query: str, max_results: int = 10) -> str:
         try:
+            DDGS = get_ddgs_class()
             with DDGS() as ddgs:
                 results = list(ddgs.news(query, max_results=max_results))
             if not results:

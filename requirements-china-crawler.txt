@@ -1,0 +1,6 @@
+# Optional: for tools/china_crawler (XHS search). Install then: playwright install chromium
+playwright>=1.40.0
+
+# Optional: fetch via third-party API (no platform login). Set JUSTONEAPI_TOKEN or APIFY_TOKEN in env.
+# justoneapi
+# apify-client

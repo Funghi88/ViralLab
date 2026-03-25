@@ -318,6 +318,55 @@ def fetch_all_platforms() -> tuple[list[str], list[str]]:
     return zh, en
 
 
+# Audience segments (Tier 1): approximate taste by topic/source. See docs/AUDIENCE_INSIGHT_STRATEGY.md
+AUDIENCE_SEGMENTS = {
+    "general": {"name_en": "General", "name_zh": "综合", "keywords_zh": set(), "keywords_en": set()},
+    "tech": {
+        "name_en": "Tech",
+        "name_zh": "科技",
+        "keywords_zh": frozenset({"科技", "AI", "人工智能", "产品", "效率", "数码", "开发", "编程", "开源", "算法", "互联网", "创业", "融资"}),
+        "keywords_en": frozenset({"tech", "ai", "developer", "startup", "api", "open source", "algorithm", "software", "product", "saas"}),
+    },
+    "entrepreneurs": {
+        "name_en": "Entrepreneurs",
+        "name_zh": "创业·出海",
+        "keywords_zh": frozenset({"创业", "副业", "出海", "跨境", "个人品牌", "变现", "运营", "品牌", "营销", "融资", "增长", "流量"}),
+        "keywords_en": frozenset({"startup", "entrepreneur", "side project", "monetization", "growth", "marketing", "launch", "build", "indie"}),
+    },
+    "creator": {
+        "name_en": "Creator",
+        "name_zh": "创作者",
+        "keywords_zh": frozenset(CREATOR_KEYWORDS_ZH),
+        "keywords_en": frozenset(CREATOR_KEYWORDS_EN),
+    },
+}
+
+
+def _segment_score(topic: str, lang: str, segment: str) -> int:
+    """Score how well a topic fits the audience segment (0–10)."""
+    if not topic or segment not in AUDIENCE_SEGMENTS or segment == "general":
+        return 0
+    seg = AUDIENCE_SEGMENTS[segment]
+    keywords = seg["keywords_zh"] if lang == "zh" else seg["keywords_en"]
+    if not keywords:
+        return 0
+    topic_lower = topic.lower().strip()
+    score = 0
+    for kw in keywords:
+        if kw.lower() in topic_lower:
+            score += 2
+    return min(score, 10)
+
+
+def rerank_topics_by_segment(topics: list[str], lang: str, segment: str) -> list[str]:
+    """Re-rank topics so segment-relevant ones float up. Stable sort: same score keeps original order."""
+    if not topics or segment not in AUDIENCE_SEGMENTS or segment == "general":
+        return topics
+    scored = [(_segment_score(t, lang, segment), i, t) for i, t in enumerate(topics)]
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    return [t for _, _, t in scored]
+
+
 def get_cached_or_fetch(lang: str = "zh") -> tuple[list[str], bool]:
     """Get hot topics from cache or fetch fresh. Returns (topics, from_cache)."""
     now = __import__("time").time()

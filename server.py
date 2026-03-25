@@ -5,11 +5,52 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Load .env so BILIBILI_PROXY etc. work when running server directly
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent / ".env")
+except ImportError:
+    pass
+
 import json
 from typing import Optional
 
 # Bypass proxy for news/video fetches (fixes "connection refused" when proxy is down)
 _PROXY_VARS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy")
+
+
+def _env_for_bilibili():
+    """Env for B站 subprocess: use system proxy so Clash etc. can route bilibili.com to DIRECT (VPN on still works)."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(Path(__file__).parent)
+    if env.get("HTTP_PROXY") or env.get("HTTPS_PROXY"):
+        return env
+    if sys.platform == "darwin":
+        try:
+            r = subprocess.run(
+                ["scutil", "--proxy"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                cwd=Path(__file__).parent,
+            )
+            if r.returncode == 0 and r.stdout and ("HTTPEnable : 1" in r.stdout or "HTTPSEnable : 1" in r.stdout):
+                host = port = None
+                for line in r.stdout.splitlines():
+                    s = line.strip()
+                    if s.startswith("HTTPProxy :"):
+                        host = s.split(":", 1)[1].strip()
+                    elif s.startswith("HTTPSProxy :"):
+                        host = host or s.split(":", 1)[1].strip()
+                    elif s.startswith("HTTPPort :"):
+                        port = s.split(":", 1)[1].strip()
+                    elif s.startswith("HTTPSPort :"):
+                        port = port or s.split(":", 1)[1].strip()
+                if host and port:
+                    env["HTTP_PROXY"] = env["HTTPS_PROXY"] = f"http://{host}:{port}"
+        except Exception:
+            pass
+    return env
 
 
 def _env_no_proxy():
@@ -23,7 +64,19 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, make_r
 from src.parse_output import parse_file
 from src.video_tools import BERGER_STEPPS, BERGER_STEPPS_EN, MAGIC_WORDS, MAGIC_WORDS_EN, extract_youtube_id, score_berger
 from src.content_angles import generate_angles
+from src.minto_pyramid import structure_minto, minto_to_markdown
 from src.run_history import add_lifecycle_to_items
+from src.hot_trending import AUDIENCE_SEGMENTS, rerank_topics_by_segment
+from src.media_transcribe import has_videocaptioner, is_supported_external_media_url, transcribe_with_videocaptioner
+from src.contagious_stepps import evaluate_contagious_article
+from src.article_lab import build_viral_article_markdown
+from src.podcast_rss_sources import (
+    REGION_TAGS,
+    classify_focus_theme,
+    classify_source_type,
+    fetch_longform_and_podcasts,
+    region_tags_for_lang,
+)
 
 app = Flask(__name__)
 OUTPUT = Path(__file__).parent / "output"
@@ -49,11 +102,33 @@ DEFAULT_VIRAL_TIPS = [
     "AI explainer", "fashion haul", "viral marketing", "unboxing", "makeup tutorial",
     "cooking viral", "dance challenge", "prank", "product review", "day in my life",
 ]
-# China: 热门 = B站 popular API (always has content). Others = search, fallback to popular.
 DEFAULT_VIRAL_TIPS_ZH = [
     "热门", "鬼畜", "搞笑", "数码", "游戏", "知识", "时尚", "影视",
     "汽车", "日常", "穿搭",
 ]
+
+# Audience segment topic tips (Tier 1: docs/AUDIENCE_INSIGHT_STRATEGY.md)
+SEGMENT_TOPIC_TIPS = {
+    "general": {"en": None, "zh": None},  # use DEFAULT_TOPIC_TIPS / DEFAULT_TOPIC_TIPS_ZH
+    "tech": {
+        "en": ["AI agents", "LLM trends", "developer tools", "open source", "SaaS", "product launch", "tech startup", "API", "automation"],
+        "zh": ["AI", "科技", "产品", "效率工具", "开源", "开发者", "互联网", "数码", "算法"],
+    },
+    "entrepreneurs": {
+        "en": ["indie hacking", "side project", "creator economy", "monetization", "growth", "launch", "startup", "marketing", "remote work"],
+        "zh": ["创业", "副业", "出海", "变现", "个人品牌", "品牌出海", "运营", "私域流量", "增长"],
+    },
+    "creator": {
+        "en": ["creator economy", "viral marketing", "content strategy", "YouTube algorithm", "newsletter", "Substack", "podcast growth"],
+        "zh": ["小红书爆款", "抖音运营", "创作者经济", "直播带货", "内容营销", "B站UP主", "种草", "爆款"],
+    },
+}
+SEGMENT_VIRAL_TIPS = {
+    "general": {"en": None, "zh": None},
+    "tech": {"en": ["AI explainer", "tech review", "developer", "startup"], "zh": ["知识", "数码", "科技"]},
+    "entrepreneurs": {"en": ["indie hack", "launch", "growth", "side project"], "zh": ["创业", "出海", "变现"]},
+    "creator": {"en": ["viral marketing", "content strategy", "tutorial"], "zh": ["爆款", "运营", "种草"]},
+}
 
 
 def _record_topic_search(topic: str) -> None:
@@ -105,9 +180,15 @@ def _matches_lang(topic: str, lang: str) -> bool:
     return (lang == "zh" and has_cjk) or (lang == "en" and not has_cjk)
 
 
-def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False) -> tuple[list[str], bool, Optional[int]]:
+def _get_segment() -> str:
+    """Audience segment from query or cookie. One of: general, tech, entrepreneurs, creator."""
+    seg = (request.args.get("segment") or request.cookies.get("virallab_segment") or "general").lower()
+    return seg if seg in ("general", "tech", "entrepreneurs", "creator") else "general"
+
+
+def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False, segment: str = "general") -> tuple[list[str], bool, Optional[int]]:
     """Platform-wide hot topics. ZH: 微博、知乎、抖音、百度. EN: Hacker News, Reddit. Returns (topics, ok, cache_age_sec).
-    Never blocks >2s — uses stale cache or defaults, refreshes in background."""
+    If segment != general, topics are re-ranked by segment relevance. Never blocks >2s."""
     import threading
     cache_file = OUTPUT / "hot_trending.json"
     cache_ttl = 10 * 60  # 10 min
@@ -136,15 +217,17 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False)
             ts = data.get("ts", 0)
             topics = data.get(key, data.get("topics", []))
             if topics:
+                if segment != "general":
+                    topics = rerank_topics_by_segment(topics, lang, segment)
                 if now - ts < cache_ttl:
                     return topics[:limit], True, int(now - ts)
-                # Stale but usable — return immediately, refresh in background
                 threading.Thread(target=_run_refresh, daemon=True).start()
                 return topics[:limit], True, int(now - ts)
         except Exception:
             pass
 
-    # No usable cache: try quick sync (8s max) so page loads fast
+    # No usable cache or force_refresh: run sync fetch. User-initiated refresh gets longer timeout (~50s).
+    sync_timeout = 55 if force_refresh else 8
     try:
         script = Path(__file__).parent / "scripts" / "fetch_hot_trending.py"
         env = _env_no_proxy()
@@ -154,12 +237,14 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False)
             capture_output=True,
             env=env,
             cwd=Path(__file__).parent,
-            timeout=8,
+            timeout=sync_timeout,
         )
         if cache_file.exists():
             data = json.loads(cache_file.read_text(encoding="utf-8"))
             topics = data.get(key, data.get("topics", []))
             if topics:
+                if segment != "general":
+                    topics = rerank_topics_by_segment(topics, lang, segment)
                 return topics[:limit], True, 0
     except Exception:
         pass
@@ -167,12 +252,13 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False)
     return [], False, None
 
 
-def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en", force_hot_refresh: bool = False) -> tuple[list[str], str, Optional[int]]:
+def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en", force_hot_refresh: bool = False, segment: str = "general") -> tuple[list[str], str, Optional[int]]:
     """Top topics. Returns (topics, source, hot_cache_age_sec). source: 'platform'|'app'|'default'. hot_cache_age only when platform."""
     from datetime import datetime, timezone
-    defaults = DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS
+    seg_tips = SEGMENT_TOPIC_TIPS.get(segment, {})
+    defaults = (seg_tips.get(lang) or (DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS))[:limit * 2]
 
-    platform_topics, ok, cache_age = _get_platform_hot_topics(limit, lang, force_refresh=force_hot_refresh)
+    platform_topics, ok, cache_age = _get_platform_hot_topics(limit, lang, force_refresh=force_hot_refresh, segment=segment)
     if ok:
         return platform_topics[:limit], "platform", cache_age
 
@@ -216,6 +302,17 @@ def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en"
         return result[:limit], "app", None
     except Exception:
         return defaults[:limit], "default", None
+
+
+def _hot_tags_for_lang(lang: str, limit: int = 10) -> list[str]:
+    """Unified hot tags references (EN and ZH kept separate)."""
+    seg = _get_segment()
+    tags, _source, _age = _get_most_searched(
+        limit=max(limit, 10), time_range="1d", lang=lang, force_hot_refresh=False, segment=seg
+    )
+    if tags:
+        return tags[:limit]
+    return (DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS)[:limit]
 
 
 TAGLINE = "Engineer your influence. Turn noise into viral."
@@ -276,6 +373,11 @@ def _get_source_for_item(item: dict) -> str:
     return src
 
 
+def _source_type_for_item(item: dict) -> str:
+    """Classify item source to support Daily filters."""
+    return classify_source_type(_get_source_for_item(item))
+
+
 def _infer_source_from_url(url: str) -> str:
     """Infer source from URL when source field is missing."""
     if not url:
@@ -309,9 +411,15 @@ def _t(key: str, lang: str) -> str:
     T = {
         "daily_news_title": ("Daily News", "每日新闻"),
         "daily_news_desc": (
-            "Top 3 = most talked about right now. Xiaohongshu and Douyin creators can reference.",
-            "前 3 条为当下最热话题，小红书、抖音创作者可参考",
+            "Top 3 = most talked about right now. News, long-form, and podcast sources in one feed.",
+            "前 3 条为当下最热话题，并整合新闻、长文与播客来源",
         ),
+        "daily_focus_label": ("Focus", "聚焦"),
+        "daily_focus_all": ("All", "全部"),
+        "daily_focus_news": ("News", "新闻"),
+        "daily_focus_longform": ("Long-form", "长文"),
+        "daily_focus_podcast": ("Podcast", "播客"),
+        "daily_focus_hint": ("Filter cards by source type.", "按来源类型筛选卡片"),
         "mechanism": ("", ""),
         "refresh_now": ("Refresh now", "立即刷新"),
         "refresh_desc": ("fetch latest hot news anytime. Auto-refresh every 60 mins when server is running.", "随时获取最新热门新闻，服务器运行时每 60 分钟自动更新"),
@@ -330,6 +438,7 @@ def _t(key: str, lang: str) -> str:
         "whats_happening": ("what's happening around X", "了解 X 领域动态"),
         "no_news": ("No daily news yet. Run:", "尚无每日新闻，执行："),
         "source": ("Source", "来源"),
+        "contagious_score": ("Contagious", "传播性"),
         "lifecycle_rising": ("rising", "上升"),
         "lifecycle_peaking": ("peaking", "高峰"),
         "lifecycle_fading": ("fading", "回落"),
@@ -342,12 +451,18 @@ def _t(key: str, lang: str) -> str:
         "nav_field_desc": ("Curated by industry", "按行业精选"),
         "nav_news": ("News by Topic", "按主题新闻"),
         "nav_news_desc": ("Search & browse news", "搜索与浏览新闻"),
+        "nav_longform": ("Long-form & Podcasts", "长文与播客"),
+        "nav_longform_desc": ("Deep articles, blogs, and podcasts", "深度文章、博客与播客"),
         "nav_viral": ("Viral Videos", "热门视频"),
         "nav_viral_desc": ("YouTube & Bilibili", "YouTube 与 Bilibili"),
         "nav_video2text": ("Video to Text", "视频转文字"),
         "nav_video2text_desc": ("Extract transcript from video", "视频提取逐字稿"),
-        "nav_science": ("STEPPS Science", "STEPPS 科学"),
-        "nav_science_desc": ("How we score", "评分方式"),
+        "nav_article_lab": ("Article Lab", "文章改写"),
+        "nav_article_lab_desc": ("Upload markdown → viral rewrite", "上传 markdown → 结构化爆款改写"),
+        "nav_science": ("STEPPS & Structure", "评分与结构"),
+        "nav_science_desc": ("Scoring + Minto Pyramid", "评分与金字塔结构"),
+        "nav_china_content": ("China content", "中国内容"),
+        "nav_china_content_desc": ("Fetch from Bilibili, XHS, Douyin, Zhihu, Shipinhao", "从B站、小红书、抖音、知乎、视频号拉取"),
         "hero_line1": ("ENGINEER YOUR", "打造你的"),
         "hero_line2": ("INFLUENCE.", "影响力"),
         "hero_subtitle": ("Your content agent.", "你的内容助手"),
@@ -365,12 +480,16 @@ def _t(key: str, lang: str) -> str:
         "link_field_desc": ("Curated trends and resources by industry", "按行业精选的趋势与资源"),
         "link_news": ("News by Topic", "按主题新闻"),
         "link_news_desc": ("Search and browse news by topic", "按主题搜索与浏览新闻"),
+        "link_longform": ("Long-form & Podcasts", "长文与播客"),
+        "link_longform_desc": ("Deep reads and episodes in one place", "深度阅读与播客聚合"),
         "link_viral": ("Viral Videos", "热门视频"),
         "link_viral_desc": ("YouTube & Bilibili, ranked by spread rate", "YouTube 与 Bilibili，按传播率排序"),
         "link_video2text": ("Video to Text", "视频转文字"),
         "link_video2text_desc": ("Paste URL → extract transcript", "粘贴链接 → 提取逐字稿"),
-        "link_science": ("STEPPS Science", "STEPPS 科学"),
-        "link_science_desc": ("How we score content with behavioral science", "运用行为科学评分内容"),
+        "link_article_lab": ("Article Lab", "文章改写"),
+        "link_article_lab_desc": ("Upload markdown and rewrite with STEPPS + Minto", "上传 markdown 并用 STEPPS + Minto 改写"),
+        "link_science": ("STEPPS & Structure", "评分与结构"),
+        "link_science_desc": ("Scoring + Minto Pyramid", "评分与金字塔结构"),
         # Your Field page
         "field_title": ("Your field · Curated resources", "你的领域 · 精选资源"),
         "field_desc": ("Pick your niche — must-see trends and resources for Xiaohongshu, Douyin, Bilibili creators. Fashion-first, designer-built.", "选择你的领域 — 小红书、抖音、B站创作者必看的趋势与资源。时尚优先，设计师视角"),
@@ -397,14 +516,31 @@ def _t(key: str, lang: str) -> str:
         # News by topic — different content per language zone
         "news_title": ("News by topic", "按主题新闻"),
         "news_desc": ("Search any topic — suggestions below are just ideas. Market demand, not crowded content.", "搜索任一主题，掌握市场需求。下方为建议，可试试"),
+        "longform_title": ("Long-form & Podcasts", "长文与播客"),
+        "longform_desc": ("Page sources:", "页面文章的来源："),
+        "longform_scope": (
+            "English mode: global English sources. Chinese mode: Chinese ecosystem, including Traditional Chinese, Singapore, Taiwan, and overseas Chinese communities.",
+            "英文区：全球英文来源。中文区：中文生态来源（含繁体中文区、新加坡、台湾与海外华人社区）。",
+        ),
+        "longform_no_items": ("No long-form items yet. Refresh Daily News first.", "暂无长文内容，请先刷新每日新闻。"),
+        "longform_view_daily": ("Open Daily News", "打开每日新闻"),
+        "longform_theme_label": ("Focus themes", "主题聚焦"),
+        "longform_theme_all": ("All", "全部"),
+        "longform_theme_transition": ("Transition pain points", "转型痛点"),
+        "longform_theme_one_person": ("One-person business", "一人公司"),
+        "longform_theme_design_ai": ("Design & creativity in AI", "设计与创意 · AI 时代"),
         "news_placeholder": ("Search any topic (e.g. AI agents, creator economy)", "搜索主题（如：小红书爆款、抖音运营）"),
         "news_range_60m": ("60 mins", "60 分钟"),
         "news_range_1d": ("1 day", "1 天"),
         "news_range_7d": ("7 days", "7 天"),
         "news_tip_requested": ("Most requested in last {range}", "过去 {range} 最常搜索"),
+        "audience_segment_label": ("Audience", "受众"),
+        "audience_inference_note": ("We infer interest from topics and sources, not from who you are. No personal or geographic data.", "我们根据主题与来源推断兴趣，不使用个人或地理数据。"),
         "news_tip_platform_hot": ("What users care about now — Weibo, Zhihu, Douyin, Baidu, 少数派", "用户正在关注 · 微博、知乎、抖音、百度、少数派 实时热搜"),
         "news_tip_platform_hot_en": ("What users care about now — HN, Reddit, Lobsters, Dev.to, GitHub", "用户正在关注 · HN、Reddit、Lobsters、Dev.to、GitHub 实时热门"),
         "news_tip_suggestions": ("Suggestions — try these", "建议 — 试试这些"),
+        "hot_tags_title": ("Hot tags", "热门标签"),
+        "hot_tags_desc": ("Reference tags from current ecosystem signals.", "来自当前生态信号的参考标签。"),
         "news_topic_label": ("Topic", "主题"),
         "news_no_results": ("Search a topic above to get curated news.", "搜索上方主题即可获取精选新闻"),
         "news_searching": ("Searching… Refresh in a few seconds.", "正在搜索… 几秒后刷新页面"),
@@ -429,9 +565,52 @@ def _t(key: str, lang: str) -> str:
         "viral_source_label": ("Source", "来源"),
         "viral_source_global": ("Global (YouTube)", "全球 (YouTube)"),
         "viral_source_china": ("China (Bilibili)", "中国 (Bilibili)"),
+        "viral_hot_tags_hint": ("Use hot tags as quick query starters.", "可用热门标签作为快速搜索起点。"),
         "viral_search_btn": ("Search viral", "搜索热门"),
         "viral_what_we_serve": ("Global: YouTube videos. China: Bilibili videos. Every link opens the video on its platform.", "英文区：YouTube 视频。中文区：B站视频。点击即跳转至该平台观看。"),
         "viral_china_note": ("In China? YouTube needs VPN. Use China source for Bilibili (no VPN).", "在中国, YouTube 需魔法, 请选中国来源搜 B站"),
+        "viral_china_fetch_title": ("Fetch content from platforms", "从平台拉取内容"),
+        "viral_china_fetch_desc": ("Run fetch for selected platforms (Bilibili API + optional crawlers for XHS/Douyin/Zhihu/Shipinhao). Results merge into the list above", "对所选平台运行拉取（B站公开API + 小红书/抖音/知乎/视频号可选爬取），结果会合并到上方列表"),
+        "china_crawl_duration": ("Crawl took {sec}s", "拉取耗时 {sec} 秒"),
+        "viral_china_fetch_btn": ("Fetch", "拉取"),
+        "viral_china_fetch_keywords": ("Keywords", "关键词"),
+        "viral_china_platforms": ("Platforms", "平台"),
+        "content_type_video": ("Video", "视频"),
+        "content_type_post": ("Post", "帖子"),
+        "content_type_article": ("Article", "文章"),
+        "content_type_note": ("Note", "笔记"),
+        "china_crawl_done": ("Crawl finished. Refresh the list to see results.", "拉取完成。请刷新上方列表查看。"),
+        "china_crawl_no_items": ("No items fetched.", "未拉取到内容。"),
+        "china_crawl_errors": ("({n} platform(s) failed — see below)", "（{n} 个平台失败 — 见下方）"),
+        "china_content_page_title": ("China content", "中国内容"),
+        "china_content_after_fetch": ("Fetched content appears below. You can also see it on the Viral page (source: China).", "拉取结果展示于本页下方；也可在「热门视频」选中国来源查看。"),
+        "china_content_audience_label": ("Audience — add their keywords as tags below", "人群 — 点击后将该人群关心的关键词加入下方 tag"),
+        "china_content_keyword_input_placeholder": ("Type a hot keyword (e.g. open claw), Enter or Add as tag", "输入你发现的热门关键词（如 open claw），回车或点击添加成 tag"),
+        "china_content_add_tag": ("Add", "添加"),
+        "china_content_tags_label": ("Keywords to crawl (click × to remove)", "将要爬取的关键词（点击 × 移除）"),
+        "china_content_no_tags_yet": ("No keywords yet — pick an audience above or type your own", "暂无关键词 — 点击上方人群或输入自定义"),
+        "china_content_try_tags": ("Select one or more keywords, then Fetch to crawl all together (max 10).", "勾选一个或多个关键词，点击拉取可一并爬取（最多10个）。"),
+        "china_content_fetched_title": ("Fetched content", "拉取结果"),
+        "china_content_no_items_yet": ("No content yet. Run Fetch above (requires Playwright in the same Python that runs the server).", "暂无内容。请在上方点击拉取（需在运行服务器的同一 Python 环境中安装 Playwright）。"),
+        "china_content_eval_btn": ("Score & rewrite", "评估 · 改写"),
+        "china_content_eval_score": ("Score", "评分"),
+        "china_content_rewrite_directions": ("Rewrite directions", "改写方向"),
+        "china_content_minto_title": ("Structure (Minto)", "结构（金字塔）"),
+        "china_content_eval_loading": ("Evaluating…", "评估中…"),
+        "china_content_eval_error": ("Evaluation failed", "评估失败"),
+        "china_content_crawl_hint": ("Bilibili uses public API (no login). Xiaohongshu/Douyin often return no data without login.", "B站使用公开API（无需登录）；小红书/抖音未登录时多为空。"),
+        "china_content_login_title": ("Login (optional)", "登录态（可选）"),
+        "china_content_login_desc": ("Without login, XHS/Douyin often return no data. To use your session: run the command below on your machine; a browser will open — log in there once. Session is saved locally only; we never upload it.", "未登录时小红书/抖音等可能无法拉取。若需登录后拉取：请在本机终端运行下方命令，会打开浏览器，在页面中登录一次即可。会话仅保存在本机 config/，我们不会上传你的登录信息。"),
+        "china_content_login_cmd": (".venv/bin/python -m tools.china_crawler login --platform xhs", ".venv/bin/python -m tools.china_crawler login --platform xhs"),
+        "china_content_login_cmd_note": ("Replace xhs with douyin, zhihu, or shipinhao for other platforms. Bilibili does not need login.", "将 xhs 改为 douyin、zhihu 或 shipinhao 可保存其他平台登录态。B站无需登录。"),
+        "china_content_login_risk": ("Using your account to crawl may be detected by the platform (rate limit or ban). We recommend a separate account; we do not post or delete your content. See docs/CHINA_CRAWLER_LOGIN.md.", "使用账号登录爬取可能被平台检测、限流或封号，建议使用小号。本工具不会代你发帖/删帖，不会删除你账号内容；详见 docs/CHINA_CRAWLER_LOGIN.md。"),
+        "china_content_free_compliant_title": ("Free & compliant", "免费且合规"),
+        "china_content_hot_topics_label": ("Today's hot topics (click to add as keyword)", "今日最热话题（点击加入为关键词）"),
+        "china_content_free_compliant_desc": ("No cost, no scraping, no login: use Bilibili (public API) here, and open the links below to search on each platform in your browser. Fully compliant.", "不付费、不爬取、不登录：B站用本站公开 API；其余平台点击链接在浏览器中搜索，合规使用。"),
+        "china_content_free_bilibili": ("Bilibili (in-app)", "B站（站内）"),
+        "china_content_free_search_links": ("Search in browser", "在浏览器中搜索"),
+        "china_content_load_error": ("China content page failed to load.", "中国内容页暂时无法加载。"),
+        "viral_china_content_link": ("Fetch from Bilibili, 小红书, 抖音, 知乎, 视频号", "从B站、小红书、抖音、知乎、视频号拉取内容"),
         "viral_suggestions": ("Suggestions — try these", "建议 — 试试这些"),
         "viral_lang_hint": ("This topic is in English. Try China source for Chinese content.", "此主题为英文，建议选择中国来源搜索中文内容"),
         "viral_berger_unproven": ("—", "—"),
@@ -441,22 +620,43 @@ def _t(key: str, lang: str) -> str:
         "viral_empty_body": ("Try one of these searches to see viral content scored in real time:", "试试这些搜索，实时查看爆款评分："),
         "viral_error": ("Error", "加载失败"),
         "viral_china_unavailable": ("Bilibili may be unreachable from your network. Try switching to Global (YouTube) source above.", "B站 API 可能无法访问（需在中国网络）。请切换至上方「全球 (YouTube)」来源重试。"),
+        "viral_china_proxy_placeholder": ("e.g. http://127.0.0.1:7890", "直连代理地址，如 http://127.0.0.1:7890"),
+        "viral_china_retry_with_proxy": ("Retry", "重试"),
         "viral_timeout": ("Request timeout", "请求超时"),
         "content_angles": ("3 ways to ride this trend", "3 种内容角度"),
         # Video to Text — different content per language zone
         "video2text_title": ("Video to Text", "影片转文字"),
         "video2text_tagline": ("Paste a video. Get the transcript.", "粘贴视频。获取逐字稿"),
-        "video2text_accuracy_note": ("We use YouTube's existing captions — not speech-to-text. <strong>Creator-uploaded captions</strong> are usually accurate. <strong>Auto-generated</strong> ones are mostly fine, but names and jargon may have errors.", "我们使用 YouTube 现有字幕 — 非语音转文字。<strong>创作者上传的字幕</strong>通常准确。<strong>自动生成</strong>的多数可用，但人名和专业术语可能有误。"),
-        "video2text_placeholder": ("https://www.youtube.com/watch?v=...", "https://www.youtube.com/watch?v=..."),
+        "video2text_accuracy_note": ("YouTube uses existing captions first. For Bilibili/Douyin/Xiaohongshu/Shipinhao/Xiaoyuzhou and audio links/files, we can fallback to speech-to-text when VideoCaptioner is installed.", "YouTube 优先使用现有字幕；对 B站/抖音/小红书/视频号/小宇宙及音频链接/文件，在安装 VideoCaptioner 后可回退到语音转文字。"),
+        "video2text_placeholder": ("https://www.youtube.com/watch?v=... or https://www.xiaohongshu.com/...", "可粘贴 YouTube/B站/抖音/小红书/视频号/小宇宙链接"),
         "video2text_btn": ("Get transcript →", "获取逐字稿 →"),
-        "video2text_hint": ("Supports YouTube and Bilibili · e.g. ", "支持 YouTube 和 B站 · 例如 "),
+        "video2text_hint": ("Supports YouTube, Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, podcast/audio links and local media path · e.g. ", "支持 YouTube、B站、抖音、小红书、视频号、小宇宙、播客/音频链接与本地媒体路径 · 例如 "),
         "video2text_note1": ("For best accuracy, look for videos with <strong>manual captions</strong> (CC badge on YouTube).", "最佳准确度请选择有<strong>手动字幕</strong>的视频（YouTube 上的 CC 标识）。"),
         "video2text_note2": ("The markdown export is structured for AI — paste it into ChatGPT or Claude and ask it to rewrite for your platform.", "Markdown 导出为 AI 优化 — 粘贴到 ChatGPT 或 Claude 让它按你的平台重写。"),
-        "video2text_note3": ("Bilibili captions are supported when available. The Berger score works the same for Chinese-language content.", "B站字幕在可用时支持。Berger 评分对中文内容同样适用。"),
+        "video2text_note3": ("For links without captions, install VideoCaptioner CLI (`pip install videocaptioner`) to enable ASR transcripts across platforms and podcasts.", "对于无字幕链接，请安装 VideoCaptioner CLI（`pip install videocaptioner`）以启用跨平台与播客 ASR 逐字稿。"),
+        "video2text_note_minto": ("After you get a transcript, use the <strong>Structure (Minto)</strong> tab above the transcript to see conclusion → key points → evidence.", "获取逐字稿后，用上方的<strong>结构（金字塔）</strong>标签查看结论 → 要点 → 论据。"),
         "video2text_how_score": ("How the score works", "评分如何运作"),
+        "video2text_tab_structure": ("Structure (Minto)", "结构（金字塔）"),
+        "video2text_export_mode": ("Export", "导出"),
+        "video2text_export_raw": ("Original transcript", "原文版"),
+        "video2text_export_minto": ("Minto version", "金字塔版"),
+        "video2text_processing": ("Processing your transcript…", "正在处理逐字稿…"),
+        "video2text_processing_sub": ("This can take a few seconds for captions and longer for ASR. Please keep this page open.", "字幕模式通常几秒，ASR 模式会更久。请保持页面开启。"),
         "video2text_find": ("Find trending videos", "发现热门视频"),
         "video2text_your_transcripts": ("Your transcripts", "你的逐字稿"),
         "video2text_none": ("None yet", "尚无"),
+        "article_lab_title": ("Article Lab", "文章改写"),
+        "article_lab_desc": ("Upload or paste markdown. We output a structured contagious version in markdown.", "上传或粘贴 markdown，输出结构化传播版本（markdown）。"),
+        "article_lab_intro": (
+            "In the attention economy, great ideas still fail without structure and shareability. Article Lab rewrites your draft with strict Minto Pyramid logic (conclusion-first, grouped points, evidence) and Berger STEPPS contagious signals so you can publish clearer, more spreadable content.",
+            "在注意力经济中，没有结构和传播性，再好的观点也容易被忽略。Article Lab 会用严格的 Minto 金字塔（结论先行、要点分组、论据支撑）与 Berger STEPPS 传播原则改写你的草稿，帮助你发布更清晰、更易传播的内容。",
+        ),
+        "article_lab_input_label": ("Input markdown", "输入 markdown"),
+        "article_lab_upload_label": ("Upload .md file", "上传 .md 文件"),
+        "article_lab_upload_multi_label": ("Upload multiple .md files (batch)", "批量上传多个 .md 文件"),
+        "article_lab_btn": ("Rewrite article", "改写文章"),
+        "article_lab_btn_batch": ("Batch rewrite", "批量改写"),
+        "article_lab_download": ("Download rewritten markdown", "下载改写后的 markdown"),
         # Campaign page
         "campaign_eyebrow": ("ViralLab · Free · No API key needed", "ViralLab · 免费 · 无需 API 密钥"),
         "campaign_h1_line1": ("Stop guessing", "停止猜测"),
@@ -685,6 +885,9 @@ def _t(key: str, lang: str) -> str:
         "science_v2_honest": ("<strong>A note on accuracy:</strong> This score is based on text analysis — keywords, structure, and framing. It doesn't account for delivery, visuals, timing, or luck, which all matter. Think of it as one useful lens, not a definitive verdict. A low score doesn't mean the content is bad. A high score doesn't guarantee it spreads.", "<strong>关于准确性：</strong>此评分基于文字分析 — 关键词、结构、框架。未考虑表达、画面、时机或运气，这些都很重要。把它当作一个有用视角，非最终定论。低分不代表内容差。高分也不保证会传播。"),
         "science_v2_link_score": ("Score a video →", "评分视频 →"),
         "science_v2_link_transcript": ("Transcript + score", "逐字稿 + 评分"),
+        "science_minto_title": ("Minto Pyramid — Structure", "Minto 金字塔 — 结构"),
+        "science_minto_desc": ("Lead with the answer, then key points, then evidence. In social media, users decide in seconds whether to keep watching, so this structure improves clarity, retention, and repurposing speed across formats. ViralLab extracts this structure from transcripts on Video to Text so you can turn one script into hooks, threads, and long-form drafts with less guesswork.", "结论先行，再要点，再论据。社交媒体里用户几秒内就决定是否继续看，这种结构能显著提升清晰度、完播和多平台改写效率。ViralLab 会在「视频转文字」里自动提取该结构，让你用同一份逐字稿更快产出开场、线程和长文草稿。"),
+        "science_minto_cta": ("Try it on Video to Text →", "在视频转文字中试试 →"),
     }
     en, zh = T.get(key, (key, key))
     return zh if lang == "zh" else en
@@ -699,10 +902,11 @@ def _lifecycle_tooltip_html(lang: str, life: str) -> str:
 # Function cards for Features dropdown (Buffer-style)
 FUNCTION_CARDS = [
     {"href": "/daily", "icon": "📅", "title": "Daily News", "desc": "Top 3 most talked about topics today"},
+    {"href": "/longform", "icon": "📚", "title": "Long-form & Podcasts", "desc": "Deep reads and episodes in one place"},
     {"href": "/#field", "icon": "🎯", "title": "Your Field", "desc": "Curated trends and resources by your industry"},
     {"href": "/#viral", "icon": "▶️", "title": "Viral YouTube", "desc": "Search viral videos ranked by spread rate"},
     {"href": "/video-to-text", "icon": "📝", "title": "Video to Text", "desc": "Paste URL → transcript + Berger score"},
-    {"href": "/science", "icon": "📊", "title": "STEPPS & Magic Words", "desc": "How we score content with behavioral science"},
+    {"href": "/science", "icon": "📊", "title": "STEPPS & Structure", "desc": "Scoring + Minto Pyramid"},
     {"href": "/api/digests", "icon": "🔌", "title": "API", "desc": "Access digests and data programmatically"},
 ]
 
@@ -714,8 +918,11 @@ def _sidebar_html(active="", lang="en"):
         ("/daily", "📅", "nav_daily", "nav_daily_desc"),
         ("/field", "🎯", "nav_field", "nav_field_desc"),
         ("/news", "📰", "nav_news", "nav_news_desc"),
+        ("/longform", "📚", "nav_longform", "nav_longform_desc"),
         ("/viral", "▶️", "nav_viral", "nav_viral_desc"),
+        ("/china-content", "📥", "nav_china_content", "nav_china_content_desc"),
         ("/video-to-text", "📝", "nav_video2text", "nav_video2text_desc"),
+        ("/article-lab", "✍️", "nav_article_lab", "nav_article_lab_desc"),
         ("/science", "📊", "nav_science", "nav_science_desc"),
     ]
     links = ""
@@ -823,10 +1030,10 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         body::before {{ content: ""; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); z-index: 999; }}
         html[lang="zh"] .sidebar-subtitle, html[lang="zh"] .hero-subtitle, html[lang="zh"] .hero-desc, html[lang="zh"] .hero-cta, html[lang="zh"] .tagline, html[lang="zh"] .sidebar-text strong, html[lang="zh"] .sidebar-text small {{ letter-spacing: 0.12em; }}
         .app-layout {{ display: flex; min-height: 100vh; overflow-x: visible; }}
-        .sidebar {{ width: 220px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }}
+        .sidebar {{ width: 220px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 0; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; z-index: 40; }}
         .sidebar-brand {{ display: flex; align-items: center; gap: 0.5rem; padding: 0 1.25rem; height: var(--header-height); box-sizing: border-box; text-decoration: none; color: var(--text); border-bottom: 1px solid var(--border); margin-bottom: 1rem; }}
         .sidebar-brand:hover {{ color: var(--accent); }}
-        .sidebar-nav {{ display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-height: 0; padding: 0.5rem 0; }}
+        .sidebar-nav {{ display: flex; flex-direction: column; gap: 0.25rem; flex: 1; min-height: 0; overflow-y: auto; padding: 0.5rem 0; }}
         .sidebar-link {{ display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 1.25rem; text-decoration: none; color: var(--muted); font-size: 0.9rem; transition: background var(--dur) var(--ease-out), color var(--dur) var(--ease-out); }}
         .sidebar-link:hover {{ background: var(--warm); color: var(--accent); }}
         .sidebar-link.active {{ background: var(--warm); color: var(--accent); font-weight: 500; }}
@@ -837,7 +1044,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .sidebar-footer {{ margin-top: auto; height: var(--footer-height); padding: 0 1.25rem; border-top: 1px solid var(--border); display: flex; align-items: center; font-size: 0.85rem; flex-shrink: 0; box-sizing: border-box; }}
         .sidebar-footer a {{ color: var(--text); text-decoration: none; }}
         .sidebar-footer a:hover {{ color: var(--accent); }}
-        .main-content {{ flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: visible; padding: 0 2rem calc(2rem + var(--footer-height)) 2rem; max-width: 1100px; }}
+        .main-content {{ margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: visible; padding: 0 2rem calc(2rem + var(--footer-height)) 2rem; max-width: 1100px; }}
         .top-bar {{ position: sticky; top: 0; z-index: 50; height: var(--header-height); padding: 0 2rem; margin-bottom: 1rem; margin-left: -2rem; margin-right: -2rem; background: var(--bg); overflow: visible; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; box-sizing: border-box; }}
         .top-bar-links-wrap {{ position: relative; margin-left: auto; }}
         .top-bar-links {{ display: flex; align-items: center; gap: 1rem; }}
@@ -919,6 +1126,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .form input {{ flex: 1; padding: 0.75rem 1rem; border-radius: var(--radius); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.9375rem; font-family: inherit; transition: border-color var(--dur) var(--ease-out); }}
         .tip-card {{ background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; box-shadow: var(--shadow); transition: border-color var(--dur) var(--ease-out); }}
         .tip-card:hover {{ border-color: var(--accent-light); }}
+        .china-result-box {{ overflow-wrap: break-word; word-break: break-word; max-width: 100%; min-width: 0; overflow-x: auto; white-space: pre-wrap; font-size: 0.8rem; line-height: 1.4; padding: 0.5rem 0; box-sizing: border-box; }}
         .tip-header {{ display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }}
         .tip-label {{ font-size: 0.625rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }}
         .tip-range-wrap {{ display: flex; gap: 0.5rem; font-size: 0.8rem; }}
@@ -928,11 +1136,28 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .viral-source-wrap {{ display: flex; align-items: center; gap: 0.4rem; }}
         .viral-source-label {{ font-size: 0.75rem; font-weight: 600; color: var(--muted); }}
         .viral-source-select {{ padding: 0.25rem 0.5rem; font-size: 0.8rem; }}
+        .segment-pills-wrap {{ display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }}
+        .segment-pill {{ padding: 0.3rem 0.6rem; border-radius: var(--radius); font-size: 0.75rem; font-weight: 500; text-decoration: none; color: var(--muted); background: var(--cream-dark); transition: background var(--dur), color var(--dur); }}
+        .segment-pill:hover {{ color: var(--accent); background: rgba(45,74,43,0.1); }}
+        .segment-pill.active {{ color: var(--accent); background: rgba(45,74,43,0.12); font-weight: 600; }}
+        .audience-inference-note {{ font-size: 0.7rem; color: var(--muted); margin: 0.6rem 0 0; line-height: 1.4; }}
         .tip-chips {{ display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }}
         .tip-chip-form {{ display: inline-flex; margin: 0; }}
         .tip-chip {{ padding: 0.4rem 0.75rem; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: background var(--dur), border-color var(--dur), color var(--dur); white-space: nowrap; user-select: none; -webkit-tap-highlight-color: transparent; }}
         .tip-chip:hover {{ background: var(--accent); border-color: var(--accent); color: white; }}
         .tip-chip-active {{ background: var(--accent); border-color: var(--accent); color: white; }}
+        .china-content-wrap {{ max-width: 100%; margin: 0; padding: 0 0 100px; }}
+        .china-layout-grid {{ display: grid; grid-template-columns: minmax(460px, 1.4fr) minmax(320px, 1fr); gap: 1rem; align-items: start; }}
+        .china-stack {{ display: grid; gap: 1rem; align-content: start; }}
+        .china-panel {{ margin: 0; width: 100%; }}
+        .china-panel .section-desc {{ max-width: none; }}
+        .china-wide {{ grid-column: 1 / -1; }}
+        .china-title-desc {{ max-width: none; white-space: normal; overflow-wrap: anywhere; margin-bottom: 0.85rem; }}
+        .china-platform-row {{ display: flex; flex-wrap: wrap; gap: 0.65rem 0.9rem; }}
+        .china-platform-row label {{ font-size: 0.875rem; color: var(--text); }}
+        .china-actions {{ display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }}
+        .china-help-text {{ font-size: 0.82rem; color: var(--muted); margin: 0; }}
+        @media (max-width: 1180px) {{ .china-layout-grid {{ grid-template-columns: 1fr; }} }}
         .topic-label {{ font-size: 0.625rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin: 1.5rem 0 0.5rem 0; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border); grid-column: 1 / -1; }}
         .topic-label:first-child {{ margin-top: 0; }}
         .form input:focus {{ outline: none; border-color: var(--accent-light); }}
@@ -1188,7 +1413,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .btn-onboard-next:hover {{ background: var(--accent-hover); }}
         .reveal {{ opacity: 1; transform: none; transition: opacity 0.65s ease, transform 0.65s ease; }}
         .reveal.visible {{ opacity: 1; transform: none; }}
-        @media (max-width: 768px) {{ .app-layout {{ flex-direction: column; }} .sidebar {{ width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }} .sidebar-nav {{ flex-direction: row; flex-wrap: wrap; }} .sidebar-link {{ flex: 1 1 auto; }} .stats {{ grid-template-columns: 1fr; }} .cards {{ grid-template-columns: 1fr; }} footer {{ left: 0; }} }}
+        @media (max-width: 768px) {{ .app-layout {{ flex-direction: column; }} .sidebar {{ width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }} .sidebar-nav {{ flex-direction: row; flex-wrap: wrap; overflow: visible; }} .sidebar-link {{ flex: 1 1 auto; }} .main-content {{ margin-left: 0; }} .stats {{ grid-template-columns: 1fr; }} .cards {{ grid-template-columns: 1fr; }} footer {{ left: 0; }} }}
         @media (max-width: 640px) {{ .hero {{ grid-template-columns: 1fr; }} .hero-visual {{ order: -1; }} .hero-thumbnail-wrap {{ width: 240px; height: 240px; }} .form {{ flex-wrap: wrap; }} }}
     </style>
 </head>
@@ -1226,7 +1451,8 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
             }}
             document.querySelectorAll('form[action*="search-news"]').forEach(function(f) {{ f.addEventListener('submit', function() {{ show('search'); }}); }});
             document.querySelectorAll('a.refresh-link').forEach(function(a) {{
-                if (!/\\/(news|daily)\\/refresh/.test(a.getAttribute('href') || '')) return;
+                const href = a.getAttribute('href') || '';
+                if (!/\\/(news|daily)\\/refresh/.test(href) && !/refresh_hot=1/.test(href)) return;
                 a.addEventListener('click', function() {{ show('refresh'); }});
             }});
         }})();
@@ -1390,6 +1616,14 @@ def _render_full_digest(filename: str):
     cards_html = ""
     for i, item in enumerate(parsed, 1):
         snip = item.get("snippet", "") or ""
+        c_score = evaluate_contagious_article(item.get("title", ""), snip, lang=lang)
+        c_total = c_score.get("total", 0)
+        c_top = " + ".join(c_score.get("top_signals", []))
+        c_badge = (
+            f'<span class="berger {_score_badge_class(c_total)}" title="{_html_escape(c_top)}">{_html_escape(_t("contagious_score", lang))} {c_total}</span>'
+            if c_total > 0
+            else ""
+        )
         angles = generate_angles("", item.get("title", ""), snip, count=2, lang=lang)
         pills = "".join(f'<span class="pill-tag">{_html_escape(a)}</span>' for a in angles)
         life = item.get("lifecycle", "peaking")
@@ -1397,12 +1631,14 @@ def _render_full_digest(filename: str):
         life_tt = _lifecycle_tooltip_html(lang, life)
         hidden_class = " load-more-hidden" if i > INITIAL_SHOW else ""
         src = _get_source_for_item(item)
+        src_type = _source_type_for_item(item)
         snip_html = f'<p class="digest-card-snippet">{_html_escape(_sanitize_snippet(snip))}</p>' if snip else ""
         src_html = f'<p class="digest-card-source">Source: {_html_escape(src)}</p>' if src else ""
-        cards_html += f'''<div class="digest-card{hidden_class}" data-digest-index="{i}">
+        cards_html += f'''<div class="digest-card{hidden_class}" data-digest-index="{i}" data-source-type="{_html_escape(src_type)}">
             <div class="digest-card-header">
                 <span class="digest-card-num">{i}</span>
                 <h3 class="digest-card-title"><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3>
+                {c_badge}
                 <span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span>
             </div>
             {snip_html}
@@ -1435,6 +1671,19 @@ def _render_full_digest(filename: str):
     export_links = f'<p class="sources-label">Export: <a href="/api/export/{filename}?format=markdown">Markdown</a> · <a href="/api/export/{filename}?format=notion">Notion</a> · <a href="/api/export/{filename}?format=obsidian">Obsidian</a></p>'
     refresh_url = f"/daily/refresh?next=/view/{filename}"
     refresh_options = f'<p class="sources-label"><a href="{refresh_url}" class="refresh-link">{_t("refresh_now", lang)}</a> — {_t("refresh_desc", lang)}</p>'
+    filter_bar = f'''
+    <div class="tip-card" style="margin-top:0.75rem;">
+        <div class="tip-header">
+            <span class="tip-label">{_html_escape(_t("daily_focus_label", lang))}</span>
+            <span class="tip-range-wrap">{_html_escape(_t("daily_focus_hint", lang))}</span>
+        </div>
+        <div class="tip-chips">
+            <button type="button" class="tip-chip tip-chip-active digest-filter-btn" data-filter="all">{_html_escape(_t("daily_focus_all", lang))}</button>
+            <button type="button" class="tip-chip digest-filter-btn" data-filter="news">{_html_escape(_t("daily_focus_news", lang))}</button>
+            <button type="button" class="tip-chip digest-filter-btn" data-filter="longform">{_html_escape(_t("daily_focus_longform", lang))}</button>
+            <button type="button" class="tip-chip digest-filter-btn" data-filter="podcast">{_html_escape(_t("daily_focus_podcast", lang))}</button>
+        </div>
+    </div>'''
 
     body = f"""
     <section>
@@ -1444,12 +1693,34 @@ def _render_full_digest(filename: str):
             <p class="sources-label">{_t("last_updated", lang)}: {_html_escape(updated_at)}</p>
             {export_links}
         </div>
+        {filter_bar}
         <div class="digest-top-section">
             {back_link}
         </div>
         <div class="digest-cards">{cards_html}</div>
         {load_more_btn}
     </section>
+    <script>
+    (function() {{
+        var buttons = document.querySelectorAll(".digest-filter-btn");
+        var cards = document.querySelectorAll(".digest-card");
+        if (!buttons.length || !cards.length) return;
+        function applyFilter(filter) {{
+            cards.forEach(function(card) {{
+                var t = card.getAttribute("data-source-type") || "news";
+                card.style.display = (filter === "all" || t === filter) ? "" : "none";
+            }});
+            buttons.forEach(function(btn) {{
+                btn.classList.toggle("tip-chip-active", btn.getAttribute("data-filter") === filter);
+            }});
+        }}
+        buttons.forEach(function(btn) {{
+            btn.addEventListener("click", function() {{
+                applyFilter(btn.getAttribute("data-filter") || "all");
+            }});
+        }});
+    }})();
+    </script>
     """
     return _base(title_t, body, "/daily", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
 
@@ -1490,15 +1761,14 @@ def view_digest(name):
 
 @app.route("/api/video-to-text", methods=["POST"])
 def api_video_to_text():
-    url = (request.form.get("url") or request.json.get("url") or "").strip()
+    req_json = request.get_json(silent=True) or {}
+    url = (request.form.get("url") or req_json.get("url") or "").strip()
     if not url:
         return jsonify({"error": "Missing url"}), 400
-    vid = extract_youtube_id(url)
-    if not vid:
-        return jsonify({"error": "Invalid YouTube URL"}), 400
-    transcript, caption_source = _fetch_transcript_prefer_manual(vid, "en")
+    transcript, caption_source = _fetch_transcript_from_input(url, "en")
     if not transcript:
-        return jsonify({"error": "No captions available", "hint": "Video may not have captions"}), 400
+        hint = "Install VideoCaptioner (`pip install videocaptioner`) for ASR fallback"
+        return jsonify({"error": "Transcript unavailable", "hint": hint}), 400
 
     score = score_berger(transcript)
     lang = _get_lang()
@@ -1511,9 +1781,12 @@ def api_video_to_text():
         stepps=stepps,
         transcript=transcript,
         magic_words=score.get("magic_words_found", []),
+        lang=lang,
+        include_minto=True,
     )
     OUTPUT.mkdir(exist_ok=True)
-    out_file = OUTPUT / f"transcript_{vid}.md"
+    out_id = str(abs(hash(url)))[:12]
+    out_file = OUTPUT / f"transcript_{out_id}.md"
     out_file.write_text(md, encoding="utf-8")
     return jsonify({
         "file": out_file.name,
@@ -1707,6 +1980,14 @@ def _berger_breakdown_list(breakdown: dict, lang: str = "en") -> list:
     return [{"letter": letters[i], "name": labels.get(k, k.replace("_", " ").title()), "score": breakdown.get(k, 0)} for i, k in enumerate(STEPPS_ORDER)]
 
 
+def _score_badge_class(score: int) -> str:
+    if score >= 60:
+        return "berger-high"
+    if score >= 35:
+        return "berger-mid"
+    return "berger-low"
+
+
 @app.route("/api/viral-videos", methods=["GET"])
 def api_viral_videos():
     """Fetch viral videos. Query: q (search term). Source: global (default) or china."""
@@ -1716,18 +1997,19 @@ def api_viral_videos():
     try:
         if source == "china":
             from src.video_tools import score_berger
-            # Fetch via subprocess with no-proxy (fixes SOCKS/proxy blocking Bilibili)
+            from src.china_sources import get_crawler_china_results
+
+            videos = []
             script = Path(__file__).parent / "scripts" / "fetch_bilibili_json.py"
-            env = _env_no_proxy()
-            env["PYTHONPATH"] = str(Path(__file__).parent)
-            result = subprocess.run(
-                [sys.executable, str(script), query, "20"],
-                capture_output=True,
-                text=True,
-                env=env,
-                cwd=Path(__file__).parent,
-                timeout=25,
-            )
+            args = [sys.executable, str(script), query, "20"]
+            kw = dict(capture_output=True, text=True, cwd=Path(__file__).parent, timeout=25)
+            # 1) Try with system proxy (VPN+Clash 时走代理，Clash 把 bilibili 直连)
+            result = subprocess.run(args, env=_env_for_bilibili(), **kw)
+            if result.returncode != 0 or not (result.stdout or "").strip():
+                # 2) Fallback: no proxy，直连 B 站（国内未开代理时）
+                env_direct = _env_no_proxy()
+                env_direct["PYTHONPATH"] = str(Path(__file__).parent)
+                result = subprocess.run(args, env=env_direct, **kw)
             if result.returncode != 0:
                 err = result.stderr.strip() or result.stdout.strip()
                 try:
@@ -1736,10 +2018,25 @@ def api_viral_videos():
                 except json.JSONDecodeError:
                     pass
                 raise RuntimeError(err)
-            videos = json.loads(result.stdout)
+            try:
+                videos = json.loads(result.stdout) if result.stdout.strip() else []
+            except (json.JSONDecodeError, ValueError):
+                videos = []
+            try:
+                platforms_param = request.args.get("platforms", "").strip()
+                platform_filter = [p.strip().lower() for p in platforms_param.split(",") if p.strip()] or None
+                crawler = get_crawler_china_results(platform_filter=platform_filter)
+                seen_urls = {v.get("url") for v in videos if isinstance(v, dict) and v.get("url")}
+                for c in crawler:
+                    if isinstance(c, dict):
+                        u = c.get("url")
+                        if u and u not in seen_urls:
+                            seen_urls.add(u)
+                            videos.append(c)
+            except Exception:
+                pass
         else:
             from src.video_tools import score_berger, extract_youtube_id
-            # Fetch via subprocess with no-proxy (fixes connection refused when proxy is down)
             max_fetch = 24 if (lang == "en" and source == "global") else 12
             script = Path(__file__).parent / "scripts" / "fetch_videos_json.py"
             env = _env_no_proxy()
@@ -1762,6 +2059,7 @@ def api_viral_videos():
                 raise RuntimeError(err)
             videos = json.loads(result.stdout)
         out = []
+        _china_platform_display = {"bilibili": "Bilibili", "xiaohongshu": "Xiaohongshu", "douyin": "Douyin", "shipinhao": "Shipinhao", "zhihu": "Zhihu"}
         for v in videos:
             # English channels: only show English content (no CJK in title/desc)
             if lang == "en" and source == "global":
@@ -1774,7 +2072,10 @@ def api_viral_videos():
             title = v.get("title", "")
             desc = (v.get("description") or "")[:200]
             angles = generate_angles(query, title, desc, count=3, lang=lang)
-            platform = "Bilibili" if source == "china" else "YouTube"
+            if source == "china":
+                platform = _china_platform_display.get((v.get("platform") or "bilibili").lower(), "Bilibili")
+            else:
+                platform = "YouTube"
             views_int = v.get("views_int", 0) or 0
             berger_val = score["total"]
             interpretation = _berger_interpretation(score)
@@ -1783,6 +2084,7 @@ def api_viral_videos():
                 "title": title,
                 "url": v.get("url"),
                 "platform": platform,
+                "content_type": v.get("content_type", "video"),
                 "views": v.get("views") or str(views_int) or "0",
                 "berger": berger_val,
                 "magic": ", ".join(score["magic_words_found"]) or "—",
@@ -1803,7 +2105,6 @@ def api_viral_videos():
         return jsonify({"error": _t("viral_timeout", lang)}), 504
     except Exception as e:
         err_msg = str(e)
-        # When china source fails, hint user to try global
         if source == "china":
             return jsonify({
                 "error": err_msg,
@@ -1811,6 +2112,379 @@ def api_viral_videos():
                 "china_hint": _t("viral_china_unavailable", lang),
             }), 500
         return jsonify({"error": err_msg}), 500
+
+
+@app.route("/api/china-crawl", methods=["POST"])
+def api_china_crawl():
+    """Run China crawler for given platforms and keywords. Writes to output/china_crawler_{platform}.json."""
+    import time
+    from urllib.parse import quote
+
+    t0 = time.perf_counter()
+    deadline = t0 + 55.0  # Keep request responsive; return partial results when budget exceeded.
+    time_budget_hit = False
+    lang = _get_lang()
+    data = request.get_json(silent=True) or {}
+    platforms_raw = data.get("platforms", request.form.get("platforms", ""))
+    kw_raw = data.get("keywords", request.form.get("keywords", ""))
+    if isinstance(kw_raw, list):
+        keywords_list = [str(k).strip() for k in kw_raw if str(k).strip()][:10]
+    else:
+        parts = [p.strip() for p in str(kw_raw or "").split(",") if p.strip()][:10]
+        keywords_list = parts if parts else ["热门"]
+    if not keywords_list:
+        keywords_list = ["热门"]
+    valid_platforms = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili")
+    if isinstance(platforms_raw, list):
+        platforms = [p for p in platforms_raw if p and str(p).lower() in valid_platforms]
+    else:
+        platforms = [p.strip().lower() for p in str(platforms_raw).split(",") if p.strip() and p.strip().lower() in valid_platforms]
+    if not platforms:
+        return jsonify({"ok": False, "error": "No valid platforms (use bilibili, xhs, douyin, shipinhao, zhihu)"}), 400
+
+    from src.china_sources import get_china_search_url
+
+    def _fallback_search_url(platform: str, keyword: str) -> str:
+        p = (platform or "").lower()
+        if p == "zhihu":
+            return "https://www.zhihu.com/search?type=content&q=" + quote(keyword)
+        if p == "xhs":
+            return get_china_search_url("xiaohongshu", keyword)
+        return get_china_search_url(p, keyword)
+
+    def _classify_status(platform: str, fetched_count: int, kw_attempted: int, kw_with_items: int, reasons: list[str]) -> str:
+        if fetched_count <= 0:
+            reason_text = " ".join(reasons).lower()
+            if any(k in reason_text for k in ("登录", "login", "cookie", "扫码", "verify_login")):
+                return "blocked_login"
+            if any(k in reason_text for k in ("风控", "captcha", "forbidden", "403", "429", "blocked", "rate limit")):
+                return "blocked_risk"
+            return "network_error"
+        if kw_attempted > 1 and kw_with_items < kw_attempted:
+            return "partial"
+        if reasons:
+            return "partial"
+        return "ok"
+
+    root = Path(__file__).parent
+    out_dir = root / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    env = {**_env_no_proxy(), "PYTHONPATH": str(root), "CHINA_CRAWLER_OUTPUT_DIR": str(out_dir)}
+    fetched = {}
+    errors = []
+    all_items = []
+    seen_urls = set()
+    status_map = {
+        p: {
+            "platform": p,
+            "status": "network_error",
+            "fetched": 0,
+            "keywords": keywords_list,
+            "keywords_with_items": 0,
+            "source": "crawler",
+            "reasons": [],
+            "fallback_url": _fallback_search_url(p, keywords_list[0]),
+        }
+        for p in platforms
+    }
+
+    try:
+        from src.third_party_china_api import fetch_platform_via_third_party
+    except ImportError:
+        fetch_platform_via_third_party = lambda p, k, max_results=20: []
+
+    for keyword in keywords_list:
+        if time.perf_counter() > deadline:
+            time_budget_hit = True
+            break
+        for p in platforms:
+            if time.perf_counter() > deadline:
+                time_budget_hit = True
+                break
+            try:
+                # Prefer third-party API (Just One API / Apify) when token is set
+                third_party = fetch_platform_via_third_party(p, keyword, max_results=15)
+                if third_party:
+                    status_map[p]["source"] = "third_party_api"
+                    fetched[p] = fetched.get(p, 0) + len(third_party)
+                    status_map[p]["fetched"] = fetched[p]
+                    status_map[p]["keywords_with_items"] += 1
+                    for i in third_party:
+                        if isinstance(i, dict) and i.get("url") and i["url"] not in seen_urls:
+                            seen_urls.add(i["url"])
+                            all_items.append(i)
+                    continue
+                # Fallback: run Playwright crawler
+                r = subprocess.run(
+                    [sys.executable, "-m", "tools.china_crawler", "run", "--platform", p, "--type", "search", "--keywords", keyword, "--max", "15"],
+                    capture_output=True,
+                    text=True,
+                    env=env,
+                    cwd=root,
+                    timeout=25,
+                )
+                if r.returncode == 0:
+                    try:
+                        path = out_dir / f"china_crawler_{p}.json"
+                        file_data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+                        items = file_data.get("items") or []
+                        fetched[p] = fetched.get(p, 0) + len(items)
+                        status_map[p]["fetched"] = fetched[p]
+                        if items:
+                            status_map[p]["keywords_with_items"] += 1
+                        for i in items:
+                            if isinstance(i, dict) and i.get("url") and i["url"] not in seen_urls:
+                                seen_urls.add(i["url"])
+                                all_items.append(i)
+                    except Exception:
+                        pass
+                else:
+                    err = (r.stderr or r.stdout or "").strip()
+                    if err:
+                        status_map[p]["reasons"].append((err.split("\n")[0] or err).strip()[:160])
+                        if "No module named" in err and "playwright" in err.lower():
+                            errors.append("Playwright not installed. Run: source .venv/bin/activate && pip install playwright && python -m playwright install chromium")
+                        else:
+                            first_line = (err.split("\n")[0] or err).strip()[:80]
+                            errors.append(f"{p}: {first_line}")
+            except subprocess.TimeoutExpired:
+                status_map[p]["reasons"].append("timeout")
+                errors.append(f"{p}({keyword[:8]}): timeout")
+            except Exception as e:
+                status_map[p]["reasons"].append(str(e)[:160])
+                errors.append(f"{p}({keyword[:8]}): {str(e)[:100]}")
+
+    for p in platforms:
+        ps = status_map[p]
+        ps["status"] = _classify_status(
+            platform=p,
+            fetched_count=int(ps.get("fetched") or 0),
+            kw_attempted=len(keywords_list),
+            kw_with_items=int(ps.get("keywords_with_items") or 0),
+            reasons=ps.get("reasons") or [],
+        )
+        ps["reasons"] = list(dict.fromkeys(ps.get("reasons") or []))[:2]
+
+    fallback_links = []
+    for p in platforms:
+        ps = status_map[p]
+        if ps["status"] in ("blocked_login", "blocked_risk", "network_error", "partial"):
+            fallback_links.append({
+                "platform": p,
+                "status": ps["status"],
+                "keyword": keywords_list[0],
+                "url": ps.get("fallback_url") or "",
+            })
+
+    errors = list(dict.fromkeys(errors))[:3]
+    total = len(all_items)
+    duration_sec = round(time.perf_counter() - t0, 1)
+    message = _t("china_crawl_done", lang) if total > 0 else _t("china_crawl_no_items", lang)
+    if time_budget_hit:
+        errors.append("Time budget reached; returned partial results.")
+        message = ("Partial crawl complete." if lang != "zh" else "拉取时间达到上限，已返回部分结果。")
+    if errors:
+        message += " " + (errors[0] if len(errors) == 1 else _t("china_crawl_errors", lang).format(n=len(errors)))
+    return jsonify({
+        "ok": True,
+        "fetched": fetched,
+        "message": message,
+        "errors": errors,
+        "items": all_items,
+        "duration_sec": duration_sec,
+        "platform_status": status_map,
+        "fallback_links": fallback_links,
+    })
+
+
+@app.route("/api/china-content-evaluate", methods=["POST"])
+def api_china_content_evaluate():
+    """Evaluate text with STEPPS + Minto; return score, structure, and rewrite directions. Own framework only."""
+    from src.rewrite_direction import rewrite_directions
+
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
+    lang = (data.get("lang") or _get_lang() or "zh").lower()[:2]
+    if lang != "en":
+        lang = "zh"
+    if not text:
+        return jsonify({"ok": False, "error": "Missing text"}), 400
+    try:
+        score_data = score_berger(text)
+        breakdown = score_data.get("breakdown") or {}
+        stepps = _berger_breakdown_list(breakdown, lang)
+        minto = {}
+        if len(text.strip()) > 200:
+            minto = structure_minto(text, lang=lang)
+        directions = rewrite_directions(score_data, minto or None, lang)
+        return jsonify({
+            "ok": True,
+            "score": score_data.get("total", 0),
+            "breakdown": breakdown,
+            "stepps": stepps,
+            "minto": minto,
+            "rewrite_directions": directions,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _build_china_item_markdown(item: dict, lang: str = "zh") -> str:
+    """Build AI-friendly markdown for one China content item."""
+    title = str(item.get("title") or "").strip() or "Untitled"
+    url = str(item.get("url") or "").strip() or "-"
+    platform = str(item.get("platform") or "").strip() or "-"
+    content_type = str(item.get("content_type") or "").strip() or "-"
+    views = str(item.get("views") or "").strip() or "-"
+    desc = str(item.get("description") or "").strip()
+    if not desc:
+        desc = str(item.get("snippet") or "").strip()
+    transcript_text = f"{title}\n\n{desc}".strip()
+
+    if (lang or "zh").lower().startswith("zh"):
+        prompts = "\n".join([
+            '- "基于逐字稿写 3 个短视频开场钩子（15字内）"',
+            '- "按小红书风格改写成种草笔记，保留核心信息"',
+            '- "按抖音口播节奏改写成 30 秒脚本：开场-冲突-结论"',
+            '- "用金字塔原理重写：结论先行 + 3 个要点 + 对应论据"',
+        ])
+        remix_title = "AI 改写提示词"
+        transcript_title = "逐字稿"
+        source_title = "来源信息"
+    else:
+        prompts = "\n".join([
+            '- "Rewrite into 3 short-form video hooks (under 12 words each)"',
+            '- "Rewrite for Xiaohongshu note style while preserving key facts"',
+            '- "Rewrite as a 30-second Douyin voiceover script: hook-conflict-payoff"',
+            '- "Restructure with Minto Pyramid: conclusion first, then 3 key points with evidence"',
+        ])
+        remix_title = "AI Remix Prompts"
+        transcript_title = "Transcript"
+        source_title = "Source"
+
+    return f"""# China Content Transcript Export
+
+## {source_title}
+
+- Title: {title}
+- Platform: {platform}
+- Type: {content_type}
+- Views: {views}
+- URL: {url}
+
+---
+
+## {transcript_title}
+
+{transcript_text}
+
+---
+
+## {remix_title}
+
+{prompts}
+"""
+
+
+@app.route("/api/china-content-export-md", methods=["POST"])
+def api_china_content_export_md():
+    """Return markdown text for one China content item (client decides whether to download)."""
+    data = request.get_json(silent=True) or {}
+    item = data.get("item") or {}
+    if not isinstance(item, dict):
+        return jsonify({"ok": False, "error": "Invalid item"}), 400
+    lang = (data.get("lang") or _get_lang() or "zh").lower()[:2]
+    markdown_text = _build_china_item_markdown(item, lang=lang)
+    title = str(item.get("title") or "").strip() or "china-content"
+    safe = "".join(c for c in title if c.isalnum() or c in "-_").strip("-_")
+    if not safe:
+        safe = "china-content"
+    filename = f"transcript_{safe[:40]}.md"
+    return jsonify({"ok": True, "markdown": markdown_text, "filename": filename})
+
+
+@app.route("/api/china-content-rewrite", methods=["POST"])
+def api_china_content_rewrite():
+    """Proxy transcript text to a user-provided rewrite model endpoint."""
+    from urllib import request as urlrequest
+    from urllib.error import URLError, HTTPError
+
+    data = request.get_json(silent=True) or {}
+    text = (data.get("text") or "").strip()
+    if not text:
+        return jsonify({"ok": False, "error": "Missing text"}), 400
+    lang = (data.get("lang") or _get_lang() or "zh").lower()[:2]
+    style = (data.get("style") or "").strip()
+    rewrite_api_url = (data.get("rewrite_api_url") or os.getenv("CHINA_REWRITE_API_URL") or "").strip()
+    if not rewrite_api_url:
+        return jsonify({
+            "ok": False,
+            "error": "Missing rewrite API URL. Fill it in the page input or set CHINA_REWRITE_API_URL in .env.",
+        }), 400
+
+    prompt = (
+        "请改写为更适合中文社交媒体发布的版本，保留事实，不要编造。输出中文，结构清晰，先给标题再给正文。"
+        if lang == "zh"
+        else "Rewrite this for social media publication with high clarity. Keep facts accurate and avoid fabrication."
+    )
+    if style:
+        prompt += f" Style requirement: {style}"
+
+    payload = {
+        "prompt": prompt,
+        "text": text,
+        "lang": lang,
+        "source": "virallab-china-content",
+    }
+    body = json.dumps(payload).encode("utf-8")
+    req = urlrequest.Request(
+        rewrite_api_url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urlrequest.urlopen(req, timeout=45) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+    except HTTPError as e:
+        err_body = ""
+        try:
+            err_body = e.read().decode("utf-8", errors="replace")[:300]
+        except Exception:
+            pass
+        return jsonify({"ok": False, "error": f"Rewrite API HTTP {e.code}. {err_body}".strip()}), 502
+    except URLError as e:
+        return jsonify({"ok": False, "error": f"Rewrite API unreachable: {e.reason}"}), 502
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Rewrite API failed: {e}"}), 502
+
+    rewritten = ""
+    try:
+        data_resp = json.loads(raw)
+        if isinstance(data_resp, dict):
+            rewritten = (
+                data_resp.get("rewrite")
+                or data_resp.get("text")
+                or data_resp.get("output")
+                or data_resp.get("answer")
+                or data_resp.get("content")
+                or ""
+            )
+            if not rewritten and isinstance(data_resp.get("choices"), list) and data_resp["choices"]:
+                c0 = data_resp["choices"][0] or {}
+                msg = c0.get("message") if isinstance(c0, dict) else None
+                if isinstance(msg, dict):
+                    rewritten = msg.get("content") or ""
+        elif isinstance(data_resp, list) and data_resp:
+            rewritten = str(data_resp[0])
+    except Exception:
+        rewritten = raw
+
+    rewritten = (rewritten or "").strip()
+    if not rewritten:
+        return jsonify({"ok": False, "error": "Rewrite API returned empty content."}), 502
+    return jsonify({"ok": True, "rewritten_text": rewritten[:20000]})
 
 
 STEPPS_DESCRIPTIONS = {
@@ -1916,6 +2590,12 @@ def science():
 
       <hr class="science-hr" />
 
+      <div class="section-title">{_t("science_minto_title", lang)}</div>
+      <p class="science-v2-p">{_t("science_minto_desc", lang)}</p>
+      <p class="science-v2-p"><a href="/video-to-text">{_html_escape(_t("science_minto_cta", lang))}</a></p>
+
+      <hr class="science-hr" />
+
       <div class="section-title">{_t("science_v2_formula_title", lang)}</div>
       <p class="science-v2-p">{_t("science_v2_formula_intro", lang)}</p>
       <div class="formula-block">{formula_html}</div>
@@ -1976,8 +2656,10 @@ def _build_markdown_export(
     stepps: list[dict],
     transcript: str,
     magic_words: list[str],
+    lang: str = "en",
+    include_minto: bool = True,
 ) -> str:
-    """Build AI-ready markdown string."""
+    """Build AI-ready markdown string. Includes Minto Pyramid structure when transcript is long enough."""
     sorted_stepps = sorted(stepps, key=lambda s: s["score"], reverse=True)
     top2 = sorted_stepps[:2]
     weak = sorted_stepps[-1]
@@ -1986,13 +2668,22 @@ def _build_markdown_export(
         f"| {s['name']} | {s['score']} | {round((s['score'] / 20) * 100)}% |"
         for s in stepps
     )
-    remix_prompts = "\n".join([
+    remix_prompts = [
         f'- "Rewrite as a Twitter/X thread using the top signals: {top_names}"',
         '"Extract the 5 most shareable moments from this transcript"',
         '"Write a YouTube title using Social Currency and Emotion signals"',
         '"Turn the hook into a 30-second Reels/Shorts script"',
-    ])
+        '"Restructure this script with the Minto Pyramid: one conclusion first, then 3–5 key points, then supporting evidence."',
+    ]
+    remix_prompts_str = "\n".join(remix_prompts)
     mw = ", ".join(magic_words) if magic_words else "None detected"
+
+    minto_section = ""
+    if include_minto and len(transcript.strip()) > 200:
+        minto = structure_minto(transcript, lang=lang)
+        if minto.get("conclusion") or minto.get("key_points"):
+            minto_section = f"\n---\n\n## Minto Pyramid (structure)\n\n{minto_to_markdown(minto, lang)}\n"
+
     return f"""# ViralLab Transcript Analysis
 
 **Source:** {url}
@@ -2018,7 +2709,7 @@ Add a recurring context anchor to boost {weak["name"]}:
 
 ## Magic Words Detected
 {mw}
-
+{minto_section}
 ---
 
 ## Transcript
@@ -2031,10 +2722,10 @@ Add a recurring context anchor to boost {weak["name"]}:
 
 Use this transcript with any AI assistant:
 
-{remix_prompts}
+{remix_prompts_str}
 
 ---
-*Generated by ViralLab · Based on Jonah Berger's STEPPS framework*"""
+*Generated by ViralLab · Berger STEPPS + Minto Pyramid*"""
 
 
 def _fetch_transcript_prefer_manual(video_id: str, lang: str) -> tuple[str, str]:
@@ -2072,6 +2763,27 @@ def _fetch_transcript_prefer_manual(video_id: str, lang: str) -> tuple[str, str]
     return "", ""
 
 
+def _fetch_transcript_from_input(input_ref: str, lang: str) -> tuple[str, str]:
+    """Fetch transcript from YouTube captions first, then ASR fallback."""
+    ref = (input_ref or "").strip()
+    if not ref:
+        return "", ""
+
+    vid = extract_youtube_id(ref)
+    if vid:
+        transcript, caption_source = _fetch_transcript_prefer_manual(vid, lang)
+        if transcript:
+            return transcript, caption_source
+
+    if (ref.startswith("http://") or ref.startswith("https://")) and not is_supported_external_media_url(ref):
+        # Still try ASR fallback for generic podcast/article pages.
+        pass
+    transcript, caption_source = transcribe_with_videocaptioner(ref, lang=lang)
+    if transcript:
+        return transcript, caption_source
+    return "", ""
+
+
 @app.route("/video-to-text", methods=["GET", "POST"])
 def video_to_text():
     lang = _get_lang()
@@ -2080,53 +2792,69 @@ def video_to_text():
     if request.method == "POST":
         url = (request.form.get("url") or "").strip()
         if url:
-            vid = extract_youtube_id(url)
-            if vid:
-                try:
-                    transcript, caption_source = _fetch_transcript_prefer_manual(vid, lang)
-                    if not transcript:
-                        msg = "No captions available for this video."
+            try:
+                transcript, caption_source = _fetch_transcript_from_input(url, lang)
+                if not transcript:
+                    if has_videocaptioner():
+                        msg = "Transcript unavailable for this link right now."
                     else:
-                        score_data = score_berger(transcript)
-                        stepps = _score_to_stepps(score_data.get("breakdown", {}), lang)
-                        sorted_stepps = sorted(stepps, key=lambda s: s["score"], reverse=True)
-                        top2 = sorted_stepps[:2]
-                        weak = sorted_stepps[-1]
-                        top_names = [s["name"] for s in top2]
-                        title = (transcript[:80] + "…") if len(transcript) > 80 else transcript
-                        fix_suggestion = (
-                            f'Add a recurring context anchor to boost {weak["name"]}: '
-                            f'<em>"Every time you sit down to plan content — think about this..."</em>'
-                        )
-                        markdown = _build_markdown_export(
-                            url=url,
-                            title=title,
-                            score=score_data["total"],
-                            stepps=stepps,
-                            transcript=transcript,
-                            magic_words=score_data.get("magic_words_found", []),
-                        )
-                        result = {
-                            "url": url,
-                            "title": title,
-                            "transcript": transcript,
-                            "score": score_data["total"],
-                            "tier": _get_score_tier(score_data["total"]),
-                            "stepps": stepps,
-                            "top_names": top_names,
-                            "weak_name": weak["name"],
-                            "fix": fix_suggestion,
-                            "magic_words": score_data.get("magic_words_found", []),
-                            "markdown": markdown,
-                            "caption_source": caption_source,
-                        }
-                        OUTPUT.mkdir(exist_ok=True)
-                        out_file = OUTPUT / f"transcript_{vid}.md"
-                        out_file.write_text(markdown, encoding="utf-8")
-                except Exception as e:
-                    msg = f"Error: {e}"
-            else:
-                msg = "Invalid YouTube URL"
+                        msg = "No captions found. Install VideoCaptioner (`pip install videocaptioner`) for ASR fallback."
+                else:
+                    score_data = score_berger(transcript)
+                    stepps = _score_to_stepps(score_data.get("breakdown", {}), lang)
+                    sorted_stepps = sorted(stepps, key=lambda s: s["score"], reverse=True)
+                    top2 = sorted_stepps[:2]
+                    weak = sorted_stepps[-1]
+                    top_names = [s["name"] for s in top2]
+                    title = (transcript[:80] + "…") if len(transcript) > 80 else transcript
+                    fix_suggestion = (
+                        f'Add a recurring context anchor to boost {weak["name"]}: '
+                        f'<em>"Every time you sit down to plan content — think about this..."</em>'
+                    )
+                    markdown_raw = _build_markdown_export(
+                        url=url,
+                        title=title,
+                        score=score_data["total"],
+                        stepps=stepps,
+                        transcript=transcript,
+                        magic_words=score_data.get("magic_words_found", []),
+                        lang=lang,
+                        include_minto=False,
+                    )
+                    markdown_minto = _build_markdown_export(
+                        url=url,
+                        title=title,
+                        score=score_data["total"],
+                        stepps=stepps,
+                        transcript=transcript,
+                        magic_words=score_data.get("magic_words_found", []),
+                        lang=lang,
+                        include_minto=True,
+                    )
+                    minto = structure_minto(transcript, lang=lang) if len(transcript.strip()) > 200 else {}
+                    result = {
+                        "url": url,
+                        "title": title,
+                        "transcript": transcript,
+                        "minto": minto,
+                        "score": score_data["total"],
+                        "tier": _get_score_tier(score_data["total"]),
+                        "stepps": stepps,
+                        "top_names": top_names,
+                        "weak_name": weak["name"],
+                        "fix": fix_suggestion,
+                        "magic_words": score_data.get("magic_words_found", []),
+                        "markdown": markdown_minto,
+                        "markdown_raw": markdown_raw,
+                        "markdown_minto": markdown_minto,
+                        "caption_source": caption_source,
+                    }
+                    OUTPUT.mkdir(exist_ok=True)
+                    out_id = str(abs(hash(url)))[:12]
+                    out_file = OUTPUT / f"transcript_{out_id}.md"
+                    out_file.write_text(markdown_minto, encoding="utf-8")
+            except Exception as e:
+                msg = f"Error: {e}"
         else:
             msg = "Enter a URL"
 
@@ -2148,8 +2876,13 @@ def video_to_text():
     .v2t-url-input:focus{border-color:var(--accent-light);box-shadow:0 0 0 3px rgba(106,158,103,0.1);}
     .v2t-submit-btn{font-family:inherit;font-size:14px;font-weight:600;background:var(--cta);color:var(--cta-text);border:none;border-radius:var(--radius);padding:11px 22px;cursor:pointer;white-space:nowrap;}
     .v2t-submit-btn:hover{background:#f5b960;transform:translateY(-1px);}
+    .v2t-submit-btn[disabled]{opacity:.75;cursor:not-allowed;transform:none;}
     .v2t-form-hint{font-size:12px;color:var(--muted-light);margin-top:8px;}
     .v2t-form-hint code{font-family:monospace;font-size:11px;background:var(--cream-dark);padding:1px 5px;border-radius:3px;color:var(--muted);}
+    .v2t-processing{display:none;margin:10px 0 14px;padding:10px 12px;border:1px dashed var(--accent-light);border-radius:var(--radius);background:var(--cream-dark);}
+    .v2t-processing.visible{display:block;}
+    .v2t-processing strong{display:block;font-size:12px;color:var(--ink);}
+    .v2t-processing small{display:block;font-size:11px;color:var(--muted);margin-top:3px;line-height:1.45;}
     .v2t-result-section{display:none;margin-top:28px;}
     .v2t-result-section.visible{display:block;}
     .v2t-score-summary{display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;}
@@ -2165,6 +2898,8 @@ def video_to_text():
     .v2t-sm-fill{position:absolute;bottom:0;left:0;right:0;border-radius:2px;animation:v2tUp 0.9s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--d,0s);}
     @keyframes v2tUp{from{height:0}to{height:var(--h)}}
     .v2t-sm-ltr{font-size:9px;font-weight:700;color:var(--muted-light);}
+    .v2t-tabs-label{font-size:12px;color:var(--muted);margin:0 0 6px;}
+    .v2t-tabs-hint{font-weight:500;color:var(--ink);}
     .v2t-result-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:0;}
     .v2t-r-tab{font-size:13px;font-weight:500;color:var(--muted);padding:9px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
     .v2t-r-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
@@ -2172,6 +2907,12 @@ def video_to_text():
     .v2t-r-content.active{display:block;}
     .v2t-transcript-box{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:18px 20px;max-height:380px;overflow-y:auto;font-size:14px;line-height:1.8;}
     .v2t-transcript-box p{margin-bottom:6px;}
+    .v2t-minto-box .v2t-minto-wrap{padding:0;}
+    .v2t-minto-label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin:14px 0 6px;}
+    .v2t-minto-label:first-child{margin-top:0;}
+    .v2t-minto-conclusion{font-weight:500;color:var(--ink);margin:0 0 8px;}
+    .v2t-minto-list{margin:0 0 8px;padding-left:20px;}
+    .v2t-minto-empty{color:var(--muted);font-size:13px;}
     .v2t-markdown-box{background:#1e2a1e;border:1px solid #2d4a2b;border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:18px 20px;max-height:380px;overflow-y:auto;font-family:monospace;font-size:12.5px;line-height:1.8;color:#b8d4b5;white-space:pre-wrap;}
     .v2t-action-row{display:flex;justify-content:flex-end;gap:8px;padding:8px 12px;background:var(--cream-dark);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);}
     .v2t-act-btn{font-family:inherit;font-size:12px;font-weight:600;padding:6px 14px;border-radius:var(--radius);cursor:pointer;}
@@ -2207,9 +2948,28 @@ def video_to_text():
             for p in transcript.split("\n") if p.strip()
         ) if "\n" in transcript else f"<p>{_html_escape(transcript)}</p>"
         markdown_escaped = _html_escape(result["markdown"])
+        markdown_raw_escaped = _html_escape(result.get("markdown_raw") or result["markdown"])
         download_title = (result["title"] or "transcript").replace(" ", "-")[:50]
         download_title = "".join(c for c in download_title if c.isalnum() or c in "-_") or "transcript"
         fix_html = f'<strong>Quick fix:</strong> {result["fix"]}'
+        minto = result.get("minto") or {}
+        has_minto = bool(minto.get("conclusion") or minto.get("key_points"))
+        if has_minto:
+            minto_conclusion = _html_escape((minto.get("conclusion") or "").strip())
+            minto_points = "".join(
+                f'<li>{_html_escape(p)}</li>' for p in (minto.get("key_points") or [])
+            )
+            minto_evidence = "".join(
+                f'<li>{_html_escape(e)}</li>' for e in (minto.get("evidence") or [])[:5]
+            )
+            minto_html = f'<div class="v2t-minto-wrap"><p class="v2t-minto-label">Conclusion (answer first)</p><p class="v2t-minto-conclusion">{minto_conclusion}</p>'
+            if minto_points:
+                minto_html += f'<p class="v2t-minto-label">Key points</p><ol class="v2t-minto-list">{minto_points}</ol>'
+            if minto_evidence:
+                minto_html += f'<p class="v2t-minto-label">Supporting evidence</p><ul class="v2t-minto-list">{minto_evidence}</ul>'
+            minto_html += "</div>"
+        else:
+            minto_html = '<p class="v2t-minto-empty">Minto Pyramid structure is in the Markdown export for longer transcripts.</p>'
         result_html = f"""
         <div class="v2t-result-section visible" id="v2tResult">
             <div class="v2t-score-summary">
@@ -2222,23 +2982,34 @@ def video_to_text():
             </div>
             <div class="v2t-score-fix">{fix_html}</div>
             <div style="margin-top:16px;">
+                <p class="v2t-tabs-label">View: <span class="v2t-tabs-hint">Transcript · Structure (Minto) · Markdown</span></p>
                 <div class="v2t-result-tabs">
                     <div class="v2t-r-tab active" data-tab="transcript" onclick="v2tSwitchTab('transcript')">Transcript</div>
+                    <div class="v2t-r-tab" data-tab="structure" onclick="v2tSwitchTab('structure')">{_t("video2text_tab_structure", lang)}</div>
                     <div class="v2t-r-tab" data-tab="markdown" onclick="v2tSwitchTab('markdown')">Markdown</div>
                 </div>
                 <div class="v2t-r-content active" id="v2tTabTranscript">
                     <div class="v2t-transcript-box" id="v2tTranscriptContent">{transcript_paras}</div>
                     <div class="v2t-action-row"><button class="v2t-act-btn outline" onclick="v2tCopy('v2tTranscriptContent')">Copy</button></div>
                 </div>
+                <div class="v2t-r-content" id="v2tTabStructure">
+                    <div class="v2t-transcript-box v2t-minto-box">{minto_html}</div>
+                </div>
                 <div class="v2t-r-content" id="v2tTabMarkdown">
                     <div class="v2t-markdown-box" id="v2tMarkdownContent">{markdown_escaped}</div>
                     <div class="v2t-action-row">
+                        <label for="v2tExportMode" style="font-size:12px;color:var(--muted);align-self:center;">{_html_escape(_t("video2text_export_mode", lang))}:</label>
+                        <select id="v2tExportMode" class="v2t-act-btn outline" style="padding:6px 10px;">
+                            <option value="minto">{_html_escape(_t("video2text_export_minto", lang))}</option>
+                            <option value="raw">{_html_escape(_t("video2text_export_raw", lang))}</option>
+                        </select>
                         <button class="v2t-act-btn outline" onclick="v2tCopyMarkdown()">Copy</button>
                         <button class="v2t-act-btn solid" onclick="v2tDownload()">Download .md</button>
                     </div>
                 </div>
             </div>
             <textarea id="v2tMarkdownData" style="display:none">{_html_escape(result["markdown"])}</textarea>
+            <textarea id="v2tMarkdownDataRaw" style="display:none">{markdown_raw_escaped}</textarea>
             <script>window.v2tDownloadTitle={json.dumps(download_title)};</script>
         </div>"""
     else:
@@ -2253,13 +3024,17 @@ def video_to_text():
         </div>
         <div class="v2t-accuracy-note">{_t("video2text_accuracy_note", lang)}</div>
         <div class="v2t-form-block">
-            <form method="post">
+            <form method="post" id="v2tForm">
                 <div class="v2t-input-row">
-                    <input type="url" name="url" class="v2t-url-input" placeholder="{_html_escape(_t("video2text_placeholder", lang))}" value="{_html_escape(result["url"]) if result else ""}" required>
+                    <input type="text" name="url" class="v2t-url-input" placeholder="{_html_escape(_t("video2text_placeholder", lang))}" value="{_html_escape(result["url"]) if result else ""}" required>
                     <button type="submit" class="v2t-submit-btn">{_html_escape(_t("video2text_btn", lang))}</button>
                 </div>
-                <div class="v2t-form-hint">{_html_escape(_t("video2text_hint", lang))}<code>https://www.youtube.com/watch?v=dQw4w9WgXcQ</code></div>
+                <div class="v2t-form-hint">{_html_escape(_t("video2text_hint", lang))}<code>https://www.youtube.com/watch?v=dQw4w9WgXcQ</code> · <code>https://www.xiaoyuzhoufm.com/episode/...</code></div>
             </form>
+            <div id="v2tProcessing" class="v2t-processing">
+                <strong>{_html_escape(_t("video2text_processing", lang))}</strong>
+                <small>{_html_escape(_t("video2text_processing_sub", lang))}</small>
+            </div>
         </div>
         {f'<p class="muted" style="margin-bottom:1rem;">{_html_escape(msg)}</p>' if msg else ''}
         {result_html}
@@ -2267,6 +3042,7 @@ def video_to_text():
             <div class="v2t-note-item"><span>💡</span><span>{_t("video2text_note1", lang)}</span></div>
             <div class="v2t-note-item"><span>🤖</span><span>{_t("video2text_note2", lang)}</span></div>
             <div class="v2t-note-item"><span>🌏</span><span>{_t("video2text_note3", lang)}</span></div>
+            {f'<div class="v2t-note-item"><span>📐</span><span>{_t("video2text_note_minto", lang)}</span></div>' if result else ''}
         </div>
         <div class="v2t-bottom-links">
             <a href="/science">{_html_escape(_t("video2text_how_score", lang))}</a>
@@ -2279,15 +3055,35 @@ def video_to_text():
         document.querySelectorAll('.v2t-r-content').forEach(function(c){{ c.classList.toggle('active', c.id==='v2tTab'+name.charAt(0).toUpperCase()+name.slice(1)); }});
     }}
     function v2tCopy(id){{ navigator.clipboard.writeText(document.getElementById(id).innerText); }}
-    function v2tCopyMarkdown(){{ var ta=document.getElementById('v2tMarkdownData'); if(ta) navigator.clipboard.writeText(ta.value); }}
+    function v2tSelectedMarkdown(){{
+        var mode = document.getElementById('v2tExportMode')?.value || 'minto';
+        if(mode === 'raw') return document.getElementById('v2tMarkdownDataRaw');
+        return document.getElementById('v2tMarkdownData');
+    }}
+    function v2tCopyMarkdown(){{ var ta=v2tSelectedMarkdown(); if(ta) navigator.clipboard.writeText(ta.value); }}
     function v2tDownload(){{
-        var ta=document.getElementById('v2tMarkdownData');
+        var ta=v2tSelectedMarkdown();
         if(!ta) return;
         var blob=new Blob([ta.value],{{type:'text/markdown'}});
         var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-        a.download=(window.v2tDownloadTitle||'transcript')+'.md';
+        var mode = document.getElementById('v2tExportMode')?.value || 'minto';
+        var suffix = mode === 'raw' ? '-raw' : '-minto';
+        a.download=(window.v2tDownloadTitle||'transcript')+suffix+'.md';
         a.click();
     }}
+    (function(){{
+        var form = document.getElementById('v2tForm');
+        if (!form) return;
+        form.addEventListener('submit', function(){{
+            var box = document.getElementById('v2tProcessing');
+            var btn = form.querySelector('.v2t-submit-btn');
+            if (box) box.classList.add('visible');
+            if (btn) {{
+                btn.disabled = true;
+                btn.textContent = {json.dumps(_t("video2text_processing", lang))};
+            }}
+        }});
+    }})();
     var r=document.getElementById('v2tResult');
     if(r&&r.classList.contains('visible')) r.scrollIntoView({{behavior:'smooth',block:'start'}});
     </script>
@@ -2320,8 +3116,11 @@ def _render_home():
         ("/daily", "📅", "link_daily", "link_daily_desc"),
         ("/field", "🎯", "link_field", "link_field_desc"),
         ("/news", "📰", "link_news", "link_news_desc"),
+        ("/longform", "📚", "link_longform", "link_longform_desc"),
         ("/viral", "▶️", "link_viral", "link_viral_desc"),
+        ("/china-content", "📥", "nav_china_content", "nav_china_content_desc"),
         ("/video-to-text", "📝", "link_video2text", "link_video2text_desc"),
+        ("/article-lab", "✍️", "link_article_lab", "link_article_lab_desc"),
         ("/science", "📊", "link_science", "link_science_desc"),
     ]
     cards_html = "".join(
@@ -2332,6 +3131,113 @@ def _render_home():
     )
     body = f'<section class="page-links">{cards_html}</section>'
     return _base(_t("home_title", lang), body, "/", hero=_hero_html(lang), lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/article-lab", methods=["GET", "POST"])
+def article_lab():
+    lang = _get_lang()
+    msg = ""
+    result = None
+    results = []
+    input_md = ""
+    if request.method == "POST":
+        input_md = (request.form.get("markdown") or "").strip()
+        single_file = request.files.get("md_file")
+        file_items = []
+        if single_file and single_file.filename:
+            file_items.append(single_file)
+        file_items.extend([f for f in request.files.getlist("md_files") if f and f.filename])
+
+        inputs = []
+        if input_md:
+            inputs.append(("pasted_markdown", input_md))
+        for f in file_items:
+            try:
+                content = f.read().decode("utf-8", errors="replace")
+            except Exception:
+                content = ""
+            if content.strip():
+                inputs.append((f.filename or "uploaded_markdown", content))
+
+        if not inputs:
+            msg = "Please provide markdown text or upload a .md file."
+        else:
+            for source_name, content in inputs:
+                try:
+                    rewritten, meta = build_viral_article_markdown(content, lang=lang)
+                    OUTPUT.mkdir(exist_ok=True)
+                    out_id = str(abs(hash(source_name + rewritten)))[:12]
+                    out_file = OUTPUT / f"article_rewrite_{out_id}.md"
+                    out_file.write_text(rewritten, encoding="utf-8")
+                    results.append(
+                        {
+                            "markdown": rewritten,
+                            "file": out_file.name,
+                            "title": meta.get("title", ""),
+                            "berger": meta.get("berger_total", 0),
+                            "contagious": meta.get("contagious_total", 0),
+                            "source_name": source_name,
+                        }
+                    )
+                except Exception as e:
+                    msg = f"Error: {e}"
+                    break
+            if len(results) == 1:
+                result = results[0]
+
+    result_html = ""
+    if results:
+        cards = []
+        for idx, r in enumerate(results, 1):
+            md_id = f"articleLabMarkdown{idx}"
+            md_esc = _html_escape(r["markdown"])
+            cards.append(
+                f"""
+                <div class="tip-card">
+                    <div class="tip-header">
+                        <span class="tip-label">{_html_escape(r["title"])} · {_html_escape(r["source_name"])}</span>
+                        <span class="tip-range-wrap">Berger {r["berger"]} · {_html_escape(_t("contagious_score", lang))} {r["contagious"]}</span>
+                    </div>
+                    <div class="v2t-markdown-box" id="{md_id}">{md_esc}</div>
+                    <div class="v2t-action-row">
+                        <button class="v2t-act-btn outline" onclick="navigator.clipboard.writeText(document.getElementById('{md_id}').innerText)">Copy</button>
+                        <a class="v2t-act-btn solid" href="/view/{_html_escape(r['file'])}" target="_blank" rel="noopener">{_html_escape(_t("article_lab_download", lang))}</a>
+                    </div>
+                </div>
+                """
+            )
+        result_html = "\n".join(cards)
+
+    body = f"""
+    <section>
+        <div class="section-title">✍️ {_html_escape(_t("article_lab_title", lang))}</div>
+        <p class="section-desc muted">{_html_escape(_t("article_lab_desc", lang))}</p>
+        <div class="tip-card" style="margin-bottom:0.9rem;">
+            <p class="sources-label" style="font-size:0.86rem; line-height:1.6; margin:0;">{_html_escape(_t("article_lab_intro", lang))}</p>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="tip-card">
+            <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("article_lab_upload_label", lang))}</span>
+            </div>
+            <input type="file" name="md_file" accept=".md,text/markdown" class="v2t-url-input" style="margin-bottom:0.8rem;">
+            <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("article_lab_upload_multi_label", lang))}</span>
+            </div>
+            <input type="file" name="md_files" multiple accept=".md,text/markdown" class="v2t-url-input" style="margin-bottom:0.8rem;">
+            <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("article_lab_input_label", lang))}</span>
+            </div>
+            <textarea name="markdown" class="v2t-url-input" style="min-height:220px; width:100%;">{_html_escape(input_md)}</textarea>
+            <div style="margin-top:0.8rem;">
+                <button type="submit" class="v2t-submit-btn">{_html_escape(_t("article_lab_btn", lang))}</button>
+                <span class="muted" style="margin-left:0.6rem; font-size:0.78rem;">{_html_escape(_t("article_lab_btn_batch", lang))}</span>
+            </div>
+        </form>
+        {f'<p class="muted">{_html_escape(msg)}</p>' if msg else ''}
+        {result_html}
+    </section>
+    """
+    return _base(_t("article_lab_title", lang), body, "/article-lab", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 def _render_daily():
@@ -2357,16 +3263,25 @@ def _render_daily():
         parsed = add_lifecycle_to_items(run_type, parsed[:3])
         for item in parsed:
             snip = item.get("snippet", "") or ""
+            c_score = evaluate_contagious_article(item.get("title", ""), snip, lang=lang)
+            c_total = c_score.get("total", 0)
+            c_top = " + ".join(c_score.get("top_signals", []))
+            c_badge = (
+                f'<span class="berger {_score_badge_class(c_total)}" title="{_html_escape(c_top)}">{_html_escape(_t("contagious_score", lang))} {c_total}</span>'
+                if c_total > 0
+                else ""
+            )
             angles = generate_angles("", item.get("title", ""), snip, count=2, lang=lang)
             angles_html = "".join(f'<li>{_html_escape(a)}</li>' for a in angles)
             life = item.get("lifecycle", "peaking")
             life_label = _t(f"lifecycle_{life}", lang) if life in ("rising", "peaking", "fading") else life
             life_tt = _lifecycle_tooltip_html(lang, life)
             src = _get_source_for_item(item)
+            src_type = _source_type_for_item(item)
             snip_html = f'<p class="card-snippet">{_html_escape(_sanitize_snippet(snip))}</p>' if snip else ""
             src_html = f'<p class="card-source">Source: {_html_escape(src)}</p>' if src else ""
-            daily_cards.append(f'''<div class="card">
-                <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span></div>
+            daily_cards.append(f'''<div class="card daily-card" data-source-type="{_html_escape(src_type)}">
+                <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="badges">{c_badge}<span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span></span></div>
                 {snip_html}
                 {src_html}
                 <div class="angles-wrap"><span class="angles-label">{_html_escape(_t("content_angles", lang))}:</span><ul class="angles-list">{angles_html}</ul></div>
@@ -2390,6 +3305,19 @@ def _render_daily():
         updated_label = f'<p class="sources-label">{_t("last_updated", lang)}: {_html_escape(updated_file.read_text(encoding="utf-8").strip())}</p>'
 
     refresh_options = f'<p class="sources-label"><a href="/daily/refresh" class="refresh-link">{_t("refresh_now", lang)}</a> — {_t("refresh_desc", lang)}</p>'
+    filter_bar = f'''
+    <div class="tip-card" style="margin-top:0.75rem;">
+        <div class="tip-header">
+            <span class="tip-label">{_html_escape(_t("daily_focus_label", lang))}</span>
+            <span class="tip-range-wrap">{_html_escape(_t("daily_focus_hint", lang))}</span>
+        </div>
+        <div class="tip-chips">
+            <button type="button" class="tip-chip tip-chip-active daily-filter-btn" data-filter="all">{_html_escape(_t("daily_focus_all", lang))}</button>
+            <button type="button" class="tip-chip daily-filter-btn" data-filter="news">{_html_escape(_t("daily_focus_news", lang))}</button>
+            <button type="button" class="tip-chip daily-filter-btn" data-filter="longform">{_html_escape(_t("daily_focus_longform", lang))}</button>
+            <button type="button" class="tip-chip daily-filter-btn" data-filter="podcast">{_html_escape(_t("daily_focus_podcast", lang))}</button>
+        </div>
+    </div>'''
 
     title_t = _t("daily_news_title", lang)
     body = f"""
@@ -2401,9 +3329,31 @@ def _render_daily():
             {updated_label}
             {sources_label}
         </div>
+        {filter_bar}
         <div class="cards">{daily_html}</div>
         {browse_more}
     </section>
+    <script>
+    (function() {{
+        var buttons = document.querySelectorAll(".daily-filter-btn");
+        var cards = document.querySelectorAll(".daily-card");
+        if (!buttons.length || !cards.length) return;
+        function applyFilter(filter) {{
+            cards.forEach(function(card) {{
+                var t = card.getAttribute("data-source-type") || "news";
+                card.style.display = (filter === "all" || t === filter) ? "" : "none";
+            }});
+            buttons.forEach(function(btn) {{
+                btn.classList.toggle("tip-chip-active", btn.getAttribute("data-filter") === filter);
+            }});
+        }}
+        buttons.forEach(function(btn) {{
+            btn.addEventListener("click", function() {{
+                applyFilter(btn.getAttribute("data-filter") || "all");
+            }});
+        }});
+    }})();
+    </script>
     """
     return _base(title_t, body, "/daily", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
 
@@ -2587,8 +3537,29 @@ def _render_news():
             <input type="text" name="topic" placeholder="{_html_escape(_t("news_placeholder", lang))}" required>
             <button type="submit">{_t("search_by_topic", lang)}</button>
         </form>'''
+    hot_tags = _hot_tags_for_lang(lang, limit=12)
+    hot_tag_chips = "".join(
+        f'<form method="post" action="/api/search-news" class="tip-chip-form"><input type="hidden" name="topic" value="{_html_escape(t)}"><input type="hidden" name="range" value="{_html_escape(time_range)}"><button type="submit" class="tip-chip">{_html_escape(t)}</button></form>'
+        for t in hot_tags
+    )
+    hot_tags_card = f'''
+        <div class="tip-card" style="margin-top:0.75rem;">
+            <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("hot_tags_title", lang))}</span>
+                <span class="tip-range-wrap">{_html_escape(_t("hot_tags_desc", lang))}</span>
+            </div>
+            <div class="tip-chips">{hot_tag_chips}</div>
+        </div>'''
     force_hot = request.args.get("refresh_hot") == "1"
-    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=10, time_range=time_range, lang=lang, force_hot_refresh=force_hot)
+    segment = _get_segment()
+    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=10, time_range=time_range, lang=lang, force_hot_refresh=force_hot, segment=segment)
+    segment_query = f"segment={{0}}&range={time_range}"
+    if lang == "zh":
+        segment_query += "&lang=zh"
+    segment_pills = "".join(
+        f'<a href="/news?{segment_query.format(seg_id)}" class="segment-pill{" active" if segment == seg_id else ""}">{AUDIENCE_SEGMENTS[seg_id]["name_zh"] if lang == "zh" else AUDIENCE_SEGMENTS[seg_id]["name_en"]}</a>'
+        for seg_id in ("general", "tech", "entrepreneurs", "creator")
+    )
     tip_chips = "".join(
         f'<form method="post" action="/api/search-news" class="tip-chip-form"><input type="hidden" name="topic" value="{_html_escape(t)}"><input type="hidden" name="range" value="{_html_escape(time_range)}"><button type="submit" class="tip-chip{" tip-chip-active" if topic_filter and t.replace(" ", "_")[:30] == topic_filter else ""}">{_html_escape(t)}</button></form>'
         for t in tip_topics[:10]
@@ -2613,13 +3584,19 @@ def _render_news():
     else:
         tip_label = _t("news_tip_suggestions", lang)
         hot_meta = ""
+    audience_inference_note = _t("audience_inference_note", lang)
     tip_card = f'''
         <div class="tip-card">
+            <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("audience_segment_label", lang))}</span>
+                <span class="segment-pills-wrap">{segment_pills}</span>
+            </div>
             <div class="tip-header">
                 <span class="tip-label">{_html_escape(tip_label)}</span>
                 <span class="tip-range-wrap">{range_links}{" · " + hot_meta if hot_meta else ""}</span>
             </div>
             <div class="tip-chips">{tip_chips}</div>
+            <p class="audience-inference-note">{_html_escape(audience_inference_note)}</p>
         </div>'''
     for x in news_files:
         path = OUTPUT / x["file"]
@@ -2634,6 +3611,14 @@ def _render_news():
             parsed_life = add_lifecycle_to_items(run_type, parsed[:5])
             for item in parsed_life:
                 snip = item.get("snippet", "") or ""
+                c_score = evaluate_contagious_article(item.get("title", ""), snip, lang=lang)
+                c_total = c_score.get("total", 0)
+                c_top = " + ".join(c_score.get("top_signals", []))
+                c_badge = (
+                    f'<span class="berger {_score_badge_class(c_total)}" title="{_html_escape(c_top)}">{_html_escape(_t("contagious_score", lang))} {c_total}</span>'
+                    if c_total > 0
+                    else ""
+                )
                 angles = generate_angles(topic or "", item.get("title", ""), snip, count=2, lang=lang)
                 angles_html = "".join(f'<li>{_html_escape(a)}</li>' for a in angles)
                 life = item.get("lifecycle", "peaking")
@@ -2644,7 +3629,7 @@ def _render_news():
                 life_label = _t(f"lifecycle_{life}", lang) if life in ("rising", "peaking", "fading") else life
                 life_tt = _lifecycle_tooltip_html(lang, life)
                 news_cards.append(f'''<div class="card">
-                    <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span></div>
+                    <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="badges">{c_badge}<span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span></span></div>
                     {snip_html}
                     {src_html}
                     <div class="angles-wrap"><span class="angles-label">{_html_escape(_t("content_angles", lang))}:</span><ul class="angles-list">{angles_html}</ul></div>
@@ -2674,12 +3659,177 @@ def _render_news():
         <p class="section-desc muted">{_html_escape(_t("news_desc", lang))}</p>
         {show_all_link}
         {search_form}
+        {hot_tags_card}
         {tip_card}
         {refresh_meta}
         <div class="cards">{news_html}</div>
     </section>
     """
     return _base(_t("news_title", lang), body, "/news", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+def _render_longform():
+    """Long-form and podcast page. Focused deep-content feed."""
+    lang = _get_lang()
+    INITIAL_SHOW = 12
+    cards = []
+    fetched_items, fetched_sources = fetch_longform_and_podcasts(
+        lang=lang, max_per_feed=6
+    )
+    deduped_items = []
+    seen_titles = set()
+    for item in fetched_items:
+        title_key = (item.get("title") or "").lower().strip()
+        if not title_key or title_key in seen_titles:
+            continue
+        seen_titles.add(title_key)
+        deduped_items.append(item)
+
+    theme_counts = {
+        "all": 0,
+        "transition": 0,
+        "one_person_business": 0,
+        "design_creativity_ai": 0,
+    }
+    for i, item in enumerate(deduped_items[:48], 1):
+        snip = item.get("snippet", "") or ""
+        title = item.get("title", "N/A")
+        c_score = evaluate_contagious_article(title, snip, lang=lang)
+        c_total = c_score.get("total", 0)
+        c_top = " + ".join(c_score.get("top_signals", []))
+        c_badge = (
+            f'<span class="berger {_score_badge_class(c_total)}" title="{_html_escape(c_top)}">{_html_escape(_t("contagious_score", lang))} {c_total}</span>'
+            if c_total > 0
+            else ""
+        )
+        theme = classify_focus_theme(title, snip, lang)
+        theme_counts["all"] += 1
+        if theme in theme_counts:
+            theme_counts[theme] += 1
+        src = _get_source_for_item(item)
+        src_type = _source_type_for_item(item)
+        type_label = _t("daily_focus_podcast", lang) if src_type == "podcast" else _t("daily_focus_longform", lang)
+        snip_html = f'<p class="card-snippet">{_html_escape(_sanitize_snippet(snip))}</p>' if snip else ""
+        src_html = f'<p class="card-source">{_html_escape(_t("source", lang))}: {_html_escape(src)} · {_html_escape(type_label)}</p>' if src else ""
+        hidden_class = " load-more-hidden" if i > INITIAL_SHOW else ""
+        cards.append(
+            f'''<div class="card longform-card{hidden_class}" data-focus-theme="{_html_escape(theme)}">
+            <div class="card-header"><h3><a href="{_html_escape(item.get("url", ""))}" target="_blank" rel="noopener">{_html_escape(title)}</a></h3><span class="badges">{c_badge}</span></div>
+            {snip_html}
+            {src_html}
+        </div>'''
+        )
+
+    if cards:
+        longform_html = "\n".join(cards)
+    else:
+        longform_html = (
+            f'<div class="card"><p class="muted">{_html_escape(_t("longform_no_items", lang))}</p>'
+            f'<p class="browse-more"><a href="/daily">{_html_escape(_t("longform_view_daily", lang))}</a></p></div>'
+        )
+
+    sources_label = ""
+    if fetched_sources:
+        sources_text = ", ".join(fetched_sources)
+        sources_label = f'<p class="sources-label">{_html_escape(_t("longform_desc", lang))} {_html_escape(sources_text)}</p>'
+    scope_label = f'<p class="sources-label">{_html_escape(_t("longform_scope", lang))}</p>'
+    active_regions = set(region_tags_for_lang(lang))
+    region_pills = "".join(
+        f'<span class="segment-pill{" active" if tag in active_regions else ""}" style="cursor:default;">{_html_escape(tag)}</span>'
+        for tag in REGION_TAGS
+    )
+    region_tags_html = f'''
+    <div class="tip-card" style="margin-top:0.75rem;">
+        <div class="tip-header">
+            <span class="tip-label">Source regions</span>
+        </div>
+        <div class="tip-chips">{region_pills}</div>
+    </div>'''
+    theme_pills = "".join(
+        [
+            f'<button type="button" class="tip-chip tip-chip-active longform-theme-btn" data-theme="all">{_html_escape(_t("longform_theme_all", lang))} ({theme_counts["all"]})</button>',
+            f'<button type="button" class="tip-chip longform-theme-btn" data-theme="transition">{_html_escape(_t("longform_theme_transition", lang))} ({theme_counts["transition"]})</button>',
+            f'<button type="button" class="tip-chip longform-theme-btn" data-theme="one_person_business">{_html_escape(_t("longform_theme_one_person", lang))} ({theme_counts["one_person_business"]})</button>',
+            f'<button type="button" class="tip-chip longform-theme-btn" data-theme="design_creativity_ai">{_html_escape(_t("longform_theme_design_ai", lang))} ({theme_counts["design_creativity_ai"]})</button>',
+        ]
+    )
+    theme_filter_html = f'''
+    <div class="tip-card" style="margin-top:0.75rem;">
+        <div class="tip-header">
+            <span class="tip-label">{_html_escape(_t("longform_theme_label", lang))}</span>
+        </div>
+        <div class="tip-chips">{theme_pills}</div>
+    </div>'''
+    hot_tags = _hot_tags_for_lang(lang, limit=10)
+    hot_tags_links = "".join(
+        f'<a class="tip-chip" href="/news?topic={quote(t.replace(" ", "_"), safe="")}{"&lang=zh" if lang=="zh" else ""}">{_html_escape(t)}</a>'
+        for t in hot_tags
+    )
+    hot_tags_card = f'''
+    <div class="tip-card" style="margin-top:0.75rem;">
+        <div class="tip-header">
+            <span class="tip-label">{_html_escape(_t("hot_tags_title", lang))}</span>
+            <span class="tip-range-wrap">{_html_escape(_t("hot_tags_desc", lang))}</span>
+        </div>
+        <div class="tip-chips">{hot_tags_links}</div>
+    </div>'''
+    load_more_btn = ""
+    if cards and len(cards) > INITIAL_SHOW:
+        load_more_btn = f'''
+        <button type="button" class="btn-load-more" id="longformLoadMore">{_t("load_more", lang)}</button>
+        <script>
+        (function() {{
+            var btn = document.getElementById("longformLoadMore");
+            var hidden = document.querySelectorAll(".longform-card.load-more-hidden");
+            if (!btn || hidden.length === 0) return;
+            btn.addEventListener("click", function() {{
+                var toShow = 12;
+                for (var i = 0; i < toShow && hidden.length > 0; i++) {{
+                    hidden[0].classList.remove("load-more-hidden");
+                    hidden = document.querySelectorAll(".longform-card.load-more-hidden");
+                }}
+                if (hidden.length === 0) btn.style.display = "none";
+            }});
+        }})();
+        </script>'''
+
+    body = f"""
+    <section>
+        <div class="section-title">📚 {_html_escape(_t("longform_title", lang))}</div>
+        <div class="content-meta">
+            <p class="sources-label"><a href="/daily/refresh" class="refresh-link">{_html_escape(_t("refresh_now", lang))}</a> — {_html_escape(_t("refresh_desc", lang))}</p>
+            {sources_label}
+            {scope_label}
+        </div>
+        {region_tags_html}
+        {theme_filter_html}
+        {hot_tags_card}
+        <div class="cards">{longform_html}</div>
+        {load_more_btn}
+    </section>
+    <script>
+    (function() {{
+        var buttons = document.querySelectorAll(".longform-theme-btn");
+        var cards = document.querySelectorAll(".longform-card");
+        if (!buttons.length || !cards.length) return;
+        function applyTheme(theme) {{
+            cards.forEach(function(card) {{
+                var t = card.getAttribute("data-focus-theme") || "all";
+                card.style.display = (theme === "all" || t === theme) ? "" : "none";
+            }});
+            buttons.forEach(function(btn) {{
+                btn.classList.toggle("tip-chip-active", btn.getAttribute("data-theme") === theme);
+            }});
+        }}
+        buttons.forEach(function(btn) {{
+            btn.addEventListener("click", function() {{
+                applyTheme(btn.getAttribute("data-theme") || "all");
+            }});
+        }});
+    }})();
+    </script>
+    """
+    return _base(_t("longform_title", lang), body, "/longform", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 def _render_viral():
@@ -2722,20 +3872,31 @@ def _render_viral():
     viral_empty_title_t = _t("viral_empty_title", lang)
     viral_empty_body_t = _t("viral_empty_body", lang)
     viral_error_t = _t("viral_error", lang)
-    viral_china_hint_t = _t("viral_china_unavailable", lang)
     viral_timeout_t = _t("viral_timeout", lang)
     # When lang=zh, only show Bilibili content — never English YouTube
     if lang == "zh":
         video_cards = [c for c in video_cards if "bilibili" in c]
     video_html = "\n".join(video_cards) if video_cards else f'<div class="card empty-state-loading"><p class="muted"><span class="loader-spinner"></span> {_html_escape(viral_loading_t)}</p></div>'
 
-    # Default source by language: zh → china, en → global
     default_source = "china" if lang == "zh" else "global"
-    viral_tips = DEFAULT_VIRAL_TIPS_ZH if lang == "zh" else DEFAULT_VIRAL_TIPS
+    segment = _get_segment()
+    seg_viral = SEGMENT_VIRAL_TIPS.get(segment, {}).get(lang)
+    viral_tips = (seg_viral or (DEFAULT_VIRAL_TIPS_ZH if lang == "zh" else DEFAULT_VIRAL_TIPS))[:10]
+    hot_tags = _hot_tags_for_lang(lang, limit=8)
+    merged_tips = []
+    for t in viral_tips + hot_tags:
+        if t not in merged_tips:
+            merged_tips.append(t)
+    merged_tips = merged_tips[:14]
     tip_chips = "".join(
         f'<button type="button" class="tip-chip viral-tip-chip" data-query="{_html_escape(t)}">{_html_escape(t)}</button>'
-        for t in viral_tips[:10]
+        for t in merged_tips
     )
+    viral_segment_pills = "".join(
+        f'<a href="/viral?segment={seg_id}" class="segment-pill{" active" if segment == seg_id else ""}">{AUDIENCE_SEGMENTS[seg_id]["name_zh"] if lang == "zh" else AUDIENCE_SEGMENTS[seg_id]["name_en"]}</a>'
+        for seg_id in ("general", "tech", "entrepreneurs", "creator")
+    )
+    viral_audience_note = _t("audience_inference_note", lang)
 
     search_form = f'''
         <form class="form" id="viralSearchForm">
@@ -2751,15 +3912,24 @@ def _render_viral():
     tip_card = f'''
         <div class="tip-card">
             <div class="tip-header">
+                <span class="tip-label">{_html_escape(_t("audience_segment_label", lang))}</span>
+                <span class="segment-pills-wrap">{viral_segment_pills}</span>
+            </div>
+            <div class="tip-header">
                 <span class="tip-label">{_html_escape(viral_suggestions_label)}</span>
                 <span class="tip-range-wrap viral-source-wrap">{source_select}</span>
             </div>
             <div class="tip-chips">{tip_chips}</div>
+            <p class="audience-inference-note">{_html_escape(viral_audience_note)}</p>
         </div>'''
     berger_methodology = _t("viral_berger_methodology", lang)
-    viral_empty_suggestions = viral_tips[:6]
+    viral_empty_suggestions = merged_tips[:6]
     source_desc = f'<p class="sources-label">{_html_escape(_t("viral_what_we_serve", lang))} {_html_escape(_t("viral_china_note", lang))}</p><p class="sources-label">{_html_escape(berger_methodology)}</p>'
 
+    ct_video = _t("content_type_video", lang)
+    ct_post = _t("content_type_post", lang)
+    ct_article = _t("content_type_article", lang)
+    ct_note = _t("content_type_note", lang)
     body = f"""
     <section>
         <div class="section-title">▶️ {_html_escape(_t("viral_title", lang))} · {_html_escape(_t("viral_subtitle", lang))}</div>
@@ -2809,13 +3979,13 @@ def _render_viral():
         const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
         try {{
             const lang = document.documentElement.lang || 'en';
-            const r = await fetch('/api/viral-videos?q=' + encodeURIComponent(q) + '&source=' + encodeURIComponent(src) + '&lang=' + encodeURIComponent(lang), {{ signal: ctrl.signal }});
+            const url = '/api/viral-videos?q=' + encodeURIComponent(q) + '&source=' + encodeURIComponent(src) + '&lang=' + encodeURIComponent(lang);
+            const r = await fetch(url, {{ signal: ctrl.signal }});
             clearTimeout(t);
             const d = await r.json();
             if (d.error) {{
-                const chinaHint = d.china_hint || '';
-                const errHtml = chinaHint ? '<div class="card" style="border-left:4px solid var(--cta);"><p class="muted">' + chinaHint + '</p></div>' : '<p class="muted">' + {json.dumps(viral_error_t)} + ': ' + (d.error || '').replace(/</g, '&lt;') + '</p>';
-                el.innerHTML = errHtml;
+                const msg = (d.china_hint || (d.error || '').replace(/</g, '&lt;'));
+                el.innerHTML = '<p class="muted">' + (d.china_hint ? msg : ({json.dumps(viral_error_t)} + ': ' + msg)) + '</p>';
                 return;
             }}
             if (d.lang_hint && hintEl) {{
@@ -2831,11 +4001,13 @@ def _render_viral():
                 const angles = (v.angles || []).map(a => '<li>' + a + '</li>').join('');
                 const anglesLabel = {json.dumps(content_angles_label)};
                 const platform = v.platform || 'YouTube';
+                const ct = v.content_type || 'video';
+                const ctLabel = ({{ video: {json.dumps(ct_video)}, post: {json.dumps(ct_post)}, article: {json.dumps(ct_article)}, note: {json.dumps(ct_note)} }})[ct] || ct;
                 const url = (v.url || '').trim();
                 const hasUrl = url && (url.startsWith('http://') || url.startsWith('https://'));
                 const titleEsc = (v.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 const titleEl = hasUrl ? '<a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + titleEsc + '</a>' : '<span>' + titleEsc + '</span>';
-                html += '<div class="card"><div class="card-header"><h3>' + titleEl + '</h3><span class="badges"><span class="berger berger-' + bc + '" title="' + bergerTitle.replace(/"/g, '&quot;') + '">' + bergerDisplay + '</span></span></div><p class="card-source">' + platform + ' · Views: ' + (v.views || '') + ' · Magic: ' + (v.magic || '—') + '</p><p class="card-snippet">' + (v.desc || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' + (angles ? '<div class="angles-wrap"><span class="angles-label">' + anglesLabel + ':</span><ul class="angles-list">' + angles + '</ul></div>' : '') + '</div>';
+                html += '<div class="card"><div class="card-header"><h3>' + titleEl + '</h3><span class="badges"><span class="berger berger-' + bc + '" title="' + bergerTitle.replace(/"/g, '&quot;') + '">' + bergerDisplay + '</span></span></div><p class="card-source">' + platform + ' · ' + ctLabel + ' · Views: ' + (v.views || '') + ' · Magic: ' + (v.magic || '—') + '</p><p class="card-snippet">' + (v.desc || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>' + (angles ? '<div class="angles-wrap"><span class="angles-label">' + anglesLabel + ':</span><ul class="angles-list">' + angles + '</ul></div>' : '') + '</div>';
             }});
             if (!d.videos || d.videos.length === 0) {{
                 const suggestions = {json.dumps(viral_empty_suggestions)};
@@ -2848,9 +4020,15 @@ def _render_viral():
             }}
         }} catch (err) {{
             const errMsg = err.name === 'AbortError' ? {json.dumps(viral_timeout_t)} : (err.message || '');
-            const chinaHint = {json.dumps(viral_china_hint_t)};
-            const errHtml = (document.getElementById('viralSource')?.value === 'china') ? '<div class="card" style="border-left:4px solid var(--cta);"><p class="muted">' + chinaHint + '</p></div>' : '<p class="muted">' + {json.dumps(viral_error_t)} + ': ' + (errMsg || '').replace(/</g, '&lt;') + '</p>';
-            el.innerHTML = errHtml;
+            const isChina = document.getElementById('viralSource')?.value === 'china';
+            if (isChina) {{
+                const suggestions = {json.dumps(viral_empty_suggestions)};
+                const emptyTitle = {json.dumps(viral_empty_title_t)};
+                const emptyBody = {json.dumps(viral_empty_body_t)};
+                el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">' + emptyTitle + '</div><p class="empty-state-body">' + emptyBody + '</p><div class="empty-state-chips">' + suggestions.map(s => '<button type="button" class="tip-chip viral-tip-chip" data-query="' + String(s).replace(/"/g, '&quot;') + '">' + s + '</button>').join('') + '</div></div>';
+            }} else {{
+                el.innerHTML = '<p class="muted">' + {json.dumps(viral_error_t)} + ': ' + (errMsg || '').replace(/</g, '&lt;') + '</p>';
+            }}
         }}
     }});
     </script>
@@ -2982,6 +4160,564 @@ def news():
     return _render_news()
 
 
+@app.route("/longform")
+def longform():
+    return _render_longform()
+
+
+# Default audience keywords; overridden by config/china_audience_keywords.json if present
+_CHINA_AUDIENCE_KEYWORDS_DEFAULT = {
+    "laid_off": {
+        "name_zh": "大厂被裁员",
+        "name_en": "Laid-off (big tech)",
+        "keywords": ["一人公司", "超级个体", "裁员", "职场", "工作流", "副业", "再就业", "转型"],
+    },
+    "overseas_student": {
+        "name_zh": "海外留学生",
+        "name_en": "Overseas students",
+        "keywords": ["留学", "求职", "一人公司", "远程工作", "海外", "实习", "职场"],
+    },
+    "small_boss": {
+        "name_zh": "小老板",
+        "name_en": "Small business owners",
+        "keywords": ["一人公司", "超级个体", "创业", "副业", "小成本", "变现", "职场"],
+    },
+}
+
+CONFIG_DIR = Path(__file__).parent / "config"
+CHINA_AUDIENCE_KEYWORDS_FILE = CONFIG_DIR / "china_audience_keywords.json"
+
+
+def get_china_audience_keywords():
+    """Load audience keywords from config file, or return built-in default."""
+    if CHINA_AUDIENCE_KEYWORDS_FILE.exists():
+        try:
+            data = json.loads(CHINA_AUDIENCE_KEYWORDS_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data:
+                return data
+        except Exception:
+            pass
+    return _CHINA_AUDIENCE_KEYWORDS_DEFAULT
+
+
+def _render_china_content():
+    """China content page: Free/compliant first, hot topics, then audience keywords + optional fetch."""
+    from urllib.parse import quote
+    from src.china_sources import get_china_search_url
+
+    lang = _get_lang()
+    title = _t("china_content_page_title", lang)
+    audience_keywords = get_china_audience_keywords()
+    hot_topics: list[str] = []
+    try:
+        # Cache-only read: avoid blocking page render on slow upstream hot-list APIs.
+        from src.hot_trending import CACHE_FILE, rerank_topics_by_segment
+        if CACHE_FILE.exists():
+            data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+            hot_topics = data.get("topics_zh", []) or []
+        hot_topics = rerank_topics_by_segment(hot_topics or [], "zh", "creator")[:12]
+    except Exception:
+        pass
+    audience_buttons = []
+    for key, info in audience_keywords.items():
+        name = info["name_zh"] if lang == "zh" else info["name_en"]
+        audience_buttons.append(
+            f'<button type="button" class="tip-chip china-audience-btn" data-audience="{key}">{_html_escape(name)}</button>'
+        )
+    audience_html = "".join(audience_buttons)
+    fetch_desc = _t("viral_china_fetch_desc", lang)
+    free_query = "热门"
+    free_links = [
+        ("/viral?source=china", _t("china_content_free_bilibili", lang)),
+        (get_china_search_url("xiaohongshu", free_query), "小红书"),
+        (get_china_search_url("douyin", free_query), "抖音"),
+        ("https://www.zhihu.com/search?type=content&q=" + quote(free_query), "知乎"),
+        (get_china_search_url("shipinhao", free_query), "视频号"),
+        (get_china_search_url("xiaoyuzhou", free_query), "小宇宙"),
+        (get_china_search_url("tiktok", free_query), "TikTok"),
+    ]
+    free_links_html = " ".join(
+        f'<a href="{_html_escape(url)}" target="_blank" rel="noopener" class="segment-pill active" style="margin-right:0.35rem;">{_html_escape(label)}</a>'
+        for url, label in free_links
+    )
+    hot_topics_html = ""
+    if hot_topics:
+        hot_topics_html = (
+            '<div class="card china-panel">'
+            '<div class="tip-header"><span class="tip-label">' + _html_escape(_t("china_content_hot_topics_label", lang)) + "</span></div>"
+            '<div class="tip-chips" style="flex-wrap:wrap; gap:0.35rem;">'
+            + "".join(
+                '<button type="button" class="tip-chip china-hot-topic" data-keyword="' + _html_escape(t).replace('"', "&quot;") + '">' + _html_escape(t) + "</button>"
+                for t in hot_topics
+            )
+            + "</div></div>"
+        )
+    seo_tags = _hot_tags_for_lang("zh", limit=12) or (hot_topics[:12] if hot_topics else [])
+    seo_tags_html = ""
+    if seo_tags:
+        seo_tags_html = (
+            '<div class="card china-panel">'
+            '<div class="tip-header"><span class="tip-label">' + _html_escape(_t("hot_tags_title", lang)) + "</span></div>"
+            '<p class="section-desc muted" style="margin:0 0 0.55rem 0;">' + _html_escape(_t("hot_tags_desc", lang)) + "</p>"
+            '<div class="tip-chips" style="flex-wrap:wrap; gap:0.35rem;">'
+            + "".join(
+                '<button type="button" class="tip-chip china-hot-topic" data-keyword="' + _html_escape(t).replace('"', "&quot;") + '">' + _html_escape(t) + "</button>"
+                for t in seo_tags
+            )
+            + "</div></div>"
+        )
+    body = f"""
+    <section class="china-content-wrap">
+        <div class="section-title">📥 {_html_escape(title)}</div>
+        <p class="section-desc muted china-title-desc">{_html_escape(fetch_desc)}</p>
+        <div class="china-layout-grid">
+            <div class="china-stack">
+                <div class="card china-panel" style="border-left: 4px solid var(--accent);">
+                    <div class="tip-header"><span class="tip-label">{_html_escape(_t("china_content_free_compliant_title", lang))}</span></div>
+                    <p class="section-desc muted" style="margin-bottom:0.45rem;">{_html_escape(_t("china_content_free_compliant_desc", lang))}</p>
+                    <p class="section-desc muted" style="font-size:0.875rem; margin-bottom:0;">{_html_escape(_t("china_content_free_search_links", lang))}: {free_links_html}</p>
+                </div>
+                {hot_topics_html}
+                {seo_tags_html}
+                <div class="card china-panel">
+                    <div class="tip-header"><span class="tip-label">{_html_escape(_t("china_content_audience_label", lang))}</span></div>
+                    <div class="tip-chips" style="margin-bottom:0.7rem;">{audience_html}</div>
+                    <div class="tip-header"><span class="tip-label">{_html_escape(_t("china_content_keyword_input_placeholder", lang))}</span></div>
+                    <div class="tip-header" style="flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                        <input type="text" id="chinaKeywordInput" placeholder="e.g. open claw" style="max-width:16rem; padding:0.35rem 0.5rem;">
+                        <button type="button" id="chinaAddTagBtn" class="btn">{_html_escape(_t("china_content_add_tag", lang))}</button>
+                    </div>
+                    <div class="tip-header" style="margin-top:0.45rem;"><span class="tip-label">{_html_escape(_t("china_content_tags_label", lang))}</span></div>
+                    <div id="chinaActiveTags" class="tip-chips" style="min-height:2rem; margin-bottom:0.7rem;"></div>
+                    <div class="tip-header"><span class="tip-label">{_html_escape(_t("viral_china_platforms", lang))}</span></div>
+                    <div class="china-platform-row" style="margin-bottom:0.55rem;">
+                        <label><input type="checkbox" name="cp" value="bilibili" class="china-cp" checked> B站</label>
+                        <label><input type="checkbox" name="cp" value="xhs" class="china-cp" checked> 小红书</label>
+                        <label><input type="checkbox" name="cp" value="douyin" class="china-cp" checked> 抖音</label>
+                        <label><input type="checkbox" name="cp" value="zhihu" class="china-cp" checked> 知乎</label>
+                        <label><input type="checkbox" name="cp" value="shipinhao" class="china-cp"> 视频号</label>
+                    </div>
+                    <div class="china-actions">
+                        <button type="button" id="chinaFetchBtn" class="btn">{_html_escape(_t("viral_china_fetch_btn", lang))}</button>
+                        <p class="china-help-text">建议先从 B站 + 知乎开始，速度更快；小红书/抖音未登录时可能为空。</p>
+                    </div>
+                    <div class="tip-header" style="margin-top:0.4rem; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                        <input type="text" id="chinaRewriteApiUrl" placeholder="模型改写 API URL（可选，例如 http://127.0.0.1:11434/api/generate）" style="max-width:28rem; width:100%; padding:0.35rem 0.5rem;">
+                    </div>
+                    <p class="section-desc muted" style="margin-top:0.35rem; margin-bottom:0;">不填也可先导出逐字稿 Markdown，再手动粘贴到任意 AI 改写。</p>
+                    <div id="chinaResult" class="muted china-result-box" style="margin-top:0.65rem; display:none;"></div>
+                </div>
+            </div>
+            <div class="china-stack">
+                <div class="card china-panel">
+                    <div class="tip-header"><span class="tip-label">{_html_escape(_t("china_content_login_title", lang))}</span></div>
+                    <p class="section-desc muted" style="margin-bottom:0.45rem;">{_html_escape(_t("china_content_login_desc", lang))}</p>
+                    <pre class="muted" style="background:var(--bg); padding:0.5rem 0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">{_html_escape(_t("china_content_login_cmd", lang))}</pre>
+                    <p class="section-desc muted" style="margin-top:0.35rem; font-size:0.875rem;">{_html_escape(_t("china_content_login_cmd_note", lang))}</p>
+                    <p class="section-desc muted" style="margin-top:0.75rem; font-size:0.8rem; color:var(--muted); margin-bottom:0;">{_html_escape(_t("china_content_login_risk", lang))}</p>
+                </div>
+                <div class="card china-panel">
+                    <p class="section-desc muted" style="margin:0 0 0.55rem 0;">{_html_escape(_t("china_content_after_fetch", lang))} <a href="/viral?source=china">Viral →</a></p>
+                    <p class="section-desc muted" style="margin:0 0 0.55rem 0;">{_html_escape(_t("china_content_crawl_hint", lang))}</p>
+                    <p class="section-desc muted" style="margin:0;">English: X, Substack, Reddit hot data — coming soon.</p>
+                </div>
+            </div>
+            <div class="china-wide">
+                <div class="section-title" style="margin-top:0.3rem;">{_html_escape(_t("china_content_fetched_title", lang))}</div>
+                <div id="chinaContentList" class="cards" style="margin-top:0.45rem;">
+                    <p class="muted">{_html_escape(_t("china_content_no_items_yet", lang))}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script>
+    (function() {{
+        const durationTpl = {json.dumps(_t("china_crawl_duration", lang))};
+        const audienceData = {json.dumps({k: v.get("keywords", []) for k, v in audience_keywords.items()})};
+        let activeTags = [];
+        function renderActiveTags() {{
+            const el = document.getElementById('chinaActiveTags');
+            if (!el) return;
+            el.innerHTML = activeTags.map(function(kw, i) {{
+                const esc = (kw || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                return '<span class="segment-pill active" style="display:inline-flex;align-items:center;gap:0.25rem;"><span>' + esc + '</span><button type="button" class="china-tag-remove" data-i="' + i + '" aria-label="Remove">×</button></span>';
+            }}).join(' ') || '<span class="muted">' + {json.dumps(_t("china_content_no_tags_yet", lang))} + '</span>';
+            el.querySelectorAll('.china-tag-remove').forEach(function(btn) {{
+                btn.addEventListener('click', function() {{
+                    const i = parseInt(this.getAttribute('data-i'), 10);
+                    activeTags = activeTags.filter(function(_, j) {{ return j !== i; }});
+                    renderActiveTags();
+                }});
+            }});
+        }}
+        document.querySelectorAll('.china-audience-btn').forEach(function(btn) {{
+            btn.addEventListener('click', function() {{
+                const key = this.getAttribute('data-audience');
+                const kws = audienceData[key] || [];
+                kws.forEach(function(k) {{ if (k && activeTags.indexOf(k) === -1) activeTags.push(k); }});
+                activeTags = activeTags.slice(0, 20);
+                renderActiveTags();
+            }});
+        }});
+        document.querySelectorAll('.china-hot-topic').forEach(function(btn) {{
+            btn.addEventListener('click', function() {{
+                const kw = (this.getAttribute('data-keyword') || '').trim();
+                if (kw && activeTags.indexOf(kw) === -1) {{ activeTags.push(kw); activeTags = activeTags.slice(0, 20); renderActiveTags(); }}
+            }});
+        }});
+        const inputEl = document.getElementById('chinaKeywordInput');
+        document.getElementById('chinaAddTagBtn').addEventListener('click', function() {{
+            const kw = (inputEl && inputEl.value) ? inputEl.value.trim() : '';
+            if (kw && activeTags.indexOf(kw) === -1) {{ activeTags.push(kw); activeTags = activeTags.slice(0, 20); if (inputEl) inputEl.value = ''; renderActiveTags(); }}
+        }});
+        if (inputEl) inputEl.addEventListener('keydown', function(e) {{ if (e.key === 'Enter') {{ e.preventDefault(); document.getElementById('chinaAddTagBtn').click(); }} }});
+        const platformNames = {{ bilibili: 'B站', xhs: '小红书', xiaohongshu: '小红书', douyin: '抖音', zhihu: '知乎', shipinhao: '视频号' }};
+        const typeNames = {{ video: '视频', post: '帖子', article: '文章', note: '笔记' }};
+        const evalLabels = {{ lang: {json.dumps(lang)}, evalBtn: {json.dumps(_t("china_content_eval_btn", lang))}, score: {json.dumps(_t("china_content_eval_score", lang))}, rewrite: {json.dumps(_t("china_content_rewrite_directions", lang))}, minto: {json.dumps(_t("china_content_minto_title", lang))}, loading: {json.dumps(_t("china_content_eval_loading", lang))}, error: {json.dumps(_t("china_content_eval_error", lang))} }};
+        function buildChinaItemMarkdown(item) {{
+            const title = (item.title || '').trim() || 'Untitled';
+            const platform = (platformNames[item.platform] || item.platform || '-');
+            const typeLabel = (typeNames[item.content_type] || item.content_type || '-');
+            const views = (item.views || '-');
+            const url = (item.url || '-');
+            const desc = (item.description || item.snippet || '').trim();
+            const transcript = (title + '\\n\\n' + desc).trim();
+            const prompts = (evalLabels.lang === 'zh')
+                ? [
+                    '- "基于逐字稿写 3 个短视频开场钩子（15字内）"',
+                    '- "按小红书风格改写成种草笔记，保留核心信息"',
+                    '- "按抖音口播节奏改写成 30 秒脚本：开场-冲突-结论"',
+                    '- "用金字塔原理重写：结论先行 + 3 个要点 + 对应论据"',
+                ].join('\\n')
+                : [
+                    '- "Rewrite into 3 short-form video hooks (under 12 words each)"',
+                    '- "Rewrite for Xiaohongshu note style while preserving key facts"',
+                    '- "Rewrite as a 30-second Douyin voiceover script: hook-conflict-payoff"',
+                    '- "Restructure with Minto Pyramid: conclusion first, then 3 key points with evidence"',
+                ].join('\\n');
+            return [
+                '# China Content Transcript Export',
+                '',
+                '## Source',
+                '',
+                '- Title: ' + title,
+                '- Platform: ' + platform,
+                '- Type: ' + typeLabel,
+                '- Views: ' + views,
+                '- URL: ' + url,
+                '',
+                '---',
+                '',
+                '## Transcript',
+                '',
+                transcript,
+                '',
+                '---',
+                '',
+                '## AI Remix Prompts',
+                '',
+                prompts,
+                '',
+            ].join('\\n');
+        }}
+        function safeFileName(name) {{
+            const n = (name || 'china-content').replace(/\\s+/g, '-').replace(/[^\\w\\-]/g, '').replace(/\\-+/g, '-').replace(/^\\-+|\\-+$/g, '');
+            return (n || 'china-content').slice(0, 40);
+        }}
+        function downloadMarkdown(filename, markdown) {{
+            const blob = new Blob([markdown], {{ type: 'text/markdown;charset=utf-8' }});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function() {{ URL.revokeObjectURL(a.href); }}, 500);
+        }}
+        function renderItems(items) {{
+            const el = document.getElementById('chinaContentList');
+            if (!el) return;
+            if (!items || items.length === 0) {{
+                el.innerHTML = '<p class="muted">' + {json.dumps(_t("china_content_no_items_yet", lang))} + '</p>';
+                return;
+            }}
+            let html = '';
+            items.forEach(function(v) {{
+                const platform = platformNames[v.platform] || v.platform || '';
+                const typeLabel = typeNames[v.content_type] || v.content_type || '';
+                const title = (v.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const url = (v.url || '').replace(/"/g, '&quot;');
+                const desc = (v.description || '').substring(0, 120).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const dataTitle = (v.title || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const dataDesc = (v.description || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const dataUrl = (v.url || '').replace(/"/g, '&quot;');
+                const dataPlatform = (v.platform || '').replace(/"/g, '&quot;');
+                const dataType = (v.content_type || '').replace(/"/g, '&quot;');
+                const dataViews = (v.views || '').replace(/"/g, '&quot;');
+                html += '<div class="card china-item-card" data-title="' + dataTitle + '" data-desc="' + dataDesc + '" data-url="' + dataUrl + '" data-platform="' + dataPlatform + '" data-content-type="' + dataType + '" data-views="' + dataViews + '"><div class="card-header"><h3><a href="' + url + '" target="_blank" rel="noopener">' + title + '</a></h3></div><p class="card-source">' + platform + ' · ' + typeLabel + (v.views ? ' · ' + v.views : '') + '</p><p class="card-snippet">' + desc + '</p><div class="tip-header" style="gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem;"><button type="button" class="btn china-eval-btn">' + evalLabels.evalBtn + '</button><button type="button" class="btn china-export-md-btn">导出逐字稿.md</button><button type="button" class="btn china-ai-rewrite-btn">模型改写</button></div><div class="china-eval-result" style="display:none; margin-top:0.75rem; padding:0.75rem; background:var(--bg); border-radius:6px; font-size:0.875rem;"></div></div>';
+            }});
+            el.innerHTML = html;
+            el.querySelectorAll('.china-export-md-btn').forEach(function(btn) {{
+                btn.addEventListener('click', async function() {{
+                    const card = this.closest('.china-item-card');
+                    const resultDiv = card && card.querySelector('.china-eval-result');
+                    if (!card) return;
+                    const item = {{
+                        title: card.getAttribute('data-title') || '',
+                        description: card.getAttribute('data-desc') || '',
+                        url: card.getAttribute('data-url') || '',
+                        platform: card.getAttribute('data-platform') || '',
+                        content_type: card.getAttribute('data-content-type') || '',
+                        views: card.getAttribute('data-views') || '',
+                    }};
+                    this.disabled = true;
+                    if (resultDiv) {{
+                        resultDiv.style.display = 'block';
+                        resultDiv.textContent = '正在生成 Markdown…';
+                    }}
+                    try {{
+                        const r = await fetch('/api/china-content-export-md', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ item: item, lang: evalLabels.lang || 'zh' }}),
+                        }});
+                        const d = await r.json().catch(function() {{ return {{ ok: false, error: 'Server error' }}; }});
+                        if (!d.ok || !d.markdown) {{
+                            if (resultDiv) resultDiv.textContent = (d.error || '导出失败');
+                            return;
+                        }}
+                        const filename = d.filename || ('transcript_' + safeFileName(item.title || 'china-content') + '.md');
+                        downloadMarkdown(filename, d.markdown);
+                        if (resultDiv) resultDiv.textContent = '导出成功：' + filename;
+                    }} catch (e) {{
+                        if (resultDiv) resultDiv.textContent = '导出失败: ' + (e.message || '');
+                    }} finally {{
+                        this.disabled = false;
+                    }}
+                }});
+            }});
+            el.querySelectorAll('.china-ai-rewrite-btn').forEach(function(btn) {{
+                btn.addEventListener('click', async function() {{
+                    const card = this.closest('.china-item-card');
+                    const resultDiv = card && card.querySelector('.china-eval-result');
+                    if (!card || !resultDiv) return;
+                    const rewriteInput = document.getElementById('chinaRewriteApiUrl');
+                    const rewriteApiUrl = (rewriteInput && rewriteInput.value ? rewriteInput.value : '').trim();
+                    if (!rewriteApiUrl) {{
+                        resultDiv.style.display = 'block';
+                        resultDiv.textContent = '请先填写模型改写 API URL（支持本地端口）。';
+                        return;
+                    }}
+                    const item = {{
+                        title: card.getAttribute('data-title') || '',
+                        description: card.getAttribute('data-desc') || '',
+                        url: card.getAttribute('data-url') || '',
+                        platform: card.getAttribute('data-platform') || '',
+                        content_type: card.getAttribute('data-content-type') || '',
+                        views: card.getAttribute('data-views') || '',
+                    }};
+                    const markdown = buildChinaItemMarkdown(item);
+                    this.disabled = true;
+                    resultDiv.style.display = 'block';
+                    resultDiv.textContent = '模型改写中，请稍候…';
+                    try {{
+                        const r = await fetch('/api/china-content-rewrite', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{
+                                text: markdown,
+                                lang: evalLabels.lang || 'zh',
+                                rewrite_api_url: rewriteApiUrl,
+                            }}),
+                        }});
+                        const d = await r.json().catch(function() {{ return {{ ok: false, error: 'Server error' }}; }});
+                        if (!d.ok) {{
+                            resultDiv.textContent = d.error || '模型改写失败';
+                            return;
+                        }}
+                        const out = (d.rewritten_text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        resultDiv.innerHTML = '<strong>模型改写结果：</strong><pre style="white-space:pre-wrap; margin-top:0.45rem;">' + out + '</pre>';
+                    }} catch (e) {{
+                        resultDiv.textContent = '模型改写失败: ' + (e.message || '');
+                    }} finally {{
+                        this.disabled = false;
+                    }}
+                }});
+            }});
+            el.querySelectorAll('.china-eval-btn').forEach(function(btn) {{
+                btn.addEventListener('click', async function() {{
+                    const card = this.closest('.china-item-card');
+                    const resultDiv = card && card.querySelector('.china-eval-result');
+                    if (!card || !resultDiv) return;
+                    const text = (card.getAttribute('data-title') || '') + '\\n' + (card.getAttribute('data-desc') || '');
+                    if (!text.trim()) {{ resultDiv.textContent = evalLabels.error; resultDiv.style.display = 'block'; return; }}
+                    this.disabled = true;
+                    resultDiv.textContent = evalLabels.loading;
+                    resultDiv.style.display = 'block';
+                    try {{
+                        const r = await fetch('/api/china-content-evaluate', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ text: text, lang: evalLabels.lang || 'zh' }}) }});
+                        const d = await r.json().catch(function() {{ return {{ ok: false }}; }});
+                        if (!d.ok) {{ resultDiv.innerHTML = '<span class="muted">' + (d.error || evalLabels.error) + '</span>'; return; }}
+                        let out = '<strong>' + evalLabels.score + ':</strong> ' + (d.score || 0) + '/100';
+                        if (d.stepps && d.stepps.length) out += ' <span class="muted">(' + d.stepps.map(function(s) {{ return s.name + ' ' + s.score; }}).join(', ') + ')</span>';
+                        if (d.minto && (d.minto.conclusion || (d.minto.key_points && d.minto.key_points.length))) {{
+                            out += '<br><strong>' + evalLabels.minto + ':</strong> ';
+                            if (d.minto.conclusion) out += d.minto.conclusion.substring(0, 80) + (d.minto.conclusion.length > 80 ? '…' : '');
+                            if (d.minto.key_points && d.minto.key_points.length) out += ' · ' + d.minto.key_points.length + ' key points';
+                        }}
+                        if (d.rewrite_directions && d.rewrite_directions.length) {{
+                            out += '<br><strong>' + evalLabels.rewrite + ':</strong><ul style="margin:0.35rem 0 0 1rem;">';
+                            d.rewrite_directions.forEach(function(line) {{ out += '<li>' + (line || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>'; }});
+                            out += '</ul>';
+                        }}
+                        resultDiv.innerHTML = out;
+                    }} catch (e) {{
+                        resultDiv.textContent = evalLabels.error + ': ' + (e.message || '');
+                    }} finally {{
+                        this.disabled = false;
+                    }}
+                }});
+            }});
+        }}
+        const btn = document.getElementById('chinaFetchBtn');
+        const resultEl = document.getElementById('chinaResult');
+        if (!btn || !resultEl) return;
+        btn.addEventListener('click', async function() {{
+            const platforms = Array.from(document.querySelectorAll('.china-cp:checked')).map(c => c.value);
+            if (!platforms.length) {{ alert('Select at least one platform'); return; }}
+            const keywords = activeTags.length > 0 ? activeTags.slice(0, 10) : ['热门'];
+            btn.disabled = true;
+            const oldBtnText = btn.textContent;
+            btn.textContent = '拉取中…';
+            resultEl.style.display = 'none';
+            resultEl.innerHTML = '';
+            try {{
+                resultEl.style.display = 'block';
+                resultEl.textContent = '正在拉取，请稍候… 平台: ' + platforms.join(', ') + ' · 关键词: ' + keywords.slice(0,3).join(', ');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(function() {{ controller.abort(); }}, 65000);
+                const r = await fetch('/api/china-crawl', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ platforms: platforms, keywords: keywords }}),
+                    signal: controller.signal
+                }});
+                clearTimeout(timeoutId);
+                const d = await r.json().catch(() => ({{ ok: false, error: 'Server error' }}));
+                resultEl.style.display = 'block';
+                if (!d.ok) {{
+                    resultEl.innerHTML = '<span style="color:var(--cta);">' + (d.error || 'Crawl failed').replace(/</g, '&lt;') + '</span>';
+                }} else {{
+                    const names = {{ bilibili: 'B站', xhs: '小红书', douyin: '抖音', zhihu: '知乎', shipinhao: '视频号' }};
+                    let msg = (d.message || '') + (d.fetched && Object.keys(d.fetched).length ? ' ' + Object.entries(d.fetched).map(([k,v]) => names[k] + ' ' + v).join(', ') : '');
+                    if (d.duration_sec != null) msg += ' · ' + durationTpl.replace('{{sec}}', d.duration_sec);
+                    if (d.errors && d.errors.length) msg += '<br><span class="china-result-box" style="display:block; margin-top:0.5rem;">' + d.errors.map(e => (e || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>') + '</span>';
+                    if (d.platform_status) {{
+                        const statusLabel = {{ ok: 'ok', partial: 'partial', blocked_login: 'need login', blocked_risk: 'risk control', network_error: 'network/error' }};
+                        const rows = Object.keys(d.platform_status).map(function(pk) {{
+                            const s = d.platform_status[pk] || {{}};
+                            const n = names[pk] || pk;
+                            const label = statusLabel[s.status] || (s.status || 'unknown');
+                            return '<span class="segment-pill" style="margin-right:0.3rem;">' + n + ': ' + label + '</span>';
+                        }});
+                        if (rows.length) msg += '<br><div style="margin-top:0.45rem;">' + rows.join('') + '</div>';
+                    }}
+                    if (d.fallback_links && d.fallback_links.length) {{
+                        const fb = d.fallback_links.slice(0, 5).map(function(x) {{
+                            const n = names[x.platform] || x.platform;
+                            const u = (x.url || '').replace(/"/g, '&quot;');
+                            const k = (x.keyword || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            return '<a class="segment-pill active" target="_blank" rel="noopener" href="' + u + '" style="margin-right:0.35rem;">' + n + ' 搜索 ' + k + '</a>';
+                        }});
+                        if (fb.length) msg += '<br><div style="margin-top:0.45rem;">' + fb.join('') + '</div>';
+                    }}
+                    resultEl.innerHTML = msg;
+                    renderItems(d.items || []);
+                }}
+            }} catch (err) {{
+                if (err && err.name === 'AbortError') {{
+                    resultEl.textContent = '请求超时：平台响应较慢。请先勾选 B站 / 知乎，或减少关键词后重试。';
+                }} else {{
+                    resultEl.textContent = err.message || 'Request failed';
+                }}
+            }} finally {{
+                btn.disabled = false;
+                btn.textContent = oldBtnText;
+            }}
+        }});
+        renderActiveTags();
+    }})();
+    </script>
+    """
+    return _base(title, body, "/china-content", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/docs/bilibili-vpn")
+def docs_bilibili_vpn():
+    """Help page: fix B站 loading when in China with VPN."""
+    lang = _get_lang()
+    title_zh = "解决 B 站加载问题"
+    title_en = "Fix Bilibili loading"
+    title = title_zh if lang == "zh" else title_en
+    body_zh = """
+    <section>
+        <div class="section-title">中国境内 + VPN 时让 B 站可用</div>
+        <p class="section-desc muted">你在国内、本机开 VPN 时，B 站请求会从 VPN 出口出去，被识别为海外导致无法访问。任选一种方式即可。</p>
+        <div class="card" style="max-width:640px;">
+            <div class="tip-header"><span class="tip-label">方式一：分流 / 直连（推荐）</span></div>
+            <p class="section-desc">在 VPN 或代理客户端里，把 <strong>bilibili.com</strong>、<strong>api.bilibili.com</strong> 设为<strong>直连</strong>（不走代理）。</p>
+            <ul class="section-desc" style="margin-left:1.25rem;">
+                <li><strong>Clash / ClashX</strong>：规则里加 <code>DOMAIN-SUFFIX,bilibili.com,DIRECT</code></li>
+                <li>其他客户端：在「分流」「直连名单」里加上 <code>bilibili.com</code></li>
+            </ul>
+        </div>
+        <div class="card" style="max-width:640px; margin-top:1rem;">
+            <div class="tip-header"><span class="tip-label">方式二：单独给 B 站设代理</span></div>
+            <p class="section-desc">若无法分流，在项目根目录建 <code>.env</code>，写入：</p>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">BILIBILI_PROXY=http://127.0.0.1:你的直连代理端口</pre>
+            <p class="section-desc muted" style="margin-top:0.5rem;">保存后重启 <code>python server.py</code>，再在「热门视频」选中国来源重试。</p>
+        </div>
+        <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← 返回热门视频</a></p>
+    </section>
+    """
+    body_en = """
+    <section>
+        <div class="section-title">Fix Bilibili when in China with VPN</div>
+        <p class="section-desc muted">When you use VPN, Bilibili requests go through it and get blocked. Use either method below.</p>
+        <div class="card" style="max-width:640px;">
+            <div class="tip-header"><span class="tip-label">Option 1: Split tunnel (recommended)</span></div>
+            <p class="section-desc">In your VPN/proxy app, set <strong>bilibili.com</strong> to <strong>DIRECT</strong> (bypass proxy).</p>
+            <ul class="section-desc" style="margin-left:1.25rem;">
+                <li><strong>Clash</strong>: Add rule <code>DOMAIN-SUFFIX,bilibili.com,DIRECT</code></li>
+            </ul>
+        </div>
+        <div class="card" style="max-width:640px; margin-top:1rem;">
+            <div class="tip-header"><span class="tip-label">Option 2: Bilibili-only proxy</span></div>
+            <p class="section-desc">Create <code>.env</code> in project root with:</p>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem;">BILIBILI_PROXY=http://127.0.0.1:your-direct-proxy-port</pre>
+            <p class="section-desc muted" style="margin-top:0.5rem;">Restart the server, then try China source again on the Viral page.</p>
+        </div>
+        <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← Back to Viral</a></p>
+    </section>
+    """
+    body = body_zh if lang == "zh" else body_en
+    return _base(title, body, "/viral", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/china-content")
+@app.route("/china-content/")
+def china_content():
+    if request.path.rstrip("/") != request.path and request.path.endswith("/"):
+        return redirect("/china-content", code=302)
+    try:
+        return _render_china_content()
+    except Exception as e:
+        lang = _get_lang()
+        err_msg = str(e)[:200] if str(e) else "Unknown error"
+        body = f'<section><p class="section-desc muted">{_html_escape(_t("china_content_load_error", lang))}</p><p class="muted">Error: {_html_escape(err_msg)}</p><p><a href="/">' + (_html_escape("返回首页") if lang == "zh" else "Home") + '</a> · <a href="/china-content">' + (_html_escape("重试") if lang == "zh" else "Retry") + "</a></p></section>"
+        return _base(_t("china_content_page_title", lang), body, "/china-content", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
 @app.route("/viral")
 def viral():
     return _render_viral()
@@ -2989,9 +4725,22 @@ def viral():
 
 if __name__ == "__main__":
     import os
+    import socket
 
     OUTPUT.mkdir(exist_ok=True)
     port = int(os.environ.get("PORT", 5001))
+    if not os.environ.get("PORT"):
+        for candidate in range(5001, 5010):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.bind(("", candidate))
+                s.close()
+                port = candidate
+                break
+            except OSError:
+                continue
+        if port != 5001:
+            print(f"Port 5001 in use, using http://127.0.0.1:{port}")
     host = "0.0.0.0"  # Bind all interfaces so 127.0.0.1:5001 works locally
     debug = not os.environ.get("PORT")  # Auto-reload when running locally
 

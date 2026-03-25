@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional
 from urllib.parse import quote_plus
 
 import requests
+from src.ddg_client import get_ddgs_class
 
 
 def _run_with_timeout(func: Callable, timeout_sec: float = 12, default: Any = None) -> Any:
@@ -408,7 +409,7 @@ def fetch_duckduckgo_news(query: str, max_results: int = 5, region: Optional[str
     if region is None:
         region = "cn-zh" if _has_cjk(query) else "us-en"
     try:
-        from duckduckgo_search import DDGS
+        DDGS = get_ddgs_class()
         with DDGS() as ddgs:
             results = list(ddgs.news(query, max_results=max_results, region=region))
         items = []
@@ -487,7 +488,7 @@ def fetch_duckduckgo_fallback(max_results: int = 5, lang: str = "en") -> list[di
     """Fallback: DuckDuckGo news when no other sources configured."""
     query = "今日热门新闻" if lang == "zh" else "trending news today"
     try:
-        from duckduckgo_search import DDGS
+        DDGS = get_ddgs_class()
         with DDGS() as ddgs:
             results = list(ddgs.news(query, max_results=max_results, timelimit="d"))
         items = []

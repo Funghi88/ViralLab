@@ -1,9 +1,19 @@
 """China-native search sources. No VPN needed when used from China.
 
-- Bilibili: Public API for video search.
+- Bilibili: Public API for video search. Fetched via subprocess with no-proxy.
 - Douyin, Xiaohongshu, Shipinhao: Search URL templates (no public API).
+- Optional: china_crawler results from tools/china_crawler (e.g. XHS search).
 """
+import json
+import os
 import urllib.parse
+from pathlib import Path
+from typing import Optional
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CRAWLER_RESULTS_FILE = _PROJECT_ROOT / "output" / "china_crawler_results.json"
+_CRAWLER_OUTPUT_DIR = _PROJECT_ROOT / "output"
+_CRAWLER_PLATFORMS = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili")
 # Platform search URL templates (user searches directly on platform)
 CHINA_PLATFORM_LINKS = {
     "douyin": {
@@ -25,6 +35,16 @@ CHINA_PLATFORM_LINKS = {
         "name": "哔哩哔哩 Bilibili",
         "search_url": "https://search.bilibili.com/all?keyword={query}",
         "desc": "Long-form video, anime, tutorials",
+    },
+    "tiktok": {
+        "name": "TikTok (Global)",
+        "search_url": "https://www.tiktok.com/search?q={query}",
+        "desc": "Global short-form video trends",
+    },
+    "xiaoyuzhou": {
+        "name": "小宇宙 Xiaoyuzhou",
+        "search_url": "https://www.xiaoyuzhoufm.com/search/{query}",
+        "desc": "China podcast episodes and creators",
     },
 }
 
@@ -65,6 +85,7 @@ def _parse_bilibili_item(v: dict, max_results: int, out: list, category_filter: 
         "views_int": int(views) if views else 0,
         "description": desc,
         "platform": "bilibili",
+        "content_type": "video",
     })
 
 
@@ -75,13 +96,13 @@ def fetch_bilibili_popular(max_results: int = 20, category_filter: str = "") -> 
     fetch_count = min(max_results * 3, 50) if category_filter else min(max_results, 50)
     out: list[dict] = []
 
-    # Try popular API first, then ranking/v2 as fallback
-    for url, params in [
+    # Try popular API first, then ranking/v2 as fallback (no proxy — subprocess uses _env_no_proxy)
+    for api_url, params in [
         ("https://api.bilibili.com/x/web-interface/popular", {"ps": fetch_count, "pn": 1}),
         ("https://api.bilibili.com/x/web-interface/ranking/v2", {"rid": 0, "type": "all"}),
     ]:
         try:
-            r = requests.get(url, params=params, headers=_BILIBILI_HEADERS, timeout=10)
+            r = requests.get(api_url, params=params, headers=_BILIBILI_HEADERS, timeout=12)
             r.raise_for_status()
             data = r.json()
             if data.get("code") != 0:
@@ -111,7 +132,7 @@ def search_bilibili(query: str, max_results: int = 10) -> list[dict]:
             url,
             params=params,
             headers={**_BILIBILI_HEADERS, "Referer": "https://search.bilibili.com/"},
-            timeout=10,
+            timeout=12,
         )
         r.raise_for_status()
         data = r.json()
@@ -134,7 +155,54 @@ def search_bilibili(query: str, max_results: int = 10) -> list[dict]:
                 "views_int": int(views) if views else 0,
                 "description": desc,
                 "platform": "bilibili",
+                "content_type": "video",
             })
         return out
     except Exception as e:
         raise RuntimeError(f"Bilibili search failed: {e}") from e
+
+
+def get_crawler_china_results(platform_filter: Optional[list[str]] = None) -> list[dict]:
+    """Load crawler output: single file and/or per-platform files in output/.
+    platform_filter: if set, only include these platforms (e.g. ['xiaohongshu','douyin']).
+    Returns list of items (same shape as Bilibili + content_type).
+    """
+    import os
+    out_dir = os.environ.get("CHINA_CRAWLER_OUTPUT_DIR", str(_CRAWLER_OUTPUT_DIR))
+    all_items: list[dict] = []
+    # Single merged file
+    if _CRAWLER_RESULTS_FILE.exists():
+        try:
+            data = json.loads(_CRAWLER_RESULTS_FILE.read_text(encoding="utf-8"))
+            for i in data.get("items") or []:
+                if isinstance(i, dict) and i.get("url"):
+                    i.setdefault("content_type", "video")
+                    if platform_filter is None or (i.get("platform") or "").lower() in platform_filter:
+                        all_items.append(i)
+        except Exception:
+            pass
+    # Per-platform files (dedupe by url)
+    seen = {i.get("url") for i in all_items}
+    for p in _CRAWLER_PLATFORMS:
+        if platform_filter is not None:
+            pid = {
+                "xhs": "xiaohongshu",
+                "douyin": "douyin",
+                "shipinhao": "shipinhao",
+                "zhihu": "zhihu",
+                "bilibili": "bilibili",
+            }.get(p, p)
+            if pid not in platform_filter and p not in platform_filter:
+                continue
+        path = Path(out_dir) / f"china_crawler_{p}.json"
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                for i in data.get("items") or []:
+                    if isinstance(i, dict) and i.get("url") and i["url"] not in seen:
+                        seen.add(i["url"])
+                        i.setdefault("content_type", "video")
+                        all_items.append(i)
+            except Exception:
+                pass
+    return all_items

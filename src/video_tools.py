@@ -1,10 +1,10 @@
-"""Video fetch and Berger scoring. Uses duckduckgo-search (no API key). YouTube API fallback when DDG rate-limited."""
+"""Video fetch and Berger scoring. Uses DDGS (no API key). YouTube API fallback when DDG rate-limited."""
 import os
 import re
 import time
 from typing import Optional
 
-from duckduckgo_search import DDGS
+from src.ddg_client import get_ddgs_class
 
 
 # Jonah Berger STEPPS + magic words (Contagious + Magic Words). EN + ZH for scoring.
@@ -95,6 +95,7 @@ def _fetch_youtube_search(query: str, max_results: int) -> list[dict]:
 
 def fetch_trending_videos(query: str = "trending viral youtube", max_results: int = 10) -> list[dict]:
     """Fetch hot/trending videos via DuckDuckGo (no API key). Retries on rate limit; falls back to YouTube API if set."""
+    DDGS = get_ddgs_class()
     last_err = None
     for attempt in range(3):
         try:
