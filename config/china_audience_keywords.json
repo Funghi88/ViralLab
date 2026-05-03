@@ -1,0 +1,17 @@
+{
+  "laid_off": {
+    "name_zh": "大厂被裁员",
+    "name_en": "Laid-off (big tech)",
+    "keywords": ["一人公司", "超级个体", "裁员", "职场", "工作流", "副业", "再就业", "转型"]
+  },
+  "overseas_student": {
+    "name_zh": "海外留学生",
+    "name_en": "Overseas students",
+    "keywords": ["留学", "求职", "一人公司", "远程工作", "海外", "实习", "职场"]
+  },
+  "small_boss": {
+    "name_zh": "小老板",
+    "name_en": "Small business owners",
+    "keywords": ["一人公司", "超级个体", "创业", "副业", "小成本", "变现", "职场"]
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "title": "AI Agents Are Growing Fast",
+    "snippet": "Alpha",
+    "url": "https://example.com/a",
+    "date": "2026-03-24T09:00:00Z",
+    "source": "Source A"
+  },
+  {
+    "title": "ai agents are growing fast",
+    "snippet": "Duplicate title with different case",
+    "url": "https://example.com/a-dup",
+    "date": "2026-03-24T10:00:00Z",
+    "source": "Source B"
+  },
+  {
+    "title": "Creator Economy Outlook",
+    "snippet": "Beta",
+    "url": "https://example.com/b",
+    "date": "2026-03-25T08:30:00Z",
+    "source": "Source C"
+  },
+  {
+    "title": "",
+    "snippet": "Missing title should be dropped",
+    "url": "https://example.com/c",
+    "date": "2026-03-26T08:30:00Z",
+    "source": "Source D"
+  },
+  {
+    "title": "No Date Item",
+    "snippet": "Gamma",
+    "url": "https://example.com/d",
+    "date": "",
+    "source": "Source E"
+  }
+]

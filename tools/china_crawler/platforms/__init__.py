@@ -3,7 +3,7 @@
 Each platform module exposes fetch_*_search and returns raw list of dicts.
 """
 
-from . import bilibili, douyin, shipinhao, xhs, zhihu
+from . import bilibili, douyin, instagram, shipinhao, tiktok, xhs, x_twitter, zhihu
 
 PLATFORMS = {
     "xhs": xhs,
@@ -11,4 +11,7 @@ PLATFORMS = {
     "shipinhao": shipinhao,
     "zhihu": zhihu,
     "bilibili": bilibili,
+    "tiktok": tiktok,
+    "x": x_twitter,
+    "instagram": instagram,
 }

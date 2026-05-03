@@ -1,0 +1,4 @@
+# Optional high-quality ASR (WhisperX + faster-whisper). Not installed by default.
+# Install: pip install -r requirements-asr.txt
+# Requires ffmpeg on PATH. GPU recommended for large-v3; CPU uses int8 + medium by default.
+whisperx>=3.1.1

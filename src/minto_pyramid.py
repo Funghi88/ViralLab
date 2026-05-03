@@ -14,9 +14,28 @@ def _sentences(text: str) -> list[str]:
     """Split text into sentence-like chunks for EN/ZH."""
     if not text or not text.strip():
         return []
-    t = re.sub(r"\s+", " ", text.strip())
-    parts = re.split(r"[。！？!?\.]+", t)
-    out = [p.strip().strip("。.!?！？") for p in parts if p.strip()]
+    t = text.strip()
+    # Keep paragraph/newline boundaries from ASR output, then split by punctuation.
+    blocks = re.split(r"[\r\n]+", t)
+    out: list[str] = []
+    for block in blocks:
+        b = re.sub(r"\s+", " ", block.strip())
+        if not b:
+            continue
+        parts = re.split(r"[。！？!?\.]+", b)
+        for part in parts:
+            p = part.strip().strip("。.!?！？")
+            if not p:
+                continue
+            # ASR sometimes emits very long lines without punctuation; chunk by commas/pauses.
+            if len(p) > 180:
+                chunks = re.split(r"[，,;；:：]+", p)
+                for c in chunks:
+                    cc = c.strip()
+                    if len(cc) >= 8:
+                        out.append(cc)
+            else:
+                out.append(p)
     return out
 
 
@@ -98,6 +117,27 @@ def _build_key_point(label: str, s: str, lang: str) -> str:
     return f"{prefix}: {s.strip()}"
 
 
+def _fallback_point(label: str, sents: list[str], lang: str) -> str:
+    """Generate deterministic fallback key point when a bucket is sparse."""
+    if lang == "zh":
+        fallback = {
+            "why": "为什么: 内容环境变化导致执行优势被快速压缩，价值重心转向判断与定位。",
+            "impact": "结果: 从业者会感到增长压力与角色焦虑，原有经验需要重构。",
+            "path": "路径: 用可复用方法把结论前置、要点分组、证据挂钩，并持续迭代。",
+        }
+    else:
+        fallback = {
+            "why": "Why: The content environment is shifting, so execution alone no longer creates durable advantage.",
+            "impact": "Impact: Creators face higher pressure and role uncertainty as old playbooks decay faster.",
+            "path": "Path: Lead with a clear claim, group key points, attach evidence, and iterate with feedback.",
+        }
+    # Prefer a real sentence if we can find one with minimal overlap.
+    for s in sents:
+        if len(s) >= 12:
+            return _build_key_point(label, s, lang)
+    return fallback[label]
+
+
 def structure_minto(text: str, lang: str = "en", max_key_points: int = 5) -> dict[str, Any]:
     """Extract a stricter Minto structure.
 
@@ -117,6 +157,8 @@ def structure_minto(text: str, lang: str = "en", max_key_points: int = 5) -> dic
     # 1) Governing thought: best-scored sentence from early context.
     head = sents[: min(14, len(sents))]
     conclusion = max(head, key=lambda s: _score_conclusion_candidate(s, lang)).strip()
+    if len(conclusion) > 160:
+        conclusion = conclusion[:160].rstrip(" ,，;；:：") + "..."
 
     # 2) Grouping: Why -> Impact -> Path
     grouped: dict[str, list[str]] = defaultdict(list)
@@ -131,40 +173,32 @@ def structure_minto(text: str, lang: str = "en", max_key_points: int = 5) -> dic
     key_points: list[str] = []
     evidence: list[str] = []
     groups: list[dict[str, Any]] = []
-    for b in order:
+    for b in order[: max(3, min(max_key_points, 5))]:
         arr = grouped.get(b, [])
-        if not arr:
-            continue
-        kp = _build_key_point(b, arr[0], lang)
+        kp = _build_key_point(b, arr[0], lang) if arr else _fallback_point(b, sents, lang)
         key_points.append(kp)
-        ev = arr[1:3] if len(arr) > 1 else []
+        ev = arr[1:4] if len(arr) > 1 else []
         for e in ev:
             evidence.append(f"[{b}] {e}")
         groups.append({"group": b, "point": kp, "evidence": ev})
-        if len(key_points) >= max_key_points:
-            break
 
-    # 3) Fallback to keep structure usable.
-    if len(key_points) < 2:
-        for s in sents:
-            if _norm(s) == _norm(conclusion):
-                continue
-            cand = s.strip()
-            if cand and all(_norm(cand) != _norm(k) for k in key_points):
-                key_points.append(cand)
-            if len(key_points) >= min(3, max_key_points):
-                break
-
+    # 3) Fallback evidence per point to keep strict structure usable.
     if not evidence:
         tail = [s for s in sents if _norm(s) != _norm(conclusion)]
-        evidence = [e[:280] + ("…" if len(e) > 280 else "") for e in tail[1:6]]
+        evidence = [e[:280] + ("…" if len(e) > 280 else "") for e in tail[:6]]
+        if groups:
+            per_group = [evidence[i * 2 : (i + 1) * 2] for i in range(len(groups))]
+            groups = [
+                {"group": g["group"], "point": g["point"], "evidence": per_group[idx]}
+                for idx, g in enumerate(groups)
+            ]
 
     logic_order = (
-        "Cause-Effect-Path" if lang != "zh" else "因果-结果-路径"
+        "Cause-Effect" if lang != "zh" else "因果"
     )
     return {
         "conclusion": conclusion,
-        "key_points": key_points[:max_key_points],
+        "key_points": key_points[: max(3, min(max_key_points, 5))],
         "evidence": evidence[:10],
         "groups": groups,
         "logic_order": logic_order,
@@ -189,13 +223,25 @@ def minto_to_markdown(m: dict[str, Any], lang: str = "en") -> str:
         }
     )
     out = [f"## {labels['conclusion']}\n", (m.get("conclusion") or "").strip(), "\n"]
+    point_prefix = "For point" if lang == "en" else "对应要点"
     if m.get("logic_order"):
         out.append(f"\n**{labels['logic']}:** {m.get('logic_order')}\n")
     if m.get("key_points"):
         out.append(f"\n## {labels['key_points']}\n")
         for i, p in enumerate(m["key_points"], 1):
             out.append(f"{i}. {p}\n")
-    if m.get("evidence"):
+    groups = m.get("groups") or []
+    if groups:
+        out.append(f"\n## {labels['evidence']}\n")
+        for i, g in enumerate(groups, 1):
+            out.append(f"### {point_prefix} {i}\n")
+            ev = g.get("evidence") or []
+            if not ev:
+                out.append("- (No direct evidence extracted)\n")
+            for e in ev[:3]:
+                out.append(f"- {e}\n")
+            out.append("\n")
+    elif m.get("evidence"):
         out.append(f"\n## {labels['evidence']}\n")
         for e in m["evidence"]:
             out.append(f"- {e}\n")

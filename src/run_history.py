@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Any
 
 RUNS_FILE = Path(__file__).parent.parent / "output" / "runs.json"
-MAX_RUNS = 7
+# Keep lifecycle history aligned with output retention (~3 days of daily runs).
+MAX_RUNS = 3
 
 
 def _load_runs() -> dict:

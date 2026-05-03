@@ -3,6 +3,10 @@
 import os
 import subprocess
 import sys
+import threading
+import time
+import io
+import zipfile
 from pathlib import Path
 
 # Load .env so BILIBILI_PROXY etc. work when running server directly
@@ -19,38 +23,44 @@ from typing import Optional
 _PROXY_VARS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy")
 
 
+def _ensure_macos_system_proxy_in_env(env: dict) -> dict:
+    """If env has no HTTP(S)_proxy, copy macOS system proxy from scutil (QuickQ / gost / Clash)."""
+    if env.get("HTTP_PROXY") or env.get("HTTPS_PROXY"):
+        return env
+    if sys.platform != "darwin":
+        return env
+    try:
+        r = subprocess.run(
+            ["scutil", "--proxy"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+            cwd=Path(__file__).parent,
+        )
+        if r.returncode == 0 and r.stdout and ("HTTPEnable : 1" in r.stdout or "HTTPSEnable : 1" in r.stdout):
+            host = port = None
+            for line in r.stdout.splitlines():
+                s = line.strip()
+                if s.startswith("HTTPProxy :"):
+                    host = s.split(":", 1)[1].strip()
+                elif s.startswith("HTTPSProxy :"):
+                    host = host or s.split(":", 1)[1].strip()
+                elif s.startswith("HTTPPort :"):
+                    port = s.split(":", 1)[1].strip()
+                elif s.startswith("HTTPSPort :"):
+                    port = port or s.split(":", 1)[1].strip()
+            if host and port:
+                env["HTTP_PROXY"] = env["HTTPS_PROXY"] = f"http://{host}:{port}"
+    except Exception:
+        pass
+    return env
+
+
 def _env_for_bilibili():
     """Env for B站 subprocess: use system proxy so Clash etc. can route bilibili.com to DIRECT (VPN on still works)."""
     env = os.environ.copy()
     env["PYTHONPATH"] = str(Path(__file__).parent)
-    if env.get("HTTP_PROXY") or env.get("HTTPS_PROXY"):
-        return env
-    if sys.platform == "darwin":
-        try:
-            r = subprocess.run(
-                ["scutil", "--proxy"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                cwd=Path(__file__).parent,
-            )
-            if r.returncode == 0 and r.stdout and ("HTTPEnable : 1" in r.stdout or "HTTPSEnable : 1" in r.stdout):
-                host = port = None
-                for line in r.stdout.splitlines():
-                    s = line.strip()
-                    if s.startswith("HTTPProxy :"):
-                        host = s.split(":", 1)[1].strip()
-                    elif s.startswith("HTTPSProxy :"):
-                        host = host or s.split(":", 1)[1].strip()
-                    elif s.startswith("HTTPPort :"):
-                        port = s.split(":", 1)[1].strip()
-                    elif s.startswith("HTTPSPort :"):
-                        port = port or s.split(":", 1)[1].strip()
-                if host and port:
-                    env["HTTP_PROXY"] = env["HTTPS_PROXY"] = f"http://{host}:{port}"
-        except Exception:
-            pass
-    return env
+    return _ensure_macos_system_proxy_in_env(env)
 
 
 def _env_no_proxy():
@@ -58,18 +68,52 @@ def _env_no_proxy():
     for v in _PROXY_VARS:
         env.pop(v, None)
     return env
-from urllib.parse import quote
-from flask import Flask, jsonify, redirect, request, send_from_directory, make_response
 
-from src.parse_output import parse_file
-from src.video_tools import BERGER_STEPPS, BERGER_STEPPS_EN, MAGIC_WORDS, MAGIC_WORDS_EN, extract_youtube_id, score_berger
+
+def _env_for_topic_search_subprocess() -> dict:
+    """Env for scripts/search_only.py: keep proxy + macOS scutil; zh multi-source can be slow."""
+    env = _ensure_macos_system_proxy_in_env(os.environ.copy())
+    env["PYTHONPATH"] = str(Path(__file__).parent)
+    return env
+
+
+def _topic_search_subprocess_timeout_sec() -> int:
+    try:
+        t = int(os.environ.get("NEWS_TOPIC_SEARCH_TIMEOUT_SEC", "180"))
+    except ValueError:
+        t = 180
+    return max(60, min(t, 600))
+
+
+from urllib.parse import quote
+from flask import Flask, jsonify, redirect, request, send_from_directory, send_file, make_response
+
+from src.parse_output import parse_file, parse_raw_news
+from src.news_sources import raw_topic_file_stem
+from src.video_tools import extract_youtube_id, score_berger
 from src.content_angles import generate_angles
 from src.minto_pyramid import structure_minto, minto_to_markdown
 from src.run_history import add_lifecycle_to_items
 from src.hot_trending import AUDIENCE_SEGMENTS, rerank_topics_by_segment
-from src.media_transcribe import has_videocaptioner, is_supported_external_media_url, transcribe_with_videocaptioner
+from src.media_transcribe import (
+    download_youtube_video,
+    has_videocaptioner,
+    is_supported_external_media_url,
+    test_douyin_session,
+    transcribe_best_effort,
+)
+from src.transcription.whisperx_runner import has_whisperx
+from src.image_ocr import ocr_image_bytes, ocr_job_for_url
 from src.contagious_stepps import evaluate_contagious_article
 from src.article_lab import build_viral_article_markdown
+from src.publish_pipeline import (
+    list_publish_items,
+    load_markdown_from_output,
+    publish_item_now,
+    queue_publish_item,
+    validate_publish_content,
+)
+from src.diagnostics import classify_error_message
 from src.podcast_rss_sources import (
     REGION_TAGS,
     classify_focus_theme,
@@ -80,7 +124,13 @@ from src.podcast_rss_sources import (
 
 app = Flask(__name__)
 OUTPUT = Path(__file__).parent / "output"
+_daily_stale_refresh_lock = threading.Lock()
+_daily_last_stale_refresh_attempt = 0.0
 NEWS_SEARCHES_FILE = OUTPUT / "news_searches.json"
+LONGFORM_CACHE_TTL_SEC = 30 * 60
+_LONGFORM_REFRESHING = {"en": False, "zh": False}
+_virallab_apscheduler = None
+_virallab_scheduler_lock = threading.Lock()
 
 # Suggestions only — users can search any topic. Creator-relevant defaults per language zone.
 DEFAULT_TOPIC_TIPS = [
@@ -186,7 +236,14 @@ def _get_segment() -> str:
     return seg if seg in ("general", "tech", "entrepreneurs", "creator") else "general"
 
 
-def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False, segment: str = "general") -> tuple[list[str], bool, Optional[int]]:
+def _get_platform_hot_topics(
+    limit: int,
+    lang: str,
+    force_refresh: bool = False,
+    segment: str = "general",
+    *,
+    allow_blocking_fetch: bool = True,
+) -> tuple[list[str], bool, Optional[int]]:
     """Platform-wide hot topics. ZH: 微博、知乎、抖音、百度. EN: Hacker News, Reddit. Returns (topics, ok, cache_age_sec).
     If segment != general, topics are re-ranked by segment relevance. Never blocks >2s."""
     import threading
@@ -226,6 +283,11 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False,
         except Exception:
             pass
 
+    # Avoid blocking HTTP handlers (e.g. /news on cold deploy): fill cache in background only.
+    if not allow_blocking_fetch and not force_refresh:
+        threading.Thread(target=_run_refresh, daemon=True).start()
+        return [], False, None
+
     # No usable cache or force_refresh: run sync fetch. User-initiated refresh gets longer timeout (~50s).
     sync_timeout = 55 if force_refresh else 8
     try:
@@ -252,13 +314,28 @@ def _get_platform_hot_topics(limit: int, lang: str, force_refresh: bool = False,
     return [], False, None
 
 
-def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en", force_hot_refresh: bool = False, segment: str = "general") -> tuple[list[str], str, Optional[int]]:
+def _get_most_searched(
+    limit: int = 10,
+    time_range: str = "1d",
+    lang: str = "en",
+    force_hot_refresh: bool = False,
+    segment: str = "general",
+    *,
+    allow_blocking_hot_fetch: bool = False,
+) -> tuple[list[str], str, Optional[int]]:
     """Top topics. Returns (topics, source, hot_cache_age_sec). source: 'platform'|'app'|'default'. hot_cache_age only when platform."""
     from datetime import datetime, timezone
     seg_tips = SEGMENT_TOPIC_TIPS.get(segment, {})
     defaults = (seg_tips.get(lang) or (DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS))[:limit * 2]
 
-    platform_topics, ok, cache_age = _get_platform_hot_topics(limit, lang, force_refresh=force_hot_refresh, segment=segment)
+    block_fetch = allow_blocking_hot_fetch or force_hot_refresh
+    platform_topics, ok, cache_age = _get_platform_hot_topics(
+        limit,
+        lang,
+        force_refresh=force_hot_refresh,
+        segment=segment,
+        allow_blocking_fetch=block_fetch,
+    )
     if ok:
         return platform_topics[:limit], "platform", cache_age
 
@@ -304,6 +381,82 @@ def _get_most_searched(limit: int = 10, time_range: str = "1d", lang: str = "en"
         return defaults[:limit], "default", None
 
 
+def _news_refresh_max_topics() -> int:
+    try:
+        n = int(os.environ.get("NEWS_REFRESH_MAX_TOPICS", "15"))
+    except ValueError:
+        n = 15
+    return max(5, min(n, 40))
+
+
+def _topics_for_news_refresh() -> list[str]:
+    """Queries for /news/refresh — platform hot tags across segments (ZH+EN), deduped by file stem."""
+    cap = _news_refresh_max_topics()
+    seen_stems: set[str] = set()
+    out: list[str] = []
+    for seg in ("general", "tech", "entrepreneurs", "creator"):
+        for slang in ("zh", "en"):
+            topics, _, _ = _get_most_searched(10, "1d", slang, False, seg)
+            for t in topics or []:
+                st = raw_topic_file_stem(t)
+                if st in seen_stems:
+                    continue
+                seen_stems.add(st)
+                out.append(t)
+                if len(out) >= cap:
+                    return out
+    for slang in ("zh", "en"):
+        defaults = DEFAULT_TOPIC_TIPS_ZH if slang == "zh" else DEFAULT_TOPIC_TIPS
+        for d in defaults:
+            st = raw_topic_file_stem(d)
+            if st not in seen_stems:
+                seen_stems.add(st)
+                out.append(d)
+            if len(out) >= cap:
+                return out
+    return out
+
+
+def _news_card_rows(
+    lang: str,
+    time_range: str,
+    segment: str,
+    force_hot: bool,
+    topic_filter: str,
+) -> list[dict]:
+    """One card block per live hot tag: stem, markdown file, display label, rescan query."""
+    if topic_filter:
+        stem = topic_filter.strip()
+        disp = stem.replace("_", " ")
+        return [{"stem": stem, "file": f"raw_{stem}.md", "display_topic": disp, "query_topic": disp}]
+    tips, _, _ = _get_most_searched(
+        limit=12,
+        time_range=time_range,
+        lang=lang,
+        force_hot_refresh=force_hot,
+        segment=segment,
+    )
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for tag in tips:
+        stem = raw_topic_file_stem(tag)
+        if stem in seen:
+            continue
+        seen.add(stem)
+        rows.append({"stem": stem, "file": f"raw_{stem}.md", "display_topic": tag, "query_topic": tag})
+    if len(rows) < 6:
+        defaults = DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS
+        for d in defaults:
+            if len(rows) >= 12:
+                break
+            st = raw_topic_file_stem(d)
+            if st in seen:
+                continue
+            seen.add(st)
+            rows.append({"stem": st, "file": f"raw_{st}.md", "display_topic": d, "query_topic": d})
+    return rows
+
+
 def _hot_tags_for_lang(lang: str, limit: int = 10) -> list[str]:
     """Unified hot tags references (EN and ZH kept separate)."""
     seg = _get_segment()
@@ -313,6 +466,88 @@ def _hot_tags_for_lang(lang: str, limit: int = 10) -> list[str]:
     if tags:
         return tags[:limit]
     return (DEFAULT_TOPIC_TIPS_ZH if lang == "zh" else DEFAULT_TOPIC_TIPS)[:limit]
+
+
+def _longform_cache_path(lang: str) -> Path:
+    return OUTPUT / f"longform_cache_{'zh' if lang == 'zh' else 'en'}.json"
+
+
+def _read_longform_cache(lang: str) -> tuple[list[dict], list[str], float]:
+    path = _longform_cache_path(lang)
+    if not path.exists():
+        return [], [], 0.0
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        items = data.get("items", [])
+        sources = data.get("sources", [])
+        ts = float(data.get("ts") or 0.0)
+        if isinstance(items, list) and isinstance(sources, list) and ts > 0:
+            return items, sources, ts
+    except Exception:
+        pass
+    return [], [], 0.0
+
+
+def _write_longform_cache(lang: str, items: list[dict], sources: list[str]) -> None:
+    path = _longform_cache_path(lang)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "lang": "zh" if lang == "zh" else "en",
+        "ts": time.time(),
+        "items": items,
+        "sources": sources,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def _refresh_longform_cache(lang: str, max_per_feed: int = 6) -> None:
+    try:
+        items, sources = fetch_longform_and_podcasts(lang=lang, max_per_feed=max_per_feed)
+        if items:
+            _write_longform_cache(lang, items, sources)
+            print(f"[longform] refreshed {lang}: {len(items)} items from {len(sources)} feeds")
+        else:
+            print(f"[longform] refresh {lang}: 0 items (check network, proxy, or feedparser)")
+    except Exception as e:
+        print(f"[longform] refresh {lang} failed: {e}")
+    finally:
+        _LONGFORM_REFRESHING[lang] = False
+
+
+def _kick_longform_refresh(lang: str, max_per_feed: int = 6) -> None:
+    if _LONGFORM_REFRESHING.get(lang):
+        return
+    _LONGFORM_REFRESHING[lang] = True
+    threading.Thread(
+        target=_refresh_longform_cache,
+        kwargs={"lang": lang, "max_per_feed": max_per_feed},
+        daemon=True,
+    ).start()
+
+
+def _get_longform_feed(lang: str, max_per_feed: int = 6, force_refresh: bool = False) -> tuple[list[dict], list[str], bool, int]:
+    now = time.time()
+    cached_items, cached_sources, cache_ts = _read_longform_cache(lang)
+    cache_age = int(now - cache_ts) if cache_ts else -1
+    cache_ok = bool(cached_items)
+
+    if cache_ok and not force_refresh:
+        if cache_age <= LONGFORM_CACHE_TTL_SEC:
+            return cached_items, cached_sources, True, cache_age
+        _kick_longform_refresh(lang, max_per_feed=max_per_feed)
+        return cached_items, cached_sources, True, cache_age
+
+    try:
+        items, sources = fetch_longform_and_podcasts(lang=lang, max_per_feed=max_per_feed)
+        if items:
+            _write_longform_cache(lang, items, sources)
+            return items, sources, False, 0
+    except Exception:
+        pass
+
+    if cache_ok:
+        return cached_items, cached_sources, True, cache_age
+    return [], [], False, -1
 
 
 TAGLINE = "Engineer your influence. Turn noise into viral."
@@ -422,7 +657,15 @@ def _t(key: str, lang: str) -> str:
         "daily_focus_hint": ("Filter cards by source type.", "按来源类型筛选卡片"),
         "mechanism": ("", ""),
         "refresh_now": ("Refresh now", "立即刷新"),
-        "refresh_desc": ("fetch latest hot news anytime. Auto-refresh every 60 mins when server is running.", "随时获取最新热门新闻，服务器运行时每 60 分钟自动更新"),
+        "refresh_desc": (
+            "fetch latest anytime. Server refreshes daily digest every 30 min by default; opening this page also triggers a background refresh if the digest is older than ~8h.",
+            "随时拉取最新。服务器默认约每 30 分钟刷新每日新闻；若摘要超过约 8 小时未更新，打开本页也会在后台自动补跑一次。",
+        ),
+        "longform_refresh_desc": (
+            "Cache-first for speed. Refreshes in background after 30 min, on a schedule, and when the server starts.",
+            "优先读缓存；超过约 30 分钟、定时任务以及每次启动服务后都会在后台重新拉取。",
+        ),
+        "longform_cache_age": ("Cache age: {mins} min", "缓存时长：{mins} 分钟"),
         "last_updated": ("Last updated", "最后更新"),
         "sources": ("Sources", "来源"),
         "sources_curated": ("curated for content creators.", "为创作者精选"),
@@ -459,6 +702,8 @@ def _t(key: str, lang: str) -> str:
         "nav_video2text_desc": ("Extract transcript from video", "视频提取逐字稿"),
         "nav_article_lab": ("Article Lab", "文章改写"),
         "nav_article_lab_desc": ("Upload markdown → viral rewrite", "上传 markdown → 结构化爆款改写"),
+        "nav_publish": ("Publish Queue", "发布队列"),
+        "nav_publish_desc": ("Approve and publish to channels", "审核并发布到渠道"),
         "nav_science": ("STEPPS & Structure", "评分与结构"),
         "nav_science_desc": ("Scoring + Minto Pyramid", "评分与金字塔结构"),
         "nav_china_content": ("China content", "中国内容"),
@@ -488,6 +733,8 @@ def _t(key: str, lang: str) -> str:
         "link_video2text_desc": ("Paste URL → extract transcript", "粘贴链接 → 提取逐字稿"),
         "link_article_lab": ("Article Lab", "文章改写"),
         "link_article_lab_desc": ("Upload markdown and rewrite with STEPPS + Minto", "上传 markdown 并用 STEPPS + Minto 改写"),
+        "link_publish": ("Publish Queue", "发布队列"),
+        "link_publish_desc": ("Approve drafts and publish to X/blog", "审核草稿并发布到 X/博客"),
         "link_science": ("STEPPS & Structure", "评分与结构"),
         "link_science_desc": ("Scoring + Minto Pyramid", "评分与金字塔结构"),
         # Your Field page
@@ -515,7 +762,10 @@ def _t(key: str, lang: str) -> str:
         "field_share_text": ("Curated resources for content creators — ViralLab", "为创作者精选的趋势与资源 — ViralLab"),
         # News by topic — different content per language zone
         "news_title": ("News by topic", "按主题新闻"),
-        "news_desc": ("Search any topic — suggestions below are just ideas. Market demand, not crowded content.", "搜索任一主题，掌握市场需求。下方为建议，可试试"),
+        "news_desc": (
+            "Each section matches a live tag from above (hot list + segment). Refresh all only re-fetches those tags — not every old file on disk.",
+            "每个板块对应上方热词（实时热榜 + 当前领域）。「刷新全部」只更新这些标签，不再遍历旧的 raw 主题文件。",
+        ),
         "longform_title": ("Long-form & Podcasts", "长文与播客"),
         "longform_desc": ("Page sources:", "页面文章的来源："),
         "longform_scope": (
@@ -535,7 +785,6 @@ def _t(key: str, lang: str) -> str:
         "news_range_7d": ("7 days", "7 天"),
         "news_tip_requested": ("Most requested in last {range}", "过去 {range} 最常搜索"),
         "audience_segment_label": ("Audience", "受众"),
-        "audience_inference_note": ("We infer interest from topics and sources, not from who you are. No personal or geographic data.", "我们根据主题与来源推断兴趣，不使用个人或地理数据。"),
         "news_tip_platform_hot": ("What users care about now — Weibo, Zhihu, Douyin, Baidu, 少数派", "用户正在关注 · 微博、知乎、抖音、百度、少数派 实时热搜"),
         "news_tip_platform_hot_en": ("What users care about now — HN, Reddit, Lobsters, Dev.to, GitHub", "用户正在关注 · HN、Reddit、Lobsters、Dev.to、GitHub 实时热门"),
         "news_tip_suggestions": ("Suggestions — try these", "建议 — 试试这些"),
@@ -548,6 +797,16 @@ def _t(key: str, lang: str) -> str:
         "news_chinese_topic_in_en": ("This topic has Chinese content. Switch to 中文 to view.", "此主题为中文内容，请切换至英文查看"),
         "news_show_all": ("Show all topics", "显示全部主题"),
         "news_search_failed": ("Search failed (proxy/network). Re-run when VPN is on.", "搜索失败（代理/网络）。请开启 VPN 后重试"),
+        "news_parse_error": ("Could not render this topic file. Try refreshing or re-searching.", "该主题文件无法渲染，请刷新或重新搜索。"),
+        "news_topic_no_hits": (
+            "Last search returned no articles for this topic (network, VPN, or source limits). Re-search below.",
+            "该主题上次搜索未返回文章（网络、VPN 或来源限制）。请在下方重新搜索。",
+        ),
+        "news_topic_unparsed": (
+            "This topic file has no article list yet. Re-search below.",
+            "该主题文件尚无文章列表，请在下方重新搜索。",
+        ),
+        "news_rescan_topic": ("Re-search this topic", "重新搜索此主题"),
         "news_refresh_all": ("Refresh all topics", "刷新全部主题"),
         "news_refresh_hot": ("Refresh hot list", "刷新热搜"),
         "news_refresh_interval": ("every 60 mins", "每 60 分钟"),
@@ -560,7 +819,7 @@ def _t(key: str, lang: str) -> str:
         # Viral Videos — different content per language zone
         "viral_title": ("Viral Videos", "热门视频"),
         "viral_subtitle": ("Ranked by spread rate", "按传播率排序"),
-        "viral_desc": ("Videos ranked by viral rate (first-week upload spread). Search by topic:", "按传播率排序的热门视频。搜索主题：小红书、抖音、B站创作者必备"),
+        "viral_desc": ("Search by topic and view videos ranked by spread rate.", "按主题搜索并查看按传播率排序的视频。"),
         "viral_placeholder": ("e.g. AI explainer, fashion haul", "如：AI 解说、穿搭测评、直播带货"),
         "viral_source_label": ("Source", "来源"),
         "viral_source_global": ("Global (YouTube)", "全球 (YouTube)"),
@@ -620,7 +879,10 @@ def _t(key: str, lang: str) -> str:
         "viral_empty_body": ("Try one of these searches to see viral content scored in real time:", "试试这些搜索，实时查看爆款评分："),
         "viral_error": ("Error", "加载失败"),
         "viral_china_unavailable": ("Bilibili may be unreachable from your network. Try switching to Global (YouTube) source above.", "B站 API 可能无法访问（需在中国网络）。请切换至上方「全球 (YouTube)」来源重试。"),
-        "viral_china_proxy_placeholder": ("e.g. http://127.0.0.1:7890", "直连代理地址，如 http://127.0.0.1:7890"),
+        "viral_china_proxy_placeholder": (
+            "e.g. http://127.0.0.1:18080 (gost / same as Cursor)",
+            "本机 HTTP 前端，如 http://127.0.0.1:18080（gost，与 Cursor 一致）",
+        ),
         "viral_china_retry_with_proxy": ("Retry", "重试"),
         "viral_timeout": ("Request timeout", "请求超时"),
         "content_angles": ("3 ways to ride this trend", "3 种内容角度"),
@@ -630,33 +892,82 @@ def _t(key: str, lang: str) -> str:
         "video2text_accuracy_note": ("YouTube uses existing captions first. For Bilibili/Douyin/Xiaohongshu/Shipinhao/Xiaoyuzhou and audio links/files, we can fallback to speech-to-text when VideoCaptioner is installed.", "YouTube 优先使用现有字幕；对 B站/抖音/小红书/视频号/小宇宙及音频链接/文件，在安装 VideoCaptioner 后可回退到语音转文字。"),
         "video2text_placeholder": ("https://www.youtube.com/watch?v=... or https://www.xiaohongshu.com/...", "可粘贴 YouTube/B站/抖音/小红书/视频号/小宇宙链接"),
         "video2text_btn": ("Get transcript →", "获取逐字稿 →"),
+        "douyin_session_test_btn": ("Test Douyin session", "测试抖音登录状态"),
+        "douyin_session_testing": ("Testing Douyin session...", "正在检测抖音登录状态..."),
         "video2text_hint": ("Supports YouTube, Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, podcast/audio links and local media path · e.g. ", "支持 YouTube、B站、抖音、小红书、视频号、小宇宙、播客/音频链接与本地媒体路径 · 例如 "),
-        "video2text_note1": ("For best accuracy, look for videos with <strong>manual captions</strong> (CC badge on YouTube).", "最佳准确度请选择有<strong>手动字幕</strong>的视频（YouTube 上的 CC 标识）。"),
-        "video2text_note2": ("The markdown export is structured for AI — paste it into ChatGPT or Claude and ask it to rewrite for your platform.", "Markdown 导出为 AI 优化 — 粘贴到 ChatGPT 或 Claude 让它按你的平台重写。"),
-        "video2text_note3": ("For links without captions, install VideoCaptioner CLI (`pip install videocaptioner`) to enable ASR transcripts across platforms and podcasts.", "对于无字幕链接，请安装 VideoCaptioner CLI（`pip install videocaptioner`）以启用跨平台与播客 ASR 逐字稿。"),
         "video2text_note_minto": ("After you get a transcript, use the <strong>Structure (Minto)</strong> tab above the transcript to see conclusion → key points → evidence.", "获取逐字稿后，用上方的<strong>结构（金字塔）</strong>标签查看结论 → 要点 → 论据。"),
-        "video2text_how_score": ("How the score works", "评分如何运作"),
         "video2text_tab_structure": ("Structure (Minto)", "结构（金字塔）"),
         "video2text_export_mode": ("Export", "导出"),
         "video2text_export_raw": ("Original transcript", "原文版"),
         "video2text_export_minto": ("Minto version", "金字塔版"),
+        "video2text_goto_article_lab": ("Rewrite this transcript →", "用这份逐字稿去改写 →"),
+        "article_lab_prefilled_from": ("Prefilled from saved file", "已从保存的逐字稿载入"),
+        "article_lab_prefill_missing": (
+            "Could not load that file from output — paste markdown or upload below.",
+            "未能从 output 载入该文件，请粘贴正文或上传。",
+        ),
         "video2text_processing": ("Processing your transcript…", "正在处理逐字稿…"),
         "video2text_processing_sub": ("This can take a few seconds for captions and longer for ASR. Please keep this page open.", "字幕模式通常几秒，ASR 模式会更久。请保持页面开启。"),
-        "video2text_find": ("Find trending videos", "发现热门视频"),
+        "video2text_err_douyin": (
+            "Douyin transcript is blocked by platform session checks. Open the same video in Chrome first and retry; if needed set YTDLP_COOKIES_PROFILE (e.g. Default, Profile 1).",
+            "抖音拉取受登录态影响。请先在 Chrome 中打开同一视频再试；必要时设置 YTDLP_COOKIES_PROFILE（如 Default、Profile 1）。",
+        ),
+        "video2text_err_xhs": (
+            "Xiaohongshu: the note must include video (not image-only). If it still fails, open the note in Chrome while logged in and retry, or set YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE. Align terminal HTTP_PROXY with Cursor: http://127.0.0.1:18080 (gost); avoid stale QuickQ ports. Short links retry without a broken proxy.",
+            "小红书：需为视频笔记（纯图文无法转写）。若仍失败，请在已登录的 Chrome 中打开该笔记后重试，或配置 YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE。终端 HTTP_PROXY 建议与 Cursor 一致使用 http://127.0.0.1:18080（gost），勿沿用已失效的 QuickQ 口；短链在代理不可连时会尝试直连。",
+        ),
+        "video2text_err_generic": (
+            "Transcript unavailable for this link right now.",
+            "暂时无法获取该链接的逐字稿。",
+        ),
         "video2text_your_transcripts": ("Your transcripts", "你的逐字稿"),
         "video2text_none": ("None yet", "尚无"),
+        "video2text_download_btn": ("Download video", "下载视频"),
+        "video2text_download_progress": ("Downloading video…", "正在下载视频…"),
+        "video2text_download_hint": (
+            "YouTube only: uses yt-dlp (<code>pip install yt-dlp</code>). Respect copyright and YouTube's terms.",
+            "仅 YouTube：使用 yt-dlp（<code>pip install yt-dlp</code>）。请遵守版权与 YouTube 条款。",
+        ),
+        "youtube_dl_missing_url": ("Paste a URL first.", "请先粘贴链接。"),
+        "youtube_dl_need_ytdlp": (
+            "yt-dlp is not installed. Run: pip install yt-dlp",
+            "未检测到 yt-dlp。请运行：pip install yt-dlp",
+        ),
+        "youtube_dl_not_youtube": (
+            "Only YouTube watch or youtu.be links are supported for download.",
+            "下载仅支持 YouTube 或 youtu.be 链接。",
+        ),
+        "youtube_dl_failed": ("Could not download this video.", "无法下载该视频。"),
         "article_lab_title": ("Article Lab", "文章改写"),
         "article_lab_desc": ("Upload or paste markdown. We output a structured contagious version in markdown.", "上传或粘贴 markdown，输出结构化传播版本（markdown）。"),
         "article_lab_intro": (
-            "In the attention economy, great ideas still fail without structure and shareability. Article Lab rewrites your draft with strict Minto Pyramid logic (conclusion-first, grouped points, evidence) and Berger STEPPS contagious signals so you can publish clearer, more spreadable content.",
-            "在注意力经济中，没有结构和传播性，再好的观点也容易被忽略。Article Lab 会用严格的 Minto 金字塔（结论先行、要点分组、论据支撑）与 Berger STEPPS 传播原则改写你的草稿，帮助你发布更清晰、更易传播的内容。",
+            "Rewrite your markdown into a structured, contagious version with Minto + STEPPS.",
+            "将 markdown 改写为更有结构、更可传播的版本（Minto + STEPPS）。",
         ),
         "article_lab_input_label": ("Input markdown", "输入 markdown"),
-        "article_lab_upload_label": ("Upload .md file", "上传 .md 文件"),
         "article_lab_upload_multi_label": ("Upload multiple .md files (batch)", "批量上传多个 .md 文件"),
         "article_lab_btn": ("Rewrite article", "改写文章"),
         "article_lab_btn_batch": ("Batch rewrite", "批量改写"),
         "article_lab_download": ("Download rewritten markdown", "下载改写后的 markdown"),
+        "article_lab_queue_publish": ("Queue to publish", "加入发布队列"),
+        "publish_title": ("Publish Queue", "发布队列"),
+        "publish_desc": ("Queue rewritten content, approve, then publish to X or blog.", "将改写内容加入队列，审核后发布到 X 或博客。"),
+        "publish_handoff_title": ("WeChat MP & Xiaohongshu (Cursor)", "微信公众号与小红书（Cursor）"),
+        "publish_handoff_body": (
+            "Finish markdown here, then in Cursor ask the Agent to run global skills **wechat-mp-auto** or **xiaohongshu-auto** (browser → mp.weixin.qq.com / creator.xiaohongshu.com). Copy from below or open a saved file under /view/…. Skills live in ~/cursor-skills-source after link-to-cursor.sh.",
+            "在此定稿 markdown 后，到 Cursor 让 Agent 执行全局技能 **wechat-mp-auto** 或 **xiaohongshu-auto**（浏览器打开 mp.weixin.qq.com / creator.xiaohongshu.com）。从下方复制正文，或通过 /view/文件名 打开 output 中的 .md。技能在 ~/cursor-skills-source，需已执行 link-to-cursor.sh。",
+        ),
+        "publish_form_title": ("Create publish draft", "创建发布草稿"),
+        "publish_platform": ("Platform", "平台"),
+        "publish_to_x": ("X", "X"),
+        "publish_to_blog": ("Blog", "博客"),
+        "publish_schedule": ("Schedule (optional)", "定时（可选）"),
+        "publish_add_btn": ("Add to queue", "加入队列"),
+        "publish_now_btn": ("Publish now", "立即发布"),
+        "publish_empty": ("No publish items yet.", "暂无发布项。"),
+        "publish_status_queued": ("Queued", "待发布"),
+        "publish_status_published": ("Published", "已发布"),
+        "publish_status_failed": ("Failed", "失败"),
         # Campaign page
         "campaign_eyebrow": ("ViralLab · Free · No API key needed", "ViralLab · 免费 · 无需 API 密钥"),
         "campaign_h1_line1": ("Stop guessing", "停止猜测"),
@@ -844,16 +1155,8 @@ def _t(key: str, lang: str) -> str:
         # Science v2 (How we score)
         "science_v2_title": ("📊 How we score", "📊 我们如何评分"),
         "science_v2_page_title": ("How We Score", "我们如何评分"),
-        "science_v2_intro1": ("A while back I came across <strong>Jonah Berger's research</strong> on why people share things. It's not about luck or timing — he spent years studying the actual patterns, and the findings are pretty consistent. I found it useful enough that I built this tool around it.", "之前我接触到 <strong>Jonah Berger 的研究</strong>，关于人们为什么分享。不是运气或时机 — 他花多年研究真实模式，结论相当一致。我觉得很有用，所以围绕它做了这个工具。"),
-        "science_v2_intro2": ("The scoring isn't perfect. It's based on text signals, not the full picture of a video. But it gives you a structured way to think about <em>why</em> something might spread — which is more useful than just watching view counts.", "评分不完美。它基于文字信号，不是视频全貌。但它给你一个结构化方式思考<em>为什么</em>内容可能传播 — 比只看播放量更有用。"),
-        "science_v2_who_berger": ("Who is Jonah Berger", "Jonah Berger 是谁"),
-        "science_v2_berger_name": ("Jonah Berger", "Jonah Berger"),
-        "science_v2_berger_role": ("Marketing professor at Wharton, University of Pennsylvania", "宾夕法尼亚大学沃顿商学院营销学教授"),
-        "science_v2_berger_f1": ("Author of <em>Contagious</em>, <em>Invisible Influence</em>, <em>The Catalyst</em>, and <em>Magic Words</em> — all NYT bestsellers", "著有《疯潮行销》《隐形影响力》《催化剂》《魔法词汇》— 均为纽约时报畅销书"),
-        "science_v2_berger_f2": ("His work is backed by 80+ peer-reviewed studies — not just observations or case studies", "他的研究由 80+ 篇同行评审支撑 — 不只是观察或个案"),
-        "science_v2_berger_f3": ("Has consulted for Google, Apple, Nike, and the Gates Foundation, among others", "曾为 Google、Apple、Nike、盖兹基金会等提供顾问"),
-        "science_v2_berger_f4": ("His research has been cited over 10,000 times in academic literature", "其研究在学术文献中被引用超过 10,000 次"),
-        "science_v2_berger_p": ("What I like about his work is that it starts from a real question — <em>\"why do people share things?\"</em> — and builds up from controlled experiments, not from reverse-engineering what went viral after the fact. That makes it more reliable as a framework than most alternatives.", "我喜欢他的研究从真实问题出发 — <em>「人们为什么分享？」</em> — 从对照实验推导，而非事后反推爆款。这使它比多数替代框架更可靠。"),
+        "science_v2_intro1": ("ViralLab scoring is based on <strong>Jonah Berger's STEPPS</strong> framework.", "ViralLab 评分基于 <strong>Jonah Berger 的 STEPPS</strong> 框架。"),
+        "science_v2_intro2": ("Use it as a practical lens to improve hooks, structure, and shareability.", "把它当作优化开场、结构与传播性的实用视角。"),
         "science_v2_stepps_title": ("The six signals we score (STEPPS)", "我们评分的六个信号 (STEPPS)"),
         "science_v2_stepps_intro": ("Berger identified six things that consistently make content more shareable:", "Berger 发现六个让内容更易分享的因素："),
         "science_v2_stepps_S_name": ("Social Currency", "社交货币"),
@@ -903,11 +1206,13 @@ def _lifecycle_tooltip_html(lang: str, life: str) -> str:
 FUNCTION_CARDS = [
     {"href": "/daily", "icon": "📅", "title": "Daily News", "desc": "Top 3 most talked about topics today"},
     {"href": "/longform", "icon": "📚", "title": "Long-form & Podcasts", "desc": "Deep reads and episodes in one place"},
-    {"href": "/#field", "icon": "🎯", "title": "Your Field", "desc": "Curated trends and resources by your industry"},
-    {"href": "/#viral", "icon": "▶️", "title": "Viral YouTube", "desc": "Search viral videos ranked by spread rate"},
+    {"href": "/news", "icon": "📰", "title": "News by Topic", "desc": "Search by topic and read signals"},
+    {"href": "/viral", "icon": "▶️", "title": "Viral Videos", "desc": "Search viral videos ranked by spread rate"},
+    {"href": "/china-content", "icon": "📥", "title": "China content", "desc": "Fetch from Bilibili, XHS, Douyin, Zhihu"},
     {"href": "/video-to-text", "icon": "📝", "title": "Video to Text", "desc": "Paste URL → transcript + Berger score"},
-    {"href": "/science", "icon": "📊", "title": "STEPPS & Structure", "desc": "Scoring + Minto Pyramid"},
-    {"href": "/api/digests", "icon": "🔌", "title": "API", "desc": "Access digests and data programmatically"},
+    {"href": "/article-lab", "icon": "✍️", "title": "Article Lab", "desc": "Rewrite with Minto + STEPPS"},
+    {"href": "/publish", "icon": "🚀", "title": "Publish Queue", "desc": "Approve drafts and publish to channels"},
+    {"href": "/science", "icon": "📊", "title": "STEPPS & Structure", "desc": "Scoring and writing framework"},
 ]
 
 
@@ -923,6 +1228,7 @@ def _sidebar_html(active="", lang="en"):
         ("/china-content", "📥", "nav_china_content", "nav_china_content_desc"),
         ("/video-to-text", "📝", "nav_video2text", "nav_video2text_desc"),
         ("/article-lab", "✍️", "nav_article_lab", "nav_article_lab_desc"),
+        ("/publish", "🚀", "nav_publish", "nav_publish_desc"),
         ("/science", "📊", "nav_science", "nav_science_desc"),
     ]
     links = ""
@@ -1024,12 +1330,12 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
     <style>
         :root {{ --bg: #faf8f5; --card: #fff; --text: #2d4a2b; --muted: #5a6b58; --accent: #2d4a2b; --accent-hover: #1e3520; --border: #e8e4dc; --warm: #f5f2ed; --cta: #e8a54d; --cta-border: #2d4a2b; --cta-text: #2d4a2b; --header-height: 4.25rem; --footer-height: 80px; --accent-mid: #3d6b3a; --accent-light: #6a9e67; --cta-dark: #c8883a; --cta-pale: #fdf3dc; --cream-dark: #ede8de; --muted-light: #8fa88c; --ink: #1a2419; --radius: 4px; --shadow: 0 2px 12px rgba(45,74,43,0.08); --shadow-lg: 0 8px 32px rgba(45,74,43,0.13); }}
         * {{ box-sizing: border-box; }}
-        html {{ scroll-behavior: smooth; }}
+        html {{ scroll-behavior: smooth; overflow-x: hidden; }}
         :root {{ --ease: cubic-bezier(0.25, 0.1, 0.25, 1); --ease-out: cubic-bezier(0.33, 1, 0.68, 1); --dur: 0.25s; }}
-        body {{ font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.55; }}
+        body {{ font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; line-height: 1.55; overflow-x: hidden; }}
         body::before {{ content: ""; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); z-index: 999; }}
         html[lang="zh"] .sidebar-subtitle, html[lang="zh"] .hero-subtitle, html[lang="zh"] .hero-desc, html[lang="zh"] .hero-cta, html[lang="zh"] .tagline, html[lang="zh"] .sidebar-text strong, html[lang="zh"] .sidebar-text small {{ letter-spacing: 0.12em; }}
-        .app-layout {{ display: flex; min-height: 100vh; overflow-x: visible; }}
+        .app-layout {{ display: flex; min-height: 100vh; overflow-x: hidden; }}
         .sidebar {{ width: 220px; flex-shrink: 0; background: var(--bg); border-right: 1px solid var(--border); padding: 0; position: fixed; left: 0; top: 0; bottom: 0; display: flex; flex-direction: column; z-index: 40; }}
         .sidebar-brand {{ display: flex; align-items: center; gap: 0.5rem; padding: 0 1.25rem; height: var(--header-height); box-sizing: border-box; text-decoration: none; color: var(--text); border-bottom: 1px solid var(--border); margin-bottom: 1rem; }}
         .sidebar-brand:hover {{ color: var(--accent); }}
@@ -1044,8 +1350,8 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .sidebar-footer {{ margin-top: auto; height: var(--footer-height); padding: 0 1.25rem; border-top: 1px solid var(--border); display: flex; align-items: center; font-size: 0.85rem; flex-shrink: 0; box-sizing: border-box; }}
         .sidebar-footer a {{ color: var(--text); text-decoration: none; }}
         .sidebar-footer a:hover {{ color: var(--accent); }}
-        .main-content {{ margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: visible; padding: 0 2rem calc(2rem + var(--footer-height)) 2rem; max-width: 1100px; }}
-        .top-bar {{ position: sticky; top: 0; z-index: 50; height: var(--header-height); padding: 0 2rem; margin-bottom: 1rem; margin-left: -2rem; margin-right: -2rem; background: var(--bg); overflow: visible; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; box-sizing: border-box; }}
+        .main-content {{ margin-left: 220px; flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: hidden; padding: 0 78px calc(2rem + var(--footer-height)) 48px; }}
+        .top-bar {{ position: sticky; top: 0; z-index: 50; height: var(--header-height); padding: 0 78px 0 48px; margin-bottom: 1rem; margin-left: -48px; margin-right: -78px; background: var(--bg); overflow: visible; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; box-sizing: border-box; }}
         .top-bar-links-wrap {{ position: relative; margin-left: auto; }}
         .top-bar-links {{ display: flex; align-items: center; gap: 1rem; }}
         .top-bar-links a {{ color: var(--muted); text-decoration: none; font-size: 0.75rem; font-weight: 300; transition: color var(--dur) var(--ease-out); }}
@@ -1068,6 +1374,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .section-title {{ font-size: 1.5rem; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 0.5rem; line-height: 1.3; }}
         .section-desc {{ font-size: 0.9375rem; color: var(--muted); margin-bottom: 1.25rem; max-width: 56ch; line-height: 1.6; }}
         .cards {{ display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: stretch; }}
+        .daily-cards-grid {{ grid-template-columns: repeat(3, 1fr); gap: 1.75rem; }}
         .card {{ background: var(--card); border-radius: var(--radius); padding: 1.25rem 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out); display: flex; flex-direction: column; gap: 0.5rem; min-height: 100%; overflow: visible; }}
         .card:hover {{ transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--accent-light); }}
         .card h3 {{ font-size: 1.05rem; font-weight: 600; margin: 0; line-height: 1.45; color: var(--text); letter-spacing: -0.01em; flex: 1; min-width: 0; word-break: break-word; }}
@@ -1078,7 +1385,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .card-source {{ font-size: 0.68rem; color: var(--muted); opacity: 0.75; margin: 0; }}
         .card-header {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; overflow: visible; }}
         .card-header h3 {{ flex: 1; min-width: 0; }}
-        .card-header .badges {{ flex-shrink: 0; }}
+        .card-header .badges {{ flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }}
         .berger {{ font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: var(--radius); white-space: nowrap; }}
         .berger-high {{ background: rgba(45,74,43,0.2); color: var(--accent); }}
         .berger-mid {{ background: rgba(232,165,77,0.35); color: var(--cta-text); }}
@@ -1107,6 +1414,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .digest-card {{ background: var(--card); border-radius: var(--radius); padding: 1.25rem 1.5rem; border: 1px solid var(--border); box-shadow: var(--shadow); transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out); overflow: visible; }}
         .digest-card:hover {{ transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--accent-light); }}
         .digest-card-header {{ display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.6rem; overflow: visible; }}
+        .digest-card-badges {{ display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; flex-shrink: 0; }}
         .digest-card-num {{ font-size: 0.85rem; font-weight: 700; color: var(--accent); min-width: 1.75rem; opacity: 0.9; }}
         .digest-card-title {{ flex: 1; font-size: 1.05rem; font-weight: 600; margin: 0; line-height: 1.45; color: var(--text); letter-spacing: -0.01em; }}
         .digest-card-title a {{ color: inherit; text-decoration: none; }}
@@ -1117,6 +1425,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .pill-tag {{ font-size: 0.72rem; padding: 0.28rem 0.65rem; border-radius: 999px; background: rgba(45,74,43,0.08); color: var(--muted); font-weight: 500; letter-spacing: 0.02em; }}
         .digest-top-section {{ margin-bottom: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }}
         .digest-top-section .browse-more {{ margin: 0; }}
+        pre {{ max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-break: break-all; box-sizing: border-box; }}
         code {{ background: var(--warm); padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.85em; color: var(--text); }}
         footer {{ position: fixed; bottom: 0; left: 220px; right: 0; height: var(--footer-height); padding: 0 2rem; font-size: 0.8rem; color: var(--muted); background: var(--bg); z-index: 50; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; border-top: 1px solid var(--border); }}
         footer a {{ color: var(--accent); text-decoration: none; }}
@@ -1147,7 +1456,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .tip-chip:hover {{ background: var(--accent); border-color: var(--accent); color: white; }}
         .tip-chip-active {{ background: var(--accent); border-color: var(--accent); color: white; }}
         .china-content-wrap {{ max-width: 100%; margin: 0; padding: 0 0 100px; }}
-        .china-layout-grid {{ display: grid; grid-template-columns: minmax(460px, 1.4fr) minmax(320px, 1fr); gap: 1rem; align-items: start; }}
+        .china-layout-grid {{ display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1rem; align-items: start; }}
         .china-stack {{ display: grid; gap: 1rem; align-content: start; }}
         .china-panel {{ margin: 0; width: 100%; }}
         .china-panel .section-desc {{ max-width: none; }}
@@ -1337,7 +1646,7 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .nav-link {{ color: var(--muted); text-decoration: none; font-size: 0.95rem; }}
         .nav-link:hover, .nav-link.active {{ color: var(--accent); font-weight: 500; }}
         .nav-dropdown {{ position: relative; }}
-        .nav-dropdown-panel {{ display: none; position: absolute; top: 100%; left: 0; margin-top: 0.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); border: 1px solid var(--border); padding: 1rem; min-width: 480px; z-index: 100; }}
+        .nav-dropdown-panel {{ display: none; position: fixed; top: auto; left: 220px; margin-top: 0.5rem; background: var(--card); border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); border: 1px solid var(--border); padding: 1rem; min-width: 320px; max-width: calc(100vw - 240px); z-index: 100; }}
         .nav-dropdown:hover .nav-dropdown-panel {{ display: block; }}
         .func-cards {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }}
         .func-card {{ display: block; padding: 1rem; border-radius: 10px; text-decoration: none; color: var(--text); transition: background 0.15s; }}
@@ -1413,7 +1722,8 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         .btn-onboard-next:hover {{ background: var(--accent-hover); }}
         .reveal {{ opacity: 1; transform: none; transition: opacity 0.65s ease, transform 0.65s ease; }}
         .reveal.visible {{ opacity: 1; transform: none; }}
-        @media (max-width: 768px) {{ .app-layout {{ flex-direction: column; }} .sidebar {{ width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }} .sidebar-nav {{ flex-direction: row; flex-wrap: wrap; overflow: visible; }} .sidebar-link {{ flex: 1 1 auto; }} .main-content {{ margin-left: 0; }} .stats {{ grid-template-columns: 1fr; }} .cards {{ grid-template-columns: 1fr; }} footer {{ left: 0; }} }}
+        @media (max-width: 900px) {{ .daily-cards-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
+        @media (max-width: 768px) {{ .app-layout {{ flex-direction: column; }} .sidebar {{ width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }} .sidebar-nav {{ flex-direction: row; flex-wrap: wrap; overflow: visible; }} .sidebar-link {{ flex: 1 1 auto; }} .main-content {{ margin-left: 0; }} .stats {{ grid-template-columns: 1fr; }} .cards {{ grid-template-columns: 1fr; }} .daily-cards-grid {{ grid-template-columns: 1fr; }} footer {{ left: 0; }} }}
         @media (max-width: 640px) {{ .hero {{ grid-template-columns: 1fr; }} .hero-visual {{ order: -1; }} .hero-thumbnail-wrap {{ width: 240px; height: 240px; }} .form {{ flex-wrap: wrap; }} }}
     </style>
 </head>
@@ -1516,6 +1826,17 @@ def _base(title, body, active="", hero="", lang=None, og_title=None, og_desc=Non
         }})();
         </script>
     </div>
+<script>
+/* Dev auto-refresh: only active on 127.0.0.1 */
+if (location.hostname === '127.0.0.1') {{
+    var _devDown = false;
+    setInterval(function() {{
+        fetch(location.href, {{cache: 'no-store', method: 'HEAD'}})
+            .then(function() {{ if (_devDown) {{ _devDown = false; location.reload(); }} }})
+            .catch(function() {{ _devDown = true; }});
+    }}, 1500);
+}}
+</script>
 </body>
 </html>"""
 
@@ -1594,12 +1915,13 @@ def view_setup():
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 <style>body{{font-family:Poppins,sans-serif;max-width:720px;margin:2rem auto;padding:1.5rem;line-height:1.6;color:#2d4a2b}}
 a{{color:#2d4a2b}} code{{background:#f5f2ed;padding:0.2rem 0.4rem;border-radius:4px;font-size:0.9em}}
-pre{{background:#f5f2ed;padding:1rem;border-radius:8px;overflow-x:auto}}</style>
+pre{{background:#f5f2ed;padding:1rem;border-radius:8px;overflow-x:auto;max-width:100%;box-sizing:border-box;white-space:pre-wrap;word-break:break-all}}</style>
 </head><body>{html_body}</body></html>""", 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 def _render_full_digest(filename: str):
     """Render daily_news.md or daily_news_zh.md as styled Buffer-style cards in main app layout."""
+    _maybe_trigger_daily_refresh_if_stale()
     lang = "zh" if "zh" in filename else "en"
     path = OUTPUT / filename
     if not path.exists():
@@ -1638,8 +1960,10 @@ def _render_full_digest(filename: str):
             <div class="digest-card-header">
                 <span class="digest-card-num">{i}</span>
                 <h3 class="digest-card-title"><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3>
-                {c_badge}
-                <span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span>
+                <div class="digest-card-badges">
+                    <span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span>
+                    {c_badge}
+                </div>
             </div>
             {snip_html}
             {src_html}
@@ -1765,9 +2089,12 @@ def api_video_to_text():
     url = (request.form.get("url") or req_json.get("url") or "").strip()
     if not url:
         return jsonify({"error": "Missing url"}), 400
-    transcript, caption_source = _fetch_transcript_from_input(url, "en")
+    transcript, caption_source = _fetch_transcript_from_input(url, _get_lang())
     if not transcript:
-        hint = "Install VideoCaptioner (`pip install videocaptioner`) for ASR fallback"
+        hint = (
+            "ASR unavailable: install `videocaptioner` and/or optional WhisperX "
+            "(`pip install -r requirements-asr.txt`; see README)."
+        )
         return jsonify({"error": "Transcript unavailable", "hint": hint}), 400
 
     score = score_berger(transcript)
@@ -1794,6 +2121,128 @@ def api_video_to_text():
         "score": score["total"],
         "caption_source": caption_source,
     })
+
+
+@app.route("/api/image-ocr", methods=["POST"])
+def api_image_ocr():
+    """OCR images from URLs (direct image or public HTML page) or multipart uploads.
+
+    JSON body: ``url`` (single), ``urls`` (list), optional ``mode`` (auto | image | page).
+    Form: same fields plus file field ``image`` / ``images`` / ``file``.
+    """
+    req_json = request.get_json(silent=True) or {}
+    mode = (req_json.get("mode") or request.form.get("mode") or "auto").strip()
+    single = (req_json.get("url") or request.form.get("url") or "").strip()
+    urls_raw = req_json.get("urls")
+    urls: list[str] = []
+    if isinstance(urls_raw, list):
+        urls = [str(u).strip() for u in urls_raw if str(u).strip()]
+    elif isinstance(urls_raw, str) and urls_raw.strip():
+        urls = [p.strip() for p in urls_raw.replace(",", " ").split() if p.strip()]
+    if single:
+        urls.insert(0, single)
+
+    files = list(request.files.getlist("image")) + list(request.files.getlist("images"))
+    f_one = request.files.get("file")
+    if f_one and f_one.filename:
+        files.append(f_one)
+
+    if not urls and not files:
+        return jsonify({"ok": False, "error": "Provide url, urls, or an image file"}), 400
+
+    results: list[dict] = []
+    text_chunks: list[str] = []
+
+    for u in urls:
+        job = ocr_job_for_url(u, mode=mode)
+        results.append({"input": u, **job})
+        if job.get("mode") == "page" and job.get("results"):
+            for sub in job["results"]:
+                t = (sub or {}).get("text") or ""
+                if t:
+                    text_chunks.append(t)
+        elif job.get("results"):
+            for sub in job["results"]:
+                t = (sub or {}).get("text") or ""
+                if t:
+                    text_chunks.append(t)
+
+    for f in files:
+        if not f.filename:
+            continue
+        data = f.read()
+        lines, text = ocr_image_bytes(data)
+        ok = bool(text or lines)
+        results.append({
+            "input": f.filename,
+            "ok": ok,
+            "mode": "upload",
+            "text": text,
+            "lines": lines,
+            "error": None if ok else "no_text_or_unreadable",
+        })
+        if text:
+            text_chunks.append(text)
+
+    return jsonify({
+        "ok": True,
+        "results": results,
+        "text_combined": "\n\n".join(text_chunks).strip(),
+    })
+
+
+def _youtube_download_filename_ok(name: str) -> bool:
+    """Allow only files we create: ``youtube_{11-char id}.{ext}``."""
+    if not name or "/" in name or ".." in name:
+        return False
+    if not name.startswith("youtube_") or "." not in name:
+        return False
+    rest = name[8:]  # after "youtube_"
+    vid_part, ext = rest.rsplit(".", 1)
+    if len(vid_part) != 11 or not ext.isalnum() or not (2 <= len(ext) <= 8):
+        return False
+    return all(c.isalnum() or c in "_-" for c in vid_part)
+
+
+@app.route("/api/youtube-media/<name>")
+def api_youtube_media_download(name):
+    if not _youtube_download_filename_ok(name):
+        return jsonify({"error": "Invalid file"}), 400
+    try:
+        out_dir = OUTPUT.resolve()
+        path = (OUTPUT / name).resolve()
+    except OSError:
+        return jsonify({"error": "Invalid path"}), 400
+    if path.parent != out_dir:
+        return jsonify({"error": "Invalid path"}), 400
+    if not path.is_file():
+        return jsonify({"error": "Not found"}), 404
+    return send_file(path, as_attachment=True, download_name=name)
+
+
+@app.route("/api/youtube-download", methods=["POST"])
+def api_youtube_download():
+    req_json = request.get_json(silent=True) or {}
+    url = (request.form.get("url") or req_json.get("url") or "").strip()
+    lang = _get_lang()
+    if not url:
+        return jsonify({"error": _t("youtube_dl_missing_url", lang)}), 400
+    OUTPUT.mkdir(exist_ok=True)
+    # Werkzeug access-log lines appear after the response; yt-dlp can run minutes.
+    print(f"[youtube-download] start {url[:200]!r}", flush=True)
+    path, err = download_youtube_video(url, OUTPUT)
+    if not path:
+        if err == "no_ytdlp":
+            return jsonify({"error": _t("youtube_dl_need_ytdlp", lang)}), 400
+        if err == "not_youtube":
+            return jsonify({"error": _t("youtube_dl_not_youtube", lang)}), 400
+        if err == "missing_url":
+            return jsonify({"error": _t("youtube_dl_missing_url", lang)}), 400
+        detail = err[:800] if err else ""
+        print(f"[youtube-download] failed {err[:120]!r}", flush=True)
+        return jsonify({"error": _t("youtube_dl_failed", lang), "detail": detail}), 502
+    print(f"[youtube-download] ok {path.name}", flush=True)
+    return jsonify({"file": path.name, "url": f"/api/youtube-media/{path.name}"})
 
 
 @app.route("/china-access")
@@ -1833,6 +2282,7 @@ def api_info():
             "get": "/api/digests/<filename>",
             "export": "/api/export/<filename>?format=markdown|notion|obsidian",
             "video_to_text": "POST /api/video-to-text",
+            "youtube_download": "POST /api/youtube-download (JSON or form: url)",
             "viral_videos": "GET /api/viral-videos?q=<query>&source=global|china",
             "health": "/api/health",
             "refresh_daily": "GET /api/refresh-daily (for cron)",
@@ -1851,6 +2301,8 @@ def _run_refresh_daily():
     script = Path(__file__).parent / "scripts" / "daily_news.py"
     env = _env_no_proxy()
     env["PYTHONPATH"] = str(Path(__file__).parent)
+    # Daily EN+ZH source aggregation can exceed 60s when multiple sources are slow.
+    timeout_sec = int(os.environ.get("DAILY_REFRESH_TIMEOUT_SEC", "420"))
     proc = subprocess.Popen(
         [sys.executable, str(script)],
         stdout=subprocess.PIPE,
@@ -1859,11 +2311,74 @@ def _run_refresh_daily():
         cwd=Path(__file__).parent,
     )
     try:
-        proc.wait(timeout=60)
+        stdout, stderr = proc.communicate(timeout=timeout_sec)
     except subprocess.TimeoutExpired:
         proc.kill()
+        print(f"[daily_refresh] timed out after {timeout_sec}s")
         raise
-    return proc.returncode == 0
+    if proc.returncode != 0:
+        err = (stderr or b"").decode("utf-8", errors="ignore").strip()
+        out = (stdout or b"").decode("utf-8", errors="ignore").strip()
+        if err:
+            print(f"[daily_refresh] failed: {err}")
+        elif out:
+            print(f"[daily_refresh] failed: {out}")
+        else:
+            print(f"[daily_refresh] failed with code {proc.returncode}")
+        return False
+    return True
+
+
+def _daily_digest_age_hours() -> float | None:
+    """Hours since ``daily_news_updated.txt`` was written, or None if missing/unparseable."""
+    from datetime import datetime, timezone
+
+    p = OUTPUT / "daily_news_updated.txt"
+    if not p.exists():
+        return None
+    s = p.read_text(encoding="utf-8").strip()
+    if not s:
+        return None
+    s = s.replace(" UTC", "").strip()
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - dt).total_seconds() / 3600.0
+    except ValueError:
+        return None
+
+
+def _maybe_trigger_daily_refresh_if_stale() -> None:
+    """When digest is older than threshold, start a debounced background refresh (visitors + long-running server)."""
+    try:
+        max_age_h = float(os.environ.get("DAILY_AUTO_REFRESH_IF_OLDER_THAN_HOURS", "8"))
+    except ValueError:
+        max_age_h = 8.0
+    if max_age_h <= 0:
+        return
+    try:
+        debounce_sec = int(os.environ.get("DAILY_AUTO_REFRESH_DEBOUNCE_SEC", "2700"))
+    except ValueError:
+        debounce_sec = 2700
+    debounce_sec = max(300, debounce_sec)
+
+    age = _daily_digest_age_hours()
+    if age is not None and age < max_age_h:
+        return
+
+    global _daily_last_stale_refresh_attempt
+    with _daily_stale_refresh_lock:
+        now = time.time()
+        if now - _daily_last_stale_refresh_attempt < debounce_sec:
+            return
+        _daily_last_stale_refresh_attempt = now
+
+    def _bg():
+        try:
+            _run_refresh_daily()
+        except Exception:
+            pass
+
+    threading.Thread(target=_bg, daemon=True).start()
 
 
 @app.route("/api/refresh-daily")
@@ -1875,7 +2390,9 @@ def api_refresh_daily():
     if secret and key != secret:
         return jsonify({"error": "Unauthorized"}), 401
     try:
-        _run_refresh_daily()
+        ok = _run_refresh_daily()
+        if not ok:
+            return jsonify({"error": "Daily news refresh failed"}), 500
         return jsonify({"status": "ok", "message": "Daily news refreshed"})
     except subprocess.TimeoutExpired:
         return jsonify({"error": "Timeout"}), 504
@@ -1903,11 +2420,36 @@ def api_refresh_videos():
 @app.route("/api/search-news", methods=["POST"])
 def api_search_news():
     """Search news by topic. Runs search in background, redirects immediately (avoids timeout on Render)."""
-    topic = (request.form.get("topic") or request.args.get("topic") or "").strip()
+    req_json = request.get_json(silent=True) or {}
+    json_mode = (request.args.get("format") == "json") or request.is_json
+    topic = (request.form.get("topic") or request.args.get("topic") or req_json.get("topic") or "").strip()
     if not topic:
+        if json_mode:
+            return jsonify({"error": "Missing topic", "diagnostic": classify_error_message("missing topic", context="news")}), 400
         return redirect("/news")
+    if json_mode:
+        from src.news_sources import fetch_all_topic_sources
+        try:
+            max_results = int(req_json.get("max_results", request.args.get("max_results", 12)) or 12)
+        except (TypeError, ValueError):
+            max_results = 12
+        try:
+            items, sources = fetch_all_topic_sources(topic, target_total=max(1, min(max_results, 50)))
+            if not items:
+                diag = {
+                    "code": "no_results",
+                    "category": "data",
+                    "message": f"No results for topic: {topic}",
+                    "hint": "Try a broader keyword or another language.",
+                    "retryable": True,
+                }
+                return jsonify({"query": topic, "items": [], "sources": sources, "diagnostic": diag}), 200
+            return jsonify({"query": topic, "items": items, "sources": sources, "diagnostic": None}), 200
+        except Exception as e:
+            diag = classify_error_message(str(e), context="news")
+            return jsonify({"error": str(e), "diagnostic": diag}), 500
     _record_topic_search(topic)
-    safe_topic = topic.replace(" ", "_")[:30]
+    safe_topic = raw_topic_file_stem(topic)
     range_param = request.form.get("range") or request.args.get("range") or "1d"
     if range_param not in ("60m", "1d", "7d"):
         range_param = "1d"
@@ -1916,11 +2458,15 @@ def api_search_news():
     def _run_search():
         try:
             script = Path(__file__).parent / "scripts" / "search_only.py"
-            env = _env_no_proxy()
-            env["PYTHONPATH"] = str(Path(__file__).parent)
-            subprocess.run([sys.executable, str(script), topic], check=True, env=env, cwd=Path(__file__).parent, timeout=45)
-        except Exception:
-            pass
+            subprocess.run(
+                [sys.executable, str(script), topic],
+                check=True,
+                env=_env_for_topic_search_subprocess(),
+                cwd=Path(__file__).parent,
+                timeout=_topic_search_subprocess_timeout_sec(),
+            )
+        except Exception as e:
+            print(f"[search-news] failed for {topic!r}: {e}")
 
     import threading
     threading.Thread(target=_run_search, daemon=True).start()
@@ -1994,6 +2540,7 @@ def api_viral_videos():
     lang = _get_lang()
     query = request.args.get("q", "viral trending").strip() or "viral trending"
     source = request.args.get("source", "global").lower()
+    err_diag: dict | None = None
     try:
         if source == "china":
             from src.video_tools import score_berger
@@ -2015,8 +2562,9 @@ def api_viral_videos():
                 try:
                     data = json.loads(err)
                     err = data.get("error", err)
+                    err_diag = data.get("diagnostic")
                 except json.JSONDecodeError:
-                    pass
+                    err_diag = classify_error_message(err, context="china_video")
                 raise RuntimeError(err)
             try:
                 videos = json.loads(result.stdout) if result.stdout.strip() else []
@@ -2054,8 +2602,9 @@ def api_viral_videos():
                 try:
                     data = json.loads(err)
                     err = data.get("error", err)
+                    err_diag = data.get("diagnostic")
                 except json.JSONDecodeError:
-                    pass
+                    err_diag = classify_error_message(err, context="video")
                 raise RuntimeError(err)
             videos = json.loads(result.stdout)
         out = []
@@ -2102,16 +2651,19 @@ def api_viral_videos():
 
         return jsonify({"query": query, "source": source, "videos": out, "lang_hint": lang_hint})
     except subprocess.TimeoutExpired:
-        return jsonify({"error": _t("viral_timeout", lang)}), 504
+        timeout_msg = _t("viral_timeout", lang)
+        return jsonify({"error": timeout_msg, "diagnostic": classify_error_message(timeout_msg, context="video")}), 504
     except Exception as e:
         err_msg = str(e)
+        diag = err_diag or classify_error_message(err_msg, context="china_video" if source == "china" else "video")
         if source == "china":
             return jsonify({
                 "error": err_msg,
+                "diagnostic": diag,
                 "china_unavailable": True,
                 "china_hint": _t("viral_china_unavailable", lang),
             }), 500
-        return jsonify({"error": err_msg}), 500
+        return jsonify({"error": err_msg, "diagnostic": diag}), 500
 
 
 @app.route("/api/china-crawl", methods=["POST"])
@@ -2134,13 +2686,13 @@ def api_china_crawl():
         keywords_list = parts if parts else ["热门"]
     if not keywords_list:
         keywords_list = ["热门"]
-    valid_platforms = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili")
+    valid_platforms = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili", "tiktok", "x", "instagram")
     if isinstance(platforms_raw, list):
         platforms = [p for p in platforms_raw if p and str(p).lower() in valid_platforms]
     else:
         platforms = [p.strip().lower() for p in str(platforms_raw).split(",") if p.strip() and p.strip().lower() in valid_platforms]
     if not platforms:
-        return jsonify({"ok": False, "error": "No valid platforms (use bilibili, xhs, douyin, shipinhao, zhihu)"}), 400
+        return jsonify({"ok": False, "error": "No valid platforms (use bilibili, xhs, douyin, shipinhao, zhihu, tiktok, x, instagram)"}), 400
 
     from src.china_sources import get_china_search_url
 
@@ -2155,7 +2707,7 @@ def api_china_crawl():
     def _classify_status(platform: str, fetched_count: int, kw_attempted: int, kw_with_items: int, reasons: list[str]) -> str:
         if fetched_count <= 0:
             reason_text = " ".join(reasons).lower()
-            if any(k in reason_text for k in ("登录", "login", "cookie", "扫码", "verify_login")):
+            if any(k in reason_text for k in ("登录", "login", "cookie", "cookies", "fresh cookies", "扫码", "verify_login")):
                 return "blocked_login"
             if any(k in reason_text for k in ("风控", "captcha", "forbidden", "403", "429", "blocked", "rate limit")):
                 return "blocked_risk"
@@ -2256,6 +2808,8 @@ def api_china_crawl():
 
     for p in platforms:
         ps = status_map[p]
+        if p == "douyin" and int(ps.get("fetched") or 0) <= 0 and not (root / "config" / "china_crawler_douyin_state.json").exists():
+            ps["reasons"].append("Douyin may require local crawler login state. Run: .venv/bin/python -m tools.china_crawler login --platform douyin")
         ps["status"] = _classify_status(
             platform=p,
             fetched_count=int(ps.get("fetched") or 0),
@@ -2569,21 +3123,6 @@ def science():
 
       <hr class="science-hr" />
 
-      <div class="section-title">{_t("science_v2_who_berger", lang)}</div>
-      <div class="berger-block">
-        <div class="berger-name">{_html_escape(_t("science_v2_berger_name", lang))}</div>
-        <div class="berger-role">{_html_escape(_t("science_v2_berger_role", lang))}</div>
-        <div class="berger-facts">
-          <div class="berger-fact"><span>📚</span><span>{_t("science_v2_berger_f1", lang)}</span></div>
-          <div class="berger-fact"><span>🔬</span><span>{_t("science_v2_berger_f2", lang)}</span></div>
-          <div class="berger-fact"><span>🏛</span><span>{_t("science_v2_berger_f3", lang)}</span></div>
-          <div class="berger-fact"><span>📖</span><span>{_t("science_v2_berger_f4", lang)}</span></div>
-        </div>
-      </div>
-      <p class="science-v2-p">{_t("science_v2_berger_p", lang)}</p>
-
-      <hr class="science-hr" />
-
       <div class="section-title">{_t("science_v2_stepps_title", lang)}</div>
       <p class="science-v2-p">{_t("science_v2_stepps_intro", lang)}</p>
       <div class="stepps-list">{stepps_html}</div>
@@ -2659,7 +3198,7 @@ def _build_markdown_export(
     lang: str = "en",
     include_minto: bool = True,
 ) -> str:
-    """Build AI-ready markdown string. Includes Minto Pyramid structure when transcript is long enough."""
+    """Build AI-ready markdown string. Includes Minto Pyramid structure when transcript is usable."""
     sorted_stepps = sorted(stepps, key=lambda s: s["score"], reverse=True)
     top2 = sorted_stepps[:2]
     weak = sorted_stepps[-1]
@@ -2679,7 +3218,7 @@ def _build_markdown_export(
     mw = ", ".join(magic_words) if magic_words else "None detected"
 
     minto_section = ""
-    if include_minto and len(transcript.strip()) > 200:
+    if include_minto and len(transcript.strip()) > 60:
         minto = structure_minto(transcript, lang=lang)
         if minto.get("conclusion") or minto.get("key_points"):
             minto_section = f"\n---\n\n## Minto Pyramid (structure)\n\n{minto_to_markdown(minto, lang)}\n"
@@ -2763,6 +3302,14 @@ def _fetch_transcript_prefer_manual(video_id: str, lang: str) -> tuple[str, str]
     return "", ""
 
 
+@app.route("/api/test-douyin-session", methods=["POST"])
+def api_test_douyin_session():
+    data = request.get_json(silent=True) or {}
+    url = (data.get("url") or "").strip()
+    result = test_douyin_session(url)
+    return jsonify(result)
+
+
 def _fetch_transcript_from_input(input_ref: str, lang: str) -> tuple[str, str]:
     """Fetch transcript from YouTube captions first, then ASR fallback."""
     ref = (input_ref or "").strip()
@@ -2778,9 +3325,9 @@ def _fetch_transcript_from_input(input_ref: str, lang: str) -> tuple[str, str]:
     if (ref.startswith("http://") or ref.startswith("https://")) and not is_supported_external_media_url(ref):
         # Still try ASR fallback for generic podcast/article pages.
         pass
-    transcript, caption_source = transcribe_with_videocaptioner(ref, lang=lang)
-    if transcript:
-        return transcript, caption_source
+    out = transcribe_best_effort(ref, lang=lang)
+    if out.text:
+        return out.text, out.source
     return "", ""
 
 
@@ -2795,10 +3342,20 @@ def video_to_text():
             try:
                 transcript, caption_source = _fetch_transcript_from_input(url, lang)
                 if not transcript:
-                    if has_videocaptioner():
-                        msg = "Transcript unavailable for this link right now."
+                    if has_videocaptioner() or has_whisperx():
+                        ul = (url or "").lower()
+                        if "douyin.com" in ul or "v.douyin.com" in ul:
+                            msg = _t("video2text_err_douyin", lang)
+                        elif "xiaohongshu.com" in ul or "xhslink.com" in ul:
+                            msg = _t("video2text_err_xhs", lang)
+                        else:
+                            msg = _t("video2text_err_generic", lang)
                     else:
-                        msg = "No captions found. Install VideoCaptioner (`pip install videocaptioner`) for ASR fallback."
+                        msg = (
+                            "No captions found. Install ASR: "
+                            "`pip install videocaptioner` and/or optional WhisperX "
+                            "(`pip install -r requirements-asr.txt`; see README)."
+                        )
                 else:
                     score_data = score_berger(transcript)
                     stepps = _score_to_stepps(score_data.get("breakdown", {}), lang)
@@ -2831,7 +3388,7 @@ def video_to_text():
                         lang=lang,
                         include_minto=True,
                     )
-                    minto = structure_minto(transcript, lang=lang) if len(transcript.strip()) > 200 else {}
+                    minto = structure_minto(transcript, lang=lang) if transcript.strip() else {}
                     result = {
                         "url": url,
                         "title": title,
@@ -2853,6 +3410,7 @@ def video_to_text():
                     out_id = str(abs(hash(url)))[:12]
                     out_file = OUTPUT / f"transcript_{out_id}.md"
                     out_file.write_text(markdown_minto, encoding="utf-8")
+                    result["transcript_file"] = out_file.name
             except Exception as e:
                 msg = f"Error: {e}"
         else:
@@ -2877,6 +3435,9 @@ def video_to_text():
     .v2t-submit-btn{font-family:inherit;font-size:14px;font-weight:600;background:var(--cta);color:var(--cta-text);border:none;border-radius:var(--radius);padding:11px 22px;cursor:pointer;white-space:nowrap;}
     .v2t-submit-btn:hover{background:#f5b960;transform:translateY(-1px);}
     .v2t-submit-btn[disabled]{opacity:.75;cursor:not-allowed;transform:none;}
+    .v2t-download-btn{font-family:inherit;font-size:14px;font-weight:600;background:transparent;color:var(--accent);border:1.5px solid var(--accent-light);border-radius:var(--radius);padding:11px 18px;cursor:pointer;white-space:nowrap;}
+    .v2t-download-btn:hover{background:var(--cream-dark);}
+    .v2t-download-btn[disabled]{opacity:.6;cursor:not-allowed;}
     .v2t-form-hint{font-size:12px;color:var(--muted-light);margin-top:8px;}
     .v2t-form-hint code{font-family:monospace;font-size:11px;background:var(--cream-dark);padding:1px 5px;border-radius:3px;color:var(--muted);}
     .v2t-processing{display:none;margin:10px 0 14px;padding:10px 12px;border:1px dashed var(--accent-light);border-radius:var(--radius);background:var(--cream-dark);}
@@ -2952,6 +3513,10 @@ def video_to_text():
         download_title = (result["title"] or "transcript").replace(" ", "-")[:50]
         download_title = "".join(c for c in download_title if c.isalnum() or c in "-_") or "transcript"
         fix_html = f'<strong>Quick fix:</strong> {result["fix"]}'
+        transcript_file = result.get("transcript_file") or ""
+        article_lab_href = (
+            f"/article-lab?prefill_file={quote(transcript_file)}" if transcript_file else "/article-lab"
+        )
         minto = result.get("minto") or {}
         has_minto = bool(minto.get("conclusion") or minto.get("key_points"))
         if has_minto:
@@ -2959,17 +3524,27 @@ def video_to_text():
             minto_points = "".join(
                 f'<li>{_html_escape(p)}</li>' for p in (minto.get("key_points") or [])
             )
-            minto_evidence = "".join(
-                f'<li>{_html_escape(e)}</li>' for e in (minto.get("evidence") or [])[:5]
-            )
+            minto_groups = minto.get("groups") or []
             minto_html = f'<div class="v2t-minto-wrap"><p class="v2t-minto-label">Conclusion (answer first)</p><p class="v2t-minto-conclusion">{minto_conclusion}</p>'
             if minto_points:
                 minto_html += f'<p class="v2t-minto-label">Key points</p><ol class="v2t-minto-list">{minto_points}</ol>'
-            if minto_evidence:
-                minto_html += f'<p class="v2t-minto-label">Supporting evidence</p><ul class="v2t-minto-list">{minto_evidence}</ul>'
+            if minto_groups:
+                minto_html += '<p class="v2t-minto-label">Supporting evidence</p>'
+                for idx, g in enumerate(minto_groups, 1):
+                    ev_items = g.get("evidence") or []
+                    ev_html = "".join(f'<li>{_html_escape(e)}</li>' for e in ev_items[:3])
+                    if not ev_html:
+                        ev_html = '<li>(No direct evidence extracted)</li>'
+                    minto_html += f'<p class="v2t-minto-label" style="margin-top:8px;">For point {idx}</p><ul class="v2t-minto-list">{ev_html}</ul>'
+            else:
+                minto_evidence = "".join(
+                    f'<li>{_html_escape(e)}</li>' for e in (minto.get("evidence") or [])[:5]
+                )
+                if minto_evidence:
+                    minto_html += f'<p class="v2t-minto-label">Supporting evidence</p><ul class="v2t-minto-list">{minto_evidence}</ul>'
             minto_html += "</div>"
         else:
-            minto_html = '<p class="v2t-minto-empty">Minto Pyramid structure is in the Markdown export for longer transcripts.</p>'
+            minto_html = '<p class="v2t-minto-empty">Could not extract a stable Minto structure from this transcript yet. Try a cleaner transcript or longer sample.</p>'
         result_html = f"""
         <div class="v2t-result-section visible" id="v2tResult">
             <div class="v2t-score-summary">
@@ -2981,6 +3556,9 @@ def video_to_text():
                 </div>
             </div>
             <div class="v2t-score-fix">{fix_html}</div>
+            <div class="v2t-rewrite-cta" style="margin-top:14px;">
+                <a class="v2t-submit-btn" href="{_html_escape(article_lab_href)}" style="display:inline-block;text-decoration:none;">{_html_escape(_t("video2text_goto_article_lab", lang))}</a>
+            </div>
             <div style="margin-top:16px;">
                 <p class="v2t-tabs-label">View: <span class="v2t-tabs-hint">Transcript · Structure (Minto) · Markdown</span></p>
                 <div class="v2t-result-tabs">
@@ -3026,10 +3604,15 @@ def video_to_text():
         <div class="v2t-form-block">
             <form method="post" id="v2tForm">
                 <div class="v2t-input-row">
-                    <input type="text" name="url" class="v2t-url-input" placeholder="{_html_escape(_t("video2text_placeholder", lang))}" value="{_html_escape(result["url"]) if result else ""}" required>
+                    <input type="text" name="url" class="v2t-url-input" id="v2tUrlInput" placeholder="{_html_escape(_t("video2text_placeholder", lang))}" value="{_html_escape(result["url"]) if result else ""}" required>
                     <button type="submit" class="v2t-submit-btn">{_html_escape(_t("video2text_btn", lang))}</button>
+                    <button type="button" class="v2t-download-btn" id="v2tDownloadVideoBtn">{_html_escape(_t("video2text_download_btn", lang))}</button>
+                    <button type="button" class="v2t-act-btn outline" id="v2tTestDouyinBtn">{_html_escape(_t("douyin_session_test_btn", lang))}</button>
                 </div>
                 <div class="v2t-form-hint">{_html_escape(_t("video2text_hint", lang))}<code>https://www.youtube.com/watch?v=dQw4w9WgXcQ</code> · <code>https://www.xiaoyuzhoufm.com/episode/...</code></div>
+                <div class="v2t-form-hint">{_t("video2text_download_hint", lang)}</div>
+                <div id="v2tDownloadStatus" class="v2t-form-hint" style="color:var(--ink);"></div>
+                <div id="v2tDouyinSessionResult" class="v2t-form-hint"></div>
             </form>
             <div id="v2tProcessing" class="v2t-processing">
                 <strong>{_html_escape(_t("video2text_processing", lang))}</strong>
@@ -3038,16 +3621,7 @@ def video_to_text():
         </div>
         {f'<p class="muted" style="margin-bottom:1rem;">{_html_escape(msg)}</p>' if msg else ''}
         {result_html}
-        <div class="v2t-small-notes">
-            <div class="v2t-note-item"><span>💡</span><span>{_t("video2text_note1", lang)}</span></div>
-            <div class="v2t-note-item"><span>🤖</span><span>{_t("video2text_note2", lang)}</span></div>
-            <div class="v2t-note-item"><span>🌏</span><span>{_t("video2text_note3", lang)}</span></div>
-            {f'<div class="v2t-note-item"><span>📐</span><span>{_t("video2text_note_minto", lang)}</span></div>' if result else ''}
-        </div>
-        <div class="v2t-bottom-links">
-            <a href="/science">{_html_escape(_t("video2text_how_score", lang))}</a>
-            <a href="/viral">{_html_escape(_t("video2text_find", lang))}</a>
-        </div>
+        {f'<p class="section-desc muted" style="margin-top:0.85rem;">{_t("video2text_note_minto", lang)}</p>' if result else ''}
     </div>
     <script>
     function v2tSwitchTab(name){{
@@ -3074,6 +3648,8 @@ def video_to_text():
     (function(){{
         var form = document.getElementById('v2tForm');
         if (!form) return;
+        var testBtn = document.getElementById('v2tTestDouyinBtn');
+        var hintEl = document.getElementById('v2tDouyinSessionResult');
         form.addEventListener('submit', function(){{
             var box = document.getElementById('v2tProcessing');
             var btn = form.querySelector('.v2t-submit-btn');
@@ -3083,6 +3659,70 @@ def video_to_text():
                 btn.textContent = {json.dumps(_t("video2text_processing", lang))};
             }}
         }});
+        var dlBtn = document.getElementById('v2tDownloadVideoBtn');
+        var dlStatus = document.getElementById('v2tDownloadStatus');
+        if (dlBtn) {{
+            dlBtn.addEventListener('click', async function(){{
+                var input = document.getElementById('v2tUrlInput') || form.querySelector('input[name="url"]');
+                var u = input ? input.value.trim() : '';
+                if (!u) {{ if (dlStatus) dlStatus.textContent = {json.dumps(_t("youtube_dl_missing_url", lang))}; return; }}
+                var old = dlBtn.textContent;
+                dlBtn.disabled = true;
+                if (dlStatus) dlStatus.textContent = {json.dumps(_t("video2text_download_progress", lang))};
+                try {{
+                    var r = await fetch('/api/youtube-download', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ url: u }})
+                    }});
+                    var d = await r.json();
+                    if (!r.ok) {{
+                        if (dlStatus) dlStatus.textContent = (d.error || 'Download failed') + (d.detail ? (' — ' + String(d.detail).slice(0, 400)) : '');
+                        return;
+                    }}
+                    if (dlStatus) dlStatus.textContent = '';
+                    var href = d.url && d.url.indexOf('http') === 0 ? d.url : (window.location.origin + (d.url || ''));
+                    var a = document.createElement('a');
+                    a.href = href;
+                    if (d.file) a.download = d.file;
+                    a.rel = 'noopener';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }} catch (e) {{
+                    if (dlStatus) dlStatus.textContent = (e && e.message) ? e.message : 'Download failed';
+                }} finally {{
+                    dlBtn.disabled = false;
+                    dlBtn.textContent = old;
+                }}
+            }});
+        }}
+        if (testBtn) {{
+            testBtn.addEventListener('click', async function(){{
+                var input = form.querySelector('input[name="url"]');
+                var old = testBtn.textContent;
+                testBtn.disabled = true;
+                testBtn.textContent = {json.dumps(_t("douyin_session_testing", lang))};
+                if (hintEl) hintEl.textContent = "";
+                try {{
+                    var r = await fetch('/api/test-douyin-session', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{ url: input ? input.value : '' }})
+                    }});
+                    var d = await r.json();
+                    if (hintEl) {{
+                        var extra = (d.reasons && d.reasons.length) ? (' · ' + d.reasons.join(' | ')) : '';
+                        hintEl.textContent = (d.message || 'Session check finished.') + extra;
+                    }}
+                }} catch (e) {{
+                    if (hintEl) hintEl.textContent = (e && e.message) ? e.message : 'Session check failed';
+                }} finally {{
+                    testBtn.disabled = false;
+                    testBtn.textContent = old;
+                }}
+            }});
+        }}
     }})();
     var r=document.getElementById('v2tResult');
     if(r&&r.classList.contains('visible')) r.scrollIntoView({{behavior:'smooth',block:'start'}});
@@ -3114,13 +3754,13 @@ def _render_home():
     lang = _get_lang()
     cards = [
         ("/daily", "📅", "link_daily", "link_daily_desc"),
-        ("/field", "🎯", "link_field", "link_field_desc"),
         ("/news", "📰", "link_news", "link_news_desc"),
         ("/longform", "📚", "link_longform", "link_longform_desc"),
         ("/viral", "▶️", "link_viral", "link_viral_desc"),
         ("/china-content", "📥", "nav_china_content", "nav_china_content_desc"),
         ("/video-to-text", "📝", "link_video2text", "link_video2text_desc"),
         ("/article-lab", "✍️", "link_article_lab", "link_article_lab_desc"),
+        ("/publish", "🚀", "link_publish", "link_publish_desc"),
         ("/science", "📊", "link_science", "link_science_desc"),
     ]
     cards_html = "".join(
@@ -3140,13 +3780,26 @@ def article_lab():
     result = None
     results = []
     input_md = ""
+    prefill_file_arg = (request.args.get("prefill_file") or "").strip()
+    prefill_notice = ""
+    if request.method == "GET" and prefill_file_arg:
+        _pf_title, pre_content = load_markdown_from_output(prefill_file_arg)
+        if pre_content.strip():
+            input_md = pre_content
+            prefill_notice = (
+                f'<p class="muted" style="font-size:0.86rem;margin:0 0 0.6rem 0;">'
+                f'{_html_escape(_t("article_lab_prefilled_from", lang))} '
+                f'<code>{_html_escape(Path(prefill_file_arg).name)}</code></p>'
+            )
+        else:
+            prefill_notice = (
+                f'<p class="muted" style="font-size:0.86rem;margin:0 0 0.6rem 0;">'
+                f'{_html_escape(_t("article_lab_prefill_missing", lang))} '
+                f'<code>{_html_escape(Path(prefill_file_arg).name)}</code></p>'
+            )
     if request.method == "POST":
         input_md = (request.form.get("markdown") or "").strip()
-        single_file = request.files.get("md_file")
-        file_items = []
-        if single_file and single_file.filename:
-            file_items.append(single_file)
-        file_items.extend([f for f in request.files.getlist("md_files") if f and f.filename])
+        file_items = [f for f in request.files.getlist("md_files") if f and f.filename]
 
         inputs = []
         if input_md:
@@ -3188,9 +3841,11 @@ def article_lab():
     result_html = ""
     if results:
         cards = []
+        download_files = []
         for idx, r in enumerate(results, 1):
             md_id = f"articleLabMarkdown{idx}"
             md_esc = _html_escape(r["markdown"])
+            download_files.append(r["file"])
             cards.append(
                 f"""
                 <div class="tip-card">
@@ -3201,25 +3856,27 @@ def article_lab():
                     <div class="v2t-markdown-box" id="{md_id}">{md_esc}</div>
                     <div class="v2t-action-row">
                         <button class="v2t-act-btn outline" onclick="navigator.clipboard.writeText(document.getElementById('{md_id}').innerText)">Copy</button>
+                        <a class="v2t-act-btn outline" href="/publish?prefill_file={_html_escape(r['file'])}">{_html_escape(_t("article_lab_queue_publish", lang))}</a>
                         <a class="v2t-act-btn solid" href="/view/{_html_escape(r['file'])}" target="_blank" rel="noopener">{_html_escape(_t("article_lab_download", lang))}</a>
                     </div>
                 </div>
                 """
             )
-        result_html = "\n".join(cards)
+        zip_link = ""
+        if len(download_files) > 1:
+            qs = "&".join(f"file={quote(x)}" for x in download_files)
+            zip_link = f'<div style="margin:0.4rem 0 0.8rem 0;"><a class="v2t-act-btn solid" href="/api/article-lab/download-all?{qs}">Download all (.zip)</a></div>'
+        result_html = zip_link + "\n".join(cards)
 
     body = f"""
     <section>
         <div class="section-title">✍️ {_html_escape(_t("article_lab_title", lang))}</div>
         <p class="section-desc muted">{_html_escape(_t("article_lab_desc", lang))}</p>
+        {prefill_notice}
         <div class="tip-card" style="margin-bottom:0.9rem;">
             <p class="sources-label" style="font-size:0.86rem; line-height:1.6; margin:0;">{_html_escape(_t("article_lab_intro", lang))}</p>
         </div>
         <form method="post" enctype="multipart/form-data" class="tip-card">
-            <div class="tip-header">
-                <span class="tip-label">{_html_escape(_t("article_lab_upload_label", lang))}</span>
-            </div>
-            <input type="file" name="md_file" accept=".md,text/markdown" class="v2t-url-input" style="margin-bottom:0.8rem;">
             <div class="tip-header">
                 <span class="tip-label">{_html_escape(_t("article_lab_upload_multi_label", lang))}</span>
             </div>
@@ -3229,19 +3886,196 @@ def article_lab():
             </div>
             <textarea name="markdown" class="v2t-url-input" style="min-height:220px; width:100%;">{_html_escape(input_md)}</textarea>
             <div style="margin-top:0.8rem;">
-                <button type="submit" class="v2t-submit-btn">{_html_escape(_t("article_lab_btn", lang))}</button>
+                <button type="submit" class="v2t-submit-btn" id="articleLabSubmit">{_html_escape(_t("article_lab_btn", lang))}</button>
                 <span class="muted" style="margin-left:0.6rem; font-size:0.78rem;">{_html_escape(_t("article_lab_btn_batch", lang))}</span>
+            </div>
+            <div id="articleLabProcessing" class="v2t-processing" style="margin-top:0.55rem;">
+                <strong>{_html_escape(_t("video2text_processing", lang))}</strong>
+                <small>{_html_escape(_t("video2text_processing_sub", lang))}</small>
             </div>
         </form>
         {f'<p class="muted">{_html_escape(msg)}</p>' if msg else ''}
         {result_html}
     </section>
+    <script>
+    (function() {{
+      var form = document.querySelector('form[enctype="multipart/form-data"]');
+      if (!form) return;
+      form.addEventListener('submit', function() {{
+        var box = document.getElementById('articleLabProcessing');
+        var btn = document.getElementById('articleLabSubmit');
+        if (box) box.classList.add('visible');
+        if (btn) {{
+          btn.disabled = true;
+          btn.textContent = {json.dumps(_t("video2text_processing", lang))};
+        }}
+      }});
+    }})();
+    </script>
     """
     return _base(_t("article_lab_title", lang), body, "/article-lab", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
+@app.route("/publish", methods=["GET", "POST"])
+def publish_lab():
+    lang = _get_lang()
+    msg = ""
+    prefill_title = ""
+    prefill_content = ""
+    prefill_platform = request.args.get("platform", "x")
+    prefill_file = (request.args.get("prefill_file") or "").strip()
+    quality_warnings: list[str] = []
+    x_ready = bool(os.environ.get("X_PUBLISH_WEBHOOK", "").strip())
+    blog_ready = bool(os.environ.get("BLOG_PUBLISH_WEBHOOK", "").strip())
+    if prefill_file:
+        t, c = load_markdown_from_output(prefill_file)
+        prefill_title = t
+        prefill_content = c
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "queue").strip()
+        if action == "publish_now":
+            item_id = (request.form.get("item_id") or "").strip()
+            ok, out_msg, _item = publish_item_now(item_id)
+            msg = out_msg if ok else out_msg
+        else:
+            title = (request.form.get("title") or "").strip()
+            content = (request.form.get("content") or "").strip()
+            platform = (request.form.get("platform") or "x").strip()
+            schedule_at = (request.form.get("schedule_at") or "").strip()
+            if not content:
+                msg = "Please input content first."
+            else:
+                quality_warnings = validate_publish_content(content)
+                item = queue_publish_item(
+                    title=title or "Untitled post",
+                    content=content,
+                    platform=platform,
+                    source_file=(request.form.get("source_file") or "").strip(),
+                    schedule_at=schedule_at,
+                )
+                if item.get("duplicate"):
+                    msg = f"Duplicate detected. Reusing existing item · {item.get('id')}"
+                else:
+                    msg = f"{_t('publish_status_queued', lang)} · {item.get('id')}"
+                    prefill_title = ""
+                    prefill_content = ""
+
+    items = list_publish_items(limit=50)
+    status_label = {
+        "queued": _t("publish_status_queued", lang),
+        "published": _t("publish_status_published", lang),
+        "failed": _t("publish_status_failed", lang),
+    }
+    cards = []
+    for it in items:
+        title = _html_escape(it.get("title", "Untitled"))
+        content = _html_escape((it.get("content", "") or "")[:360])
+        platform = _html_escape(it.get("platform", "x"))
+        status = it.get("status", "queued")
+        status_text = _html_escape(status_label.get(status, status))
+        created = _html_escape((it.get("created_at", "") or "").replace("T", " ")[:16])
+        source_file = _html_escape(it.get("source_file", ""))
+        extra = f" · {source_file}" if source_file else ""
+        publish_btn = ""
+        if status in ("queued", "failed"):
+            publish_btn = f"""
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="action" value="publish_now">
+                <input type="hidden" name="item_id" value="{_html_escape(it.get("id", ""))}">
+                <button type="submit" class="v2t-act-btn solid">{_html_escape(_t("publish_now_btn", lang))}</button>
+            </form>
+            """
+        cards.append(
+            f"""
+            <div class="tip-card">
+                <div class="tip-header">
+                    <span class="tip-label">{title}</span>
+                    <span class="tip-range-wrap">{status_text} · {platform} · {created}</span>
+                </div>
+                <p class="section-desc muted" style="margin:0.2rem 0 0.55rem 0;">{_html_escape(it.get("id", ""))}{extra}</p>
+                <div class="v2t-markdown-box" style="max-height:220px;">{content}</div>
+                <div class="v2t-action-row">{publish_btn}</div>
+            </div>
+            """
+        )
+    queue_html = "\n".join(cards) if cards else f'<p class="muted">{_html_escape(_t("publish_empty", lang))}</p>'
+    warnings_html = ""
+    if quality_warnings:
+        warnings_html = "<div class='tip-card' style='margin-top:0.7rem;'><p class='section-desc muted' style='margin:0;'>" + " ".join(
+            _html_escape(w) for w in quality_warnings
+        ) + "</p></div>"
+    readiness_html = (
+        "<div class='tip-card' style='margin:0.75rem 0;'>"
+        "<p class='section-desc muted' style='margin:0;'>"
+        f"X webhook: {'configured' if x_ready else 'not set'} · "
+        f"Blog webhook: {'configured' if blog_ready else 'not set'}. "
+        "Without webhook, publish is logged locally only."
+        "</p></div>"
+    )
+
+    body = f"""
+    <section>
+        <div class="section-title">🚀 {_html_escape(_t("publish_title", lang))}</div>
+        <p class="section-desc muted">{_html_escape(_t("publish_desc", lang))}</p>
+        <div class="tip-card" style="margin:0.75rem 0;">
+            <div class="tip-header"><span class="tip-label">{_html_escape(_t("publish_handoff_title", lang))}</span></div>
+            <p class="section-desc muted" style="margin:0;line-height:1.6;">{_html_escape(_t("publish_handoff_body", lang))}</p>
+        </div>
+        {readiness_html}
+        <form method="post" class="tip-card">
+            <div class="tip-header"><span class="tip-label">{_html_escape(_t("publish_form_title", lang))}</span></div>
+            <input type="text" name="title" value="{_html_escape(prefill_title)}" placeholder="Post title" class="v2t-url-input" style="margin-bottom:0.6rem;">
+            <textarea name="content" class="v2t-url-input" style="min-height:180px; width:100%; margin-bottom:0.6rem;" placeholder="Write content or prefill from rewritten markdown...">{_html_escape(prefill_content)}</textarea>
+            <div class="tip-header" style="gap:0.55rem; flex-wrap:wrap;">
+                <span class="tip-label">{_html_escape(_t("publish_platform", lang))}</span>
+                <select name="platform" class="v2t-act-btn outline" style="padding:6px 10px;">
+                    <option value="x"{" selected" if prefill_platform != "blog" else ""}>{_html_escape(_t("publish_to_x", lang))}</option>
+                    <option value="blog"{" selected" if prefill_platform == "blog" else ""}>{_html_escape(_t("publish_to_blog", lang))}</option>
+                </select>
+                <label style="font-size:12px;color:var(--muted);">{_html_escape(_t("publish_schedule", lang))}</label>
+                <input type="text" name="schedule_at" placeholder="2026-03-25 09:00 (optional)" class="v2t-url-input" style="max-width:230px;">
+                <button type="submit" class="v2t-submit-btn">{_html_escape(_t("publish_add_btn", lang))}</button>
+            </div>
+            <input type="hidden" name="source_file" value="{_html_escape(prefill_file)}">
+        </form>
+        {warnings_html}
+        {f'<p class="muted" style="margin-top:0.7rem;">{_html_escape(msg)}</p>' if msg else ""}
+        <div class="cards" style="margin-top:0.9rem;">{queue_html}</div>
+    </section>
+    """
+    return _base(_t("publish_title", lang), body, "/publish", lang=lang), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route("/api/article-lab/download-all")
+def article_lab_download_all():
+    files = request.args.getlist("file")
+    safe_files = []
+    for f in files:
+        name = Path(f or "").name
+        if name.endswith(".md"):
+            safe_files.append(name)
+    if not safe_files:
+        return jsonify({"ok": False, "error": "No files selected."}), 400
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for name in safe_files[:50]:
+            p = OUTPUT / name
+            if p.exists() and p.is_file():
+                zf.writestr(name, p.read_text(encoding="utf-8", errors="replace"))
+    buf.seek(0)
+    return send_file(
+        buf,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="article-lab-rewrites.zip",
+    )
+
+
 def _render_daily():
     """Daily News page only. Uses lang for UI and content (EN vs ZH). Fallback to EN when ZH empty."""
+    _maybe_trigger_daily_refresh_if_stale()
     lang = _get_lang()
     items = _list_digests()
     news_type = "daily_news_zh" if lang == "zh" else "daily_news"
@@ -3281,7 +4115,7 @@ def _render_daily():
             snip_html = f'<p class="card-snippet">{_html_escape(_sanitize_snippet(snip))}</p>' if snip else ""
             src_html = f'<p class="card-source">Source: {_html_escape(src)}</p>' if src else ""
             daily_cards.append(f'''<div class="card daily-card" data-source-type="{_html_escape(src_type)}">
-                <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="badges">{c_badge}<span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span></span></div>
+                <div class="card-header"><h3><a href="{_html_escape(item["url"])}" target="_blank" rel="noopener">{_html_escape(item["title"])}</a></h3><span class="badges"><span class="lifecycle-wrap"><span class="lifecycle lifecycle-{life}">{_html_escape(life_label)}</span><span class="lifecycle-tooltip">{life_tt}</span></span>{c_badge}</span></div>
                 {snip_html}
                 {src_html}
                 <div class="angles-wrap"><span class="angles-label">{_html_escape(_t("content_angles", lang))}:</span><ul class="angles-list">{angles_html}</ul></div>
@@ -3330,7 +4164,7 @@ def _render_daily():
             {sources_label}
         </div>
         {filter_bar}
-        <div class="cards">{daily_html}</div>
+        <div class="cards daily-cards-grid">{daily_html}</div>
         {browse_more}
     </section>
     <script>
@@ -3509,23 +4343,11 @@ def _render_field():
 def _render_news():
     """News by topic page only."""
     lang = _get_lang()
-    items = _list_digests()
-    news_files = [x for x in items if x["type"] == "raw"]
     topic_filter = (request.args.get("topic") or "").strip().replace(" ", "_")
-    if topic_filter:
-        news_files = [x for x in news_files if (x.get("topic") or "").replace(" ", "_") == topic_filter]
     if lang == "zh":
-        news_files = [x for x in news_files if _has_cjk(x.get("topic", ""))]
-        if topic_filter and not _has_cjk(topic_filter):
-            news_html_override = True
-        else:
-            news_html_override = False
+        news_html_override = bool(topic_filter and not _has_cjk(topic_filter))
     else:
-        news_files = [x for x in news_files if not _has_cjk(x.get("topic", ""))]
-        if topic_filter and _has_cjk(topic_filter):
-            news_html_override = True
-        else:
-            news_html_override = False
+        news_html_override = bool(topic_filter and _has_cjk(topic_filter))
     news_cards = []
     time_range = request.args.get("range", "1d")
     if time_range not in ("60m", "1d", "7d"):
@@ -3552,7 +4374,7 @@ def _render_news():
         </div>'''
     force_hot = request.args.get("refresh_hot") == "1"
     segment = _get_segment()
-    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=10, time_range=time_range, lang=lang, force_hot_refresh=force_hot, segment=segment)
+    tip_topics, tip_source, hot_cache_age = _get_most_searched(limit=12, time_range=time_range, lang=lang, force_hot_refresh=force_hot, segment=segment)
     segment_query = f"segment={{0}}&range={time_range}"
     if lang == "zh":
         segment_query += "&lang=zh"
@@ -3561,8 +4383,8 @@ def _render_news():
         for seg_id in ("general", "tech", "entrepreneurs", "creator")
     )
     tip_chips = "".join(
-        f'<form method="post" action="/api/search-news" class="tip-chip-form"><input type="hidden" name="topic" value="{_html_escape(t)}"><input type="hidden" name="range" value="{_html_escape(time_range)}"><button type="submit" class="tip-chip{" tip-chip-active" if topic_filter and t.replace(" ", "_")[:30] == topic_filter else ""}">{_html_escape(t)}</button></form>'
-        for t in tip_topics[:10]
+        f'<form method="post" action="/api/search-news" class="tip-chip-form"><input type="hidden" name="topic" value="{_html_escape(t)}"><input type="hidden" name="range" value="{_html_escape(time_range)}"><button type="submit" class="tip-chip{" tip-chip-active" if topic_filter and raw_topic_file_stem(t) == topic_filter else ""}">{_html_escape(t)}</button></form>'
+        for t in tip_topics[:12]
     )
     range_links = "".join(
         f'<a href="/news?range={r}" class="tip-range{" active" if r == time_range else ""}">{_html_escape(l)}</a>'
@@ -3584,11 +4406,10 @@ def _render_news():
     else:
         tip_label = _t("news_tip_suggestions", lang)
         hot_meta = ""
-    audience_inference_note = _t("audience_inference_note", lang)
     tip_card = f'''
         <div class="tip-card">
             <div class="tip-header">
-                <span class="tip-label">{_html_escape(_t("audience_segment_label", lang))}</span>
+                <span class="tip-label">{_html_escape(_t("hot_tags_title", lang))}</span>
                 <span class="segment-pills-wrap">{segment_pills}</span>
             </div>
             <div class="tip-header">
@@ -3596,18 +4417,62 @@ def _render_news():
                 <span class="tip-range-wrap">{range_links}{" · " + hot_meta if hot_meta else ""}</span>
             </div>
             <div class="tip-chips">{tip_chips}</div>
-            <p class="audience-inference-note">{_html_escape(audience_inference_note)}</p>
         </div>'''
-    for x in news_files:
-        path = OUTPUT / x["file"]
-        _, parsed = parse_file(path)
-        topic = x.get("topic", "").replace("_", " ")
-        if not parsed and path.read_text(errors="replace").strip().startswith("# Search error"):
-            news_cards.append(f'<div class="card card-error"><h3>{_html_escape(topic or x.get("topic", ""))}</h3><p class="muted">{_t("news_search_failed", lang)}</p></div>')
-        else:
-            if topic:
-                news_cards.append(f'<div class="topic-label">{_t("news_topic_label", lang)}: {_html_escape(topic)}</div>')
-            run_type = f"raw_{x.get('topic','')}" if x.get("topic") else "raw_unknown"
+    card_rows = _news_card_rows(lang, time_range, segment, force_hot, topic_filter)
+    for row in card_rows:
+        path = OUTPUT / row["file"]
+        display_topic = row["display_topic"]
+        query_topic = row["query_topic"]
+        stem = row["stem"]
+        try:
+            raw_text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else f"# No news found for: {query_topic}\n"
+        except Exception:
+            news_cards.append(
+                f'<div class="card card-error"><h3>{_html_escape(display_topic)}</h3>'
+                f"<p class=\"muted\">{_html_escape(_t('news_parse_error', lang))}</p></div>"
+            )
+            continue
+        raw_head = raw_text.strip().split("\n", 1)[0] if raw_text.strip() else ""
+        try:
+            parsed = parse_raw_news(raw_text)
+        except Exception:
+            news_cards.append(
+                f'<div class="card card-error"><h3>{_html_escape(display_topic)}</h3>'
+                f"<p class=\"muted\">{_html_escape(_t('news_parse_error', lang))}</p></div>"
+            )
+            continue
+
+        if not parsed:
+            if raw_head.startswith("# Search error"):
+                news_cards.append(
+                    f'<div class="card card-error"><h3>{_html_escape(display_topic)}</h3>'
+                    f'<p class="muted">{_t("news_search_failed", lang)}</p></div>'
+                )
+            else:
+                if display_topic:
+                    news_cards.append(
+                        f'<div class="topic-label">{_t("news_topic_label", lang)}: {_html_escape(display_topic)}</div>'
+                    )
+                msg = (
+                    _t("news_topic_no_hits", lang)
+                    if raw_head.startswith("# No news found")
+                    else _t("news_topic_unparsed", lang)
+                )
+                news_cards.append(
+                    f'<div class="card" style="border:1px dashed var(--border);background:var(--cream-dark);">'
+                    f'<p class="muted" style="margin:0 0 0.65rem 0;">{_html_escape(msg)}</p>'
+                    f'<form method="post" action="/api/search-news" style="margin:0;">'
+                    f'<input type="hidden" name="topic" value="{_html_escape(query_topic)}">'
+                    f'<input type="hidden" name="range" value="{_html_escape(time_range)}">'
+                    f'<button type="submit" class="v2t-submit-btn">{_html_escape(_t("news_rescan_topic", lang))}</button>'
+                    f"</form></div>"
+                )
+            continue
+
+        try:
+            if display_topic:
+                news_cards.append(f'<div class="topic-label">{_t("news_topic_label", lang)}: {_html_escape(display_topic)}</div>')
+            run_type = f"raw_{stem}"
             parsed_life = add_lifecycle_to_items(run_type, parsed[:5])
             for item in parsed_life:
                 snip = item.get("snippet", "") or ""
@@ -3619,7 +4484,7 @@ def _render_news():
                     if c_total > 0
                     else ""
                 )
-                angles = generate_angles(topic or "", item.get("title", ""), snip, count=2, lang=lang)
+                angles = generate_angles(display_topic or "", item.get("title", ""), snip, count=2, lang=lang)
                 angles_html = "".join(f'<li>{_html_escape(a)}</li>' for a in angles)
                 life = item.get("lifecycle", "peaking")
                 src = _get_source_for_item(item)
@@ -3634,6 +4499,11 @@ def _render_news():
                     {src_html}
                     <div class="angles-wrap"><span class="angles-label">{_html_escape(_t("content_angles", lang))}:</span><ul class="angles-list">{angles_html}</ul></div>
                 </div>''')
+        except Exception:
+            news_cards.append(
+                f'<div class="card card-error"><h3>{_html_escape(display_topic)}</h3>'
+                f"<p class=\"muted\">{_html_escape(_t('news_parse_error', lang))}</p></div>"
+            )
 
     if news_html_override:
         r = request.args.get("range", "1d")
@@ -3659,7 +4529,6 @@ def _render_news():
         <p class="section-desc muted">{_html_escape(_t("news_desc", lang))}</p>
         {show_all_link}
         {search_form}
-        {hot_tags_card}
         {tip_card}
         {refresh_meta}
         <div class="cards">{news_html}</div>
@@ -3673,8 +4542,9 @@ def _render_longform():
     lang = _get_lang()
     INITIAL_SHOW = 12
     cards = []
-    fetched_items, fetched_sources = fetch_longform_and_podcasts(
-        lang=lang, max_per_feed=6
+    force_refresh = request.args.get("refresh_longform") == "1"
+    fetched_items, fetched_sources, from_cache, cache_age = _get_longform_feed(
+        lang=lang, max_per_feed=6, force_refresh=force_refresh
     )
     deduped_items = []
     seen_titles = set()
@@ -3762,7 +4632,7 @@ def _render_longform():
     </div>'''
     hot_tags = _hot_tags_for_lang(lang, limit=10)
     hot_tags_links = "".join(
-        f'<a class="tip-chip" href="/news?topic={quote(t.replace(" ", "_"), safe="")}{"&lang=zh" if lang=="zh" else ""}">{_html_escape(t)}</a>'
+        f'<a class="tip-chip" href="/news?topic={quote(raw_topic_file_stem(t), safe="")}{"&lang=zh" if lang=="zh" else ""}">{_html_escape(t)}</a>'
         for t in hot_tags
     )
     hot_tags_card = f'''
@@ -3793,11 +4663,15 @@ def _render_longform():
         }})();
         </script>'''
 
+    refresh_url = "/longform?refresh_longform=1" + ("&lang=zh" if lang == "zh" else "")
+    cache_meta = ""
+    if from_cache and cache_age >= 0:
+        cache_meta = " · " + _t("longform_cache_age", lang).format(mins=max(1, cache_age // 60))
     body = f"""
     <section>
         <div class="section-title">📚 {_html_escape(_t("longform_title", lang))}</div>
         <div class="content-meta">
-            <p class="sources-label"><a href="/daily/refresh" class="refresh-link">{_html_escape(_t("refresh_now", lang))}</a> — {_html_escape(_t("refresh_desc", lang))}</p>
+            <p class="sources-label"><a href="{refresh_url}" class="refresh-link">{_html_escape(_t("refresh_now", lang))}</a> — {_html_escape(_t("longform_refresh_desc", lang))}{_html_escape(cache_meta)}</p>
             {sources_label}
             {scope_label}
         </div>
@@ -3896,7 +4770,6 @@ def _render_viral():
         f'<a href="/viral?segment={seg_id}" class="segment-pill{" active" if segment == seg_id else ""}">{AUDIENCE_SEGMENTS[seg_id]["name_zh"] if lang == "zh" else AUDIENCE_SEGMENTS[seg_id]["name_en"]}</a>'
         for seg_id in ("general", "tech", "entrepreneurs", "creator")
     )
-    viral_audience_note = _t("audience_inference_note", lang)
 
     search_form = f'''
         <form class="form" id="viralSearchForm">
@@ -3920,11 +4793,10 @@ def _render_viral():
                 <span class="tip-range-wrap viral-source-wrap">{source_select}</span>
             </div>
             <div class="tip-chips">{tip_chips}</div>
-            <p class="audience-inference-note">{_html_escape(viral_audience_note)}</p>
         </div>'''
     berger_methodology = _t("viral_berger_methodology", lang)
     viral_empty_suggestions = merged_tips[:6]
-    source_desc = f'<p class="sources-label">{_html_escape(_t("viral_what_we_serve", lang))} {_html_escape(_t("viral_china_note", lang))}</p><p class="sources-label">{_html_escape(berger_methodology)}</p>'
+    source_desc = f'<p class="sources-label">{_html_escape(_t("viral_what_we_serve", lang))} {_html_escape(_t("viral_china_note", lang))}</p>'
 
     ct_video = _t("content_type_video", lang)
     ct_post = _t("content_type_post", lang)
@@ -4111,8 +4983,7 @@ def _run_refresh_videos():
 
 
 def _run_refresh_news():
-    """Re-search all raw topics and refresh platform hot trends. Used by /news/refresh and scheduler."""
-    # Refresh platform hot topics (微博、知乎、抖音、百度)
+    """Refresh platform hot list, then re-fetch news only for current hot-tag set (not every raw_*.md)."""
     try:
         script = Path(__file__).parent / "scripts" / "fetch_hot_trending.py"
         env = _env_no_proxy()
@@ -4120,21 +4991,174 @@ def _run_refresh_news():
         subprocess.run([sys.executable, str(script)], capture_output=True, env=env, cwd=Path(__file__).parent, timeout=30)
     except Exception:
         pass
-    items = _list_digests()
-    raw_files = [x for x in items if x["type"] == "raw"]
-    if not raw_files:
+    topics = _topics_for_news_refresh()
+    if not topics:
         return
     script = Path(__file__).parent / "scripts" / "search_only.py"
-    env = _env_no_proxy()
-    env["PYTHONPATH"] = str(Path(__file__).parent)
-    for x in raw_files:
-        topic = x.get("topic", "").replace("_", " ")
-        if not topic:
+    env = _env_for_topic_search_subprocess()
+    timeout_sec = _topic_search_subprocess_timeout_sec()
+    for topic in topics:
+        q = (topic or "").strip()
+        if not q:
             continue
         try:
-            subprocess.run([sys.executable, str(script), topic], check=True, env=env, cwd=Path(__file__).parent, timeout=45)
+            subprocess.run(
+                [sys.executable, str(script), q],
+                check=True,
+                env=env,
+                cwd=Path(__file__).parent,
+                timeout=timeout_sec,
+            )
+        except Exception as e:
+            print(f"[news/refresh] topic {q!r}: {e}")
+
+
+def _run_scheduled_china_crawl():
+    """Lightweight B站 + 知乎 search for 「热门」; writes china_crawler_*.json. Opt-in via CHINA_SCHEDULED_CRAWL_MINUTES."""
+    root = Path(__file__).parent
+    OUTPUT.mkdir(parents=True, exist_ok=True)
+    env = {**_env_no_proxy(), "PYTHONPATH": str(root), "CHINA_CRAWLER_OUTPUT_DIR": str(OUTPUT)}
+    for platform, kw in (("bilibili", "热门"), ("zhihu", "热门")):
+        try:
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "tools.china_crawler",
+                    "run",
+                    "--platform",
+                    platform,
+                    "--type",
+                    "search",
+                    "--keywords",
+                    kw,
+                    "--max",
+                    "12",
+                ],
+                capture_output=True,
+                text=True,
+                env=env,
+                cwd=root,
+                timeout=180,
+            )
+        except Exception as e:
+            print(f"[scheduler] china crawl {platform}: {e}")
+
+
+def _create_and_start_virallab_scheduler():
+    """Build APScheduler jobs for daily digest, topic news, viral videos, longform, optional China crawl."""
+    from apscheduler.schedulers.background import BackgroundScheduler
+
+    def _job_daily():
+        try:
+            if not _run_refresh_daily():
+                print("[scheduler] daily refresh failed")
+        except Exception as e:
+            print(f"[scheduler] daily refresh exception: {e}")
+
+    def _job_news():
+        try:
+            _run_refresh_news()
         except Exception:
             pass
+
+    def _job_videos():
+        try:
+            _run_refresh_videos()
+        except Exception:
+            pass
+
+    def _job_longform():
+        try:
+            _kick_longform_refresh("en", max_per_feed=6)
+            _kick_longform_refresh("zh", max_per_feed=6)
+        except Exception:
+            pass
+
+    def _job_china():
+        try:
+            _run_scheduled_china_crawl()
+        except Exception:
+            pass
+
+    sched = BackgroundScheduler()
+    job_opts = {"coalesce": True, "max_instances": 1, "misfire_grace_time": 7200}
+    try:
+        daily_min = int(os.environ.get("DAILY_REFRESH_INTERVAL_MINUTES", "30"))
+    except ValueError:
+        daily_min = 30
+    daily_min = max(10, min(daily_min, 180))
+    try:
+        loop_min = int(os.environ.get("NEWS_VIDEOS_LONGFORM_REFRESH_MINUTES", "60"))
+    except ValueError:
+        loop_min = 60
+    loop_min = max(15, min(loop_min, 180))
+    sched.add_job(_job_daily, "interval", minutes=daily_min, id="daily_news", **job_opts)
+    sched.add_job(_job_news, "interval", minutes=loop_min, id="news_by_topic", **job_opts)
+    sched.add_job(_job_videos, "interval", minutes=loop_min, id="viral_videos", **job_opts)
+    sched.add_job(_job_longform, "interval", minutes=loop_min, id="longform_refresh", **job_opts)
+    try:
+        china_min = int(os.environ.get("CHINA_SCHEDULED_CRAWL_MINUTES", "0"))
+    except ValueError:
+        china_min = 0
+    if china_min > 0:
+        china_min = max(60, min(china_min, 10080))
+        sched.add_job(_job_china, "interval", minutes=china_min, id="china_crawler", **job_opts)
+    sched.start()
+    extra = f" · China crawl: every {china_min} min" if china_min > 0 else ""
+    print(
+        f"ViralLab scheduler: daily every {daily_min} min · news/videos/longform every {loop_min} min{extra} "
+        f"(DAILY_REFRESH_INTERVAL_MINUTES / NEWS_VIDEOS_LONGFORM_REFRESH_MINUTES / CHINA_SCHEDULED_CRAWL_MINUTES)"
+    )
+    if os.environ.get("LONGFORM_SKIP_STARTUP_REFRESH", "").strip().lower() not in ("1", "true", "yes"):
+
+        def _startup_longform():
+            try:
+                _kick_longform_refresh("en", max_per_feed=6)
+                _kick_longform_refresh("zh", max_per_feed=6)
+                print("Startup: longform en/zh RSS refresh queued (background)")
+            except Exception as e:
+                print(f"Startup longform kick failed: {e}")
+
+        threading.Thread(target=_startup_longform, daemon=True).start()
+    if (
+        not (OUTPUT / "daily_news.md").exists()
+        or not (OUTPUT / "videos_trending_viral.md").exists()
+        or not _longform_cache_path("en").exists()
+        or not _longform_cache_path("zh").exists()
+    ):
+
+        def _bootstrap():
+            try:
+                _run_refresh_daily()
+                _run_refresh_news()
+                _run_refresh_videos()
+                _kick_longform_refresh("en", max_per_feed=6)
+                _kick_longform_refresh("zh", max_per_feed=6)
+                print("Bootstrap: daily, topic news, videos, longform populated")
+            except Exception as e:
+                print(f"Bootstrap refresh failed: {e}")
+
+        threading.Thread(target=_bootstrap, daemon=True).start()
+    return sched
+
+
+def ensure_virallab_background_scheduler() -> None:
+    """Start APScheduler once per process (python server.py, gunicorn, or first HTTP request as fallback)."""
+    global _virallab_apscheduler
+    if os.environ.get("VIRALLAB_DISABLE_SCHEDULER", "").strip().lower() in ("1", "true", "yes"):
+        return
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "false":
+        return
+    with _virallab_scheduler_lock:
+        if _virallab_apscheduler is not None:
+            return
+        _virallab_apscheduler = _create_and_start_virallab_scheduler()
+
+
+@app.before_request
+def _virallab_scheduler_before_request():
+    ensure_virallab_background_scheduler()
 
 
 @app.route("/news/refresh")
@@ -4299,8 +5323,10 @@ def _render_china_content():
                     </div>
                     <div class="china-actions">
                         <button type="button" id="chinaFetchBtn" class="btn">{_html_escape(_t("viral_china_fetch_btn", lang))}</button>
+                        <button type="button" id="chinaTestDouyinBtn" class="btn">{_html_escape(_t("douyin_session_test_btn", lang))}</button>
                         <p class="china-help-text">建议先从 B站 + 知乎开始，速度更快；小红书/抖音未登录时可能为空。</p>
                     </div>
+                    <p id="chinaDouyinSessionResult" class="section-desc muted" style="margin:0.35rem 0 0.2rem 0;"></p>
                     <div class="tip-header" style="margin-top:0.4rem; flex-wrap:wrap; gap:0.5rem; align-items:center;">
                         <input type="text" id="chinaRewriteApiUrl" placeholder="模型改写 API URL（可选，例如 http://127.0.0.1:11434/api/generate）" style="max-width:28rem; width:100%; padding:0.35rem 0.5rem;">
                     </div>
@@ -4312,14 +5338,13 @@ def _render_china_content():
                 <div class="card china-panel">
                     <div class="tip-header"><span class="tip-label">{_html_escape(_t("china_content_login_title", lang))}</span></div>
                     <p class="section-desc muted" style="margin-bottom:0.45rem;">{_html_escape(_t("china_content_login_desc", lang))}</p>
-                    <pre class="muted" style="background:var(--bg); padding:0.5rem 0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">{_html_escape(_t("china_content_login_cmd", lang))}</pre>
+                    <pre class="muted" style="background:var(--bg); padding:0.5rem 0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto; white-space:pre-wrap; word-break:break-all; max-width:100%; box-sizing:border-box;">{_html_escape(_t("china_content_login_cmd", lang))}</pre>
                     <p class="section-desc muted" style="margin-top:0.35rem; font-size:0.875rem;">{_html_escape(_t("china_content_login_cmd_note", lang))}</p>
                     <p class="section-desc muted" style="margin-top:0.75rem; font-size:0.8rem; color:var(--muted); margin-bottom:0;">{_html_escape(_t("china_content_login_risk", lang))}</p>
                 </div>
                 <div class="card china-panel">
                     <p class="section-desc muted" style="margin:0 0 0.55rem 0;">{_html_escape(_t("china_content_after_fetch", lang))} <a href="/viral?source=china">Viral →</a></p>
                     <p class="section-desc muted" style="margin:0 0 0.55rem 0;">{_html_escape(_t("china_content_crawl_hint", lang))}</p>
-                    <p class="section-desc muted" style="margin:0;">English: X, Substack, Reddit hot data — coming soon.</p>
                 </div>
             </div>
             <div class="china-wide">
@@ -4580,8 +5605,35 @@ def _render_china_content():
             }});
         }}
         const btn = document.getElementById('chinaFetchBtn');
+        const testDouyinBtn = document.getElementById('chinaTestDouyinBtn');
         const resultEl = document.getElementById('chinaResult');
+        const sessionEl = document.getElementById('chinaDouyinSessionResult');
         if (!btn || !resultEl) return;
+        if (testDouyinBtn) {{
+            testDouyinBtn.addEventListener('click', async function() {{
+                const old = testDouyinBtn.textContent;
+                testDouyinBtn.disabled = true;
+                testDouyinBtn.textContent = {json.dumps(_t("douyin_session_testing", lang))};
+                if (sessionEl) sessionEl.textContent = '';
+                try {{
+                    const r = await fetch('/api/test-douyin-session', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify({{}})
+                    }});
+                    const d = await r.json().catch(function() {{ return {{ ok:false, message:'session check failed' }}; }});
+                    if (sessionEl) {{
+                        const extra = (d.reasons && d.reasons.length) ? (' · ' + d.reasons.join(' | ')) : '';
+                        sessionEl.textContent = (d.message || '') + extra;
+                    }}
+                }} catch (e) {{
+                    if (sessionEl) sessionEl.textContent = (e && e.message) ? e.message : 'session check failed';
+                }} finally {{
+                    testDouyinBtn.disabled = false;
+                    testDouyinBtn.textContent = old;
+                }}
+            }});
+        }}
         btn.addEventListener('click', async function() {{
             const platforms = Array.from(document.querySelectorAll('.china-cp:checked')).map(c => c.value);
             if (!platforms.length) {{ alert('Select at least one platform'); return; }}
@@ -4674,7 +5726,8 @@ def docs_bilibili_vpn():
         <div class="card" style="max-width:640px; margin-top:1rem;">
             <div class="tip-header"><span class="tip-label">方式二：单独给 B 站设代理</span></div>
             <p class="section-desc">若无法分流，在项目根目录建 <code>.env</code>，写入：</p>
-            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">BILIBILI_PROXY=http://127.0.0.1:你的直连代理端口</pre>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">BILIBILI_PROXY=http://127.0.0.1:18080</pre>
+            <p class="section-desc muted" style="margin-top:0.35rem;">与 Cursor 一致：本机 gost 固定口（Quick Queue 上游由 qq-http-bridge 自动对齐）。若你用的是别的 HTTP 前端，把端口改成你的监听口。</p>
             <p class="section-desc muted" style="margin-top:0.5rem;">保存后重启 <code>python server.py</code>，再在「热门视频」选中国来源重试。</p>
         </div>
         <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← 返回热门视频</a></p>
@@ -4694,7 +5747,8 @@ def docs_bilibili_vpn():
         <div class="card" style="max-width:640px; margin-top:1rem;">
             <div class="tip-header"><span class="tip-label">Option 2: Bilibili-only proxy</span></div>
             <p class="section-desc">Create <code>.env</code> in project root with:</p>
-            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem;">BILIBILI_PROXY=http://127.0.0.1:your-direct-proxy-port</pre>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem;">BILIBILI_PROXY=http://127.0.0.1:18080</pre>
+            <p class="section-desc muted" style="margin-top:0.35rem;">Same stable local HTTP front as Cursor (gost); Quick Queue upstream is updated by qq-http-bridge. Use your listen port if different.</p>
             <p class="section-desc muted" style="margin-top:0.5rem;">Restart the server, then try China source again on the Viral page.</p>
         </div>
         <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← Back to Viral</a></p>
@@ -4728,61 +5782,49 @@ if __name__ == "__main__":
     import socket
 
     OUTPUT.mkdir(exist_ok=True)
-    port = int(os.environ.get("PORT", 5001))
-    if not os.environ.get("PORT"):
-        for candidate in range(5001, 5010):
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.bind(("", candidate))
-                s.close()
-                port = candidate
-                break
-            except OSError:
-                continue
-        if port != 5001:
-            print(f"Port 5001 in use, using http://127.0.0.1:{port}")
     host = "0.0.0.0"  # Bind all interfaces so 127.0.0.1:5001 works locally
     debug = not os.environ.get("PORT")  # Auto-reload when running locally
-
-    # Start 60-min auto-refresh (only in the process that runs the app)
-    def _start_scheduler():
-        from apscheduler.schedulers.background import BackgroundScheduler
-        def _job_daily():
-            try:
-                _run_refresh_daily()
-            except Exception:
-                pass
-        def _job_news():
-            try:
-                _run_refresh_news()
-            except Exception:
-                pass
-        def _job_videos():
-            try:
-                _run_refresh_videos()
-            except Exception:
-                pass
-        sched = BackgroundScheduler()
-        sched.add_job(_job_daily, "interval", minutes=60, id="daily_news")
-        sched.add_job(_job_news, "interval", minutes=60, id="news_by_topic")
-        sched.add_job(_job_videos, "interval", minutes=60, id="viral_videos")
-        sched.start()
-        print("Daily news, News by topic & Viral videos: auto-refresh every 60 mins")
-        # Bootstrap: run once on startup if output is empty (fixes deploy/restart with no content)
-        if not (OUTPUT / "daily_news.md").exists() or not list(OUTPUT.glob("raw_*.md")) or not (OUTPUT / "videos_trending_viral.md").exists():
-            import threading
-            def _bootstrap():
+    port = int(os.environ.get("PORT", 5001))
+    if not os.environ.get("PORT"):
+        # Keep a stable port across Werkzeug reloader parent/child processes.
+        fixed = os.environ.get("VIRALLAB_DEV_PORT")
+        if fixed:
+            port = int(fixed)
+        elif os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            port = 5001
+        else:
+            chosen = 5001
+            for candidate in range(5001, 5010):
                 try:
-                    _run_refresh_daily()
-                    _run_refresh_news()
-                    _run_refresh_videos()
-                    print("Bootstrap: news and videos content populated")
-                except Exception as e:
-                    print(f"Bootstrap refresh failed: {e}")
-            threading.Thread(target=_bootstrap, daemon=True).start()
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.bind(("", candidate))
+                    s.close()
+                    chosen = candidate
+                    break
+                except OSError:
+                    continue
+            os.environ["VIRALLAB_DEV_PORT"] = str(chosen)
+            port = chosen
+            if port != 5001:
+                print(f"Port 5001 in use, using http://127.0.0.1:{port}")
 
+    # Auto-refresh: same as gunicorn — start scheduler in this process (reloader child or no-reloader).
     if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not debug:
-        _start_scheduler()
+        ensure_virallab_background_scheduler()
 
-    print(f"ViralLab at http://127.0.0.1:{port}" + (" (auto-reload on)" if debug else ""))
-    app.run(host=host, port=port, debug=debug, use_reloader=debug)
+    dev_url = f"http://127.0.0.1:{port}"
+    print(f"ViralLab at {dev_url}" + (" (auto-restart on save)" if debug else ""))
+
+    if debug:
+        # Werkzeug reloader: restarts the Python process on every .py save so
+        # code changes take effect immediately. The page JS polls and auto-refreshes.
+        app.run(host="127.0.0.1", port=port, debug=True, use_reloader=True)
+    else:
+        app.run(host=host, port=port, debug=False, use_reloader=False)
+
+
+# gunicorn/uvicorn load ``server:app`` without executing ``if __name__ == "__main__"`` — start jobs at import.
+if __name__ != "__main__":
+    _ss = os.environ.get("SERVER_SOFTWARE", "")
+    if _ss.startswith("gunicorn") or _ss.startswith("uvicorn"):
+        ensure_virallab_background_scheduler()

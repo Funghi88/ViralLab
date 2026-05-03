@@ -1,8 +1,6 @@
 # ViralLab
 
-<p align="center">
-  <img src="assets/thumbnail.png" alt="ViralLab — Engineer your influence" width="800">
-</p>
+
 
 **Engineer your influence. Turn noise into viral.**
 
@@ -11,6 +9,7 @@
 ViralLab scores content using Jonah Berger's STEPPS framework — behavioral science, not guesswork. Design content that spreads.
 
 ViralLab now includes professional, project-level skill workflows for:
+
 - strict Berger STEPPS contagious evaluation
 - strict Minto Pyramid structuring (conclusion-first, grouped logic, evidence mapping)
 - multi-source crawling + SEO discovery for bilingual tag coverage
@@ -45,21 +44,19 @@ If you create content and want to be ahead of the curve, ViralLab is for you.
 
 ## Professional Skill Sets Built In
 
-To keep outputs consistent and production-ready, ViralLab ships with reusable project skills under `.cursor/skills/`:
+Reusable Cursor Agent skills (Minto Pyramid, Berger STEPPS, crawling/SEO, platform virality, etc.) live in a **single machine-wide source**: `~/cursor-skills-source`. Run `~/cursor-skills-source/link-to-cursor.sh` once per Mac so Cursor loads them from `~/.cursor/skills/` in every project. See `.cursor/skills/README.md` for setup; do not duplicate those skills inside this repo.
 
 1. **Minto Pyramid Structuring** (`minto-pyramid-structuring`)
-   - Enforces single governing thought, grouped key points, and mapped evidence.
-   - Supports strict structure for transcript-to-article workflows.
-
+  - Enforces single governing thought, grouped key points, and mapped evidence.
+  - Supports strict structure for transcript-to-article workflows.
 2. **Contagious Berger STEPPS** (`contagious-berger-stepps`)
-   - Applies auditable STEPPS scoring and diagnosis for article/video/news cards.
-   - Helps answer: "Which content attracts attention?" and "What should we borrow?"
-
+  - Applies auditable STEPPS scoring and diagnosis for article/video/news cards.
+  - Helps answer: "Which content attracts attention?" and "What should we borrow?"
 3. **Multi-Source Crawling + SEO** (`multi-source-crawling-seo`, `technical-seo-discovery`)
-   - Expands discovery workflows for news, podcasts, and videos.
-   - Keeps EN/ZH ecosystems separated and generates hot-tag references for both.
+  - Expands discovery workflows for news, podcasts, and videos.
+  - Keeps EN/ZH ecosystems separated and generates hot-tag references for both.
 
-These skills are designed to make the project viable for repeated, professional use across teams—not one-off prompting.
+These skills are designed for repeated, professional use across teams—not one-off prompting.
 
 ---
 
@@ -71,31 +68,36 @@ These skills are designed to make the project viable for repeated, professional 
 git clone https://github.com/Funghi88/ViralLab.git
 cd ViralLab
 ./scripts/install.sh
-source .venv/bin/activate
-python server.py
+./scripts/dev-server.sh
 ```
 
-Open **http://127.0.0.1:5001** in your browser.
+Open **[http://127.0.0.1:5001](http://127.0.0.1:5001)** in your browser.
 
 ### Commands
 
-| What you want | Command |
-|---------------|---------|
-| **Daily news** (top 3 today) | `.venv/bin/python main.py --daily-news` |
-| News on a topic | `.venv/bin/python main.py --search-only "AI agents"` |
-| Viral videos (ranked by spread rate) | `.venv/bin/python main.py --videos "trending viral"` |
-| Videos + full transcript (markdown) | `.venv/bin/python main.py --videos "AI explainer" --transcript` |
-| Single media link/file → text | `.venv/bin/python main.py --video-to-text <url_or_media_path>` |
-| Web dashboard | `.venv/bin/python server.py` |
+
+| What you want                        | Command                                                         |
+| ------------------------------------ | --------------------------------------------------------------- |
+| **Daily news** (top 3 today)         | `.venv/bin/python main.py --daily-news`                         |
+| News on a topic                      | `.venv/bin/python main.py --search-only "AI agents"`            |
+| Viral videos (ranked by spread rate) | `.venv/bin/python main.py --videos "trending viral"`            |
+| Videos + full transcript (markdown)  | `.venv/bin/python main.py --videos "AI explainer" --transcript` |
+| Single media link/file → text        | `.venv/bin/python main.py --video-to-text <url_or_media_path>`  |
+| Web dashboard                        | `.venv/bin/python server.py`                                    |
+| Web dashboard (safe restart)         | `./scripts/dev-server.sh`                                       |
+
 
 ### In the app
 
-- **Daily News** — Top 3 most talked about or key focus topics. Each section has its own page.
+- **Daily News** — Top stories for creators (EN/ZH). With `server.py` running, the digest refreshes about every **30 minutes**; if `output/daily_news_updated.txt` is older than **~8 hours**, opening `/daily` also kicks off a **debounced background refresh**. Use **立即刷新** anytime, or `GET /api/refresh-daily` from cron on sleeping hosts. See `.env.example` (`DAILY_REFRESH_INTERVAL_MINUTES`, etc.).
 - **Your field** — Choose your field (fashion, tech, food, beauty, content) for curated trends, color forecasting, and reliable resources.
 - **Viral Videos** — Search by topic (YouTube or Bilibili). Berger score, content angles, trend lifecycle.
 - **Long-form & Podcasts** — Dedicated page for deep articles + podcast signals, with EN/ZH hot-tag references.
 - **STEPPS & Magic Words** — Learn how we score. Jonah Berger's framework, explained.
 - **Video to Text** — Paste platform URL/audio link (or local media path) → markdown transcript + Berger score + Minto structure tab.
+- **Article Lab + Publish Queue** — Rewrite markdown with Minto + STEPPS, then queue/approve publish to X or blog.
+- **WeChat 公众号 / 小红书** — ViralLab 不内置 mp/小红书后台自动化。定稿 markdown 后，在 **Cursor** 里让 Agent 按全局技能 **wechat-mp-auto**、**xiaohongshu-auto** 操作浏览器发布（真源 `~/cursor-skills-source`，先跑 `link-to-cursor.sh`）。发布页 `/publish` 有简要说明。详见 `.cursor/rules/virallab-cursor-publish-handoff.mdc`。
+- **Workflow hardening** — Publish queue includes duplicate prevention, quality warnings, and audit events for safer agentic automation.
 
 ---
 
@@ -115,6 +117,15 @@ High score = content that taps into social currency, emotion, practical value, s
 
 Python 3.12+. No API keys for news/videos.
 
+**Publish queue webhooks (optional):**
+
+```bash
+X_PUBLISH_WEBHOOK=https://your-endpoint/x
+BLOG_PUBLISH_WEBHOOK=https://your-endpoint/blog
+```
+
+If webhook is unset, publish actions are still tracked locally in `output/publish_queue.json`.
+
 **Transcript coverage (recommended):**
 
 ```bash
@@ -122,6 +133,14 @@ pip install videocaptioner
 ```
 
 ViralLab uses YouTube captions first when available. For Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, and broader podcast/audio links, VideoCaptioner enables ASR fallback transcript generation.
+
+**Higher-quality ASR (optional):** Install WhisperX for multilingual speech-to-text with word-level timestamps and alignment (better for subtitles and noisy short video). Requires `ffmpeg` on your PATH. With no `VIRALLAB_WHISPER_MODEL` set, GPU/MPS use `large-v3`; on CPU, `VIRALLAB_WHISPER_MAX_ACCURACY=1` (default) also uses `large-v3` (slower), or set it to `0` for `medium` only on CPU.
+
+```bash
+pip install -r requirements-asr.txt
+```
+
+Environment variables: see `.env.example` (`VIRALLAB_ASR_ENGINE`, `VIRALLAB_WHISPER_MODEL`, `VIRALLAB_WHISPER_MAX_ACCURACY`, `VIRALLAB_WHISPER_DEVICE`, `VIRALLAB_WHISPER_BATCH_SIZE`, `VIRALLAB_WHISPER_LOG`, `VIRALLAB_FFMPEG_AF_PRESET`). Default `VIRALLAB_ASR_ENGINE=auto` uses WhisperX when installed, otherwise VideoCaptioner. Render and other small hosts often omit this extra stack; keep `requirements.txt` only for minimal deploys. `VIRALLAB_WHISPER_LOG` (default on) toggles stderr lines prefixed with `[whisperx]`: the pre-run settings line and a short `[whisperx] error: …` line if ASR fails (no traceback); set to `0` to silence both.
 
 **China users:** DuckDuckGo and YouTube require VPN. Use our China sources (Bilibili, Douyin, Xiaohongshu, Shipinhao) for content without VPN. See [CHINA_ACCESS.md](CHINA_ACCESS.md).
 
@@ -142,7 +161,7 @@ Results are written to `output/china_crawler_<platform>.json`. The app merges th
 
 ## Deploy
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Funghi88/ViralLab)
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/Funghi88/ViralLab)
 
 1. Click the button above (or go to [render.com](https://render.com) → New → Web Service).
 2. Connect your GitHub and select the ViralLab repo. Render detects `render.yaml`.
@@ -165,3 +184,4 @@ See [DEPLOY.md](DEPLOY.md) for full instructions.
   - `contagious-berger-stepps`
   - `multi-source-crawling-seo`
   - `technical-seo-discovery`
+

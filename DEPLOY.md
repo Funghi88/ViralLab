@@ -14,6 +14,10 @@ Where to host ViralLab when you're ready to go online.
 
 **Note:** `docs/` is in `.gitignore` — internal docs stay private. The rest is open source.
 
+**Background jobs:** If you use `gunicorn server:app` (or uvicorn), the app now starts the same APScheduler as `python server.py` at import time (detected via `SERVER_SOFTWARE`). If your WSGI server does not set that, the first HTTP request still starts the scheduler (`@app.before_request`). Set `VIRALLAB_DISABLE_SCHEDULER=1` if you rely entirely on external cron.
+
+**Optional ASR (WhisperX):** Not part of the default `requirements.txt`. For higher-quality video-to-text on your own hardware, install `pip install -r requirements-asr.txt` and set env vars from `.env.example` (`VIRALLAB_ASR_ENGINE`, etc.). On **CPU-only** hosts (typical free tier), Whisper defaults to a smaller model and is slow; **GPU** (CUDA) is recommended for `large-v3`. Render’s slim image usually keeps **VideoCaptioner** (`videocaptioner` package) as the practical ASR path unless you build a custom image with PyTorch + WhisperX.
+
 ---
 
 ## Production viability: what happens on reconnect/restart
@@ -76,7 +80,10 @@ Where to host ViralLab when you're ready to go online.
 
 2. Set env: `PORT` is provided by platform.
 
-3. **Keep daily news fresh**: Hit `GET /api/refresh-daily` daily (e.g. 8am). Use cron-job.org, GitHub Actions, or platform cron. Optional: set `CRON_SECRET` env and add `?key=your-secret` to the URL.
+3. **Keep daily news fresh**:
+   - While `python server.py` is running, the app refreshes **`scripts/daily_news.py` every 30 minutes** by default (`DAILY_REFRESH_INTERVAL_MINUTES`, min 10, max 180).
+   - If users only open the site occasionally, **`/daily` auto-starts a background refresh** when `output/daily_news_updated.txt` is older than 8 hours (debounced; tune with `DAILY_AUTO_REFRESH_IF_OLDER_THAN_HOURS` / `DAILY_AUTO_REFRESH_DEBOUNCE_SEC`).
+   - For **serverless / sleeping dynos**, still ping `GET /api/refresh-daily` on a schedule (e.g. every 6h) via cron-job.org, GitHub Actions, or platform cron. Optional: `CRON_SECRET` + `?key=...`.
 
 ---
 

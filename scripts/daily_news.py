@@ -80,6 +80,16 @@ def main():
         pass
 
     print(f"Saved EN (sources: {', '.join(sources_en)}) and ZH (sources: {', '.join(sources_zh)})")
+
+    try:
+        from src.output_cleanup import cleanup_ephemeral_output
+
+        removed = cleanup_ephemeral_output(output_dir)
+        if removed:
+            print(f"Cleaned {len(removed)} file(s) older than retention (OUTPUT_RETENTION_DAYS): {', '.join(removed[:8])}{'…' if len(removed) > 8 else ''}")
+    except Exception as e:
+        print(f"[daily_news] output cleanup skipped: {e}")
+
     return output_dir / "daily_news.md"
 
 

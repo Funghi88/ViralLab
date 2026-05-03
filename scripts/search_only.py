@@ -9,10 +9,22 @@ PROJECT_ROOT = Path(__file__).parent.parent
 def search_news(topic: str, max_results: int = 12) -> str:
     """Search multiple sources by topic. Returns formatted raw results."""
     try:
+        from src.diagnostics import classify_error_message
         from src.news_sources import fetch_all_topic_sources
         items, _ = fetch_all_topic_sources(topic, target_total=max_results)
     except Exception as e:
-        return f"# Search error\n{str(e)}"
+        try:
+            from src.diagnostics import classify_error_message
+            diag = classify_error_message(str(e), context="news")
+            return (
+                "# Search error\n"
+                f"Code: {diag['code']}\n"
+                f"Category: {diag['category']}\n"
+                f"Hint: {diag['hint']}\n"
+                f"{str(e)}"
+            )
+        except Exception:
+            return f"# Search error\n{str(e)}"
 
     if not items:
         return f"# No news found for: {topic}"
@@ -29,12 +41,14 @@ def search_news(topic: str, max_results: int = 12) -> str:
 
 
 def main():
+    from src.news_sources import raw_topic_file_stem
+
     topic = sys.argv[1] if len(sys.argv) > 1 else "AI agents"
     output_dir = PROJECT_ROOT / "output"
     output_dir.mkdir(exist_ok=True)
 
     raw = search_news(topic)
-    safe_topic = topic.replace(" ", "_")[:30]
+    safe_topic = raw_topic_file_stem(topic)
     out_file = output_dir / f"raw_{safe_topic}.md"
     out_file.write_text(raw, encoding="utf-8")
 

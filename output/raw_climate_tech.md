@@ -1,78 +1,85 @@
 # Raw news results: climate tech
 
-## 1. Ask HN: The new wave of AI agent sandboxes?
+## 1. Clean energy economy is ‘repricing itself,’ investor says at DC Climate Week
 
-In the last couple of months, several new solutions for sandboxing AI agents have launched (microVMs, WASM runtimes, browser isolation, hardened tool containers, etc.). Curious to hear from people using them in production. Are they working as adverti
+Decarbonization is not ESG, it's EBITDA,” Climate Innovation Capital Managing Partner Nelson Switzer said at the opening of ...
 
-Source: Hacker News
-URL: https://news.ycombinator.com/item?id=47254841
+Source: DuckDuckGo News
+URL: https://finance.yahoo.com/sectors/energy/articles/clean-energy-economy-repricing-itself-124000761.html
 
-## 2. This job has become the ultimate case study why AI won't replace human workers
+## 2. How 12 Climate Tech Startups Are Shaping the $2.3 Trillion Energy Transition
+
+Clean transportation is the biggest chunk of the climate tech investing pie. The sector saw $893 billion in funding last year ...
+
+Source: DuckDuckGo News
+URL: https://www.bloomberg.com/features/2026-green-tech-startups-bnef-pioneer-award-winners/
+
+## 3. From trash to climate tech: Rubber gloves find new life as carbon capturers
 
 Hacker News
 
 Source: Hacker News
-URL: https://www.cnn.com/2026/02/09/tech/ai-replacing-jobs-concerns-radiology
+URL: https://phys.org/news/2026-02-trash-climate-tech-rubber-gloves.html
 
-## 3. Trump to meet tech giants on energy pledge ahead of midterms
+## 4. The frantic, high-tech fight to stop climate-fueled dengue fever
+
+Hacker News
+
+Source: Hacker News
+URL: https://grist.org/health/the-fight-to-stop-climate-fueled-dengue-fever-mosquitoes/
+
+## 5. Improved EV battery gains will outmatch degradation from climate change
+
+Hacker News
+
+Source: Hacker News
+URL: https://techxplore.com/news/2026-03-ev-battery-gains-outmatch-degradation.html
+
+## 6. Proton's Swiss Myth: US Jurisdiction via Cloudflare and FAA Arbitration Clauses
+
+The "Swiss Sanctuary" is a Network and Legal MirageAs a Business customer, I performed a technical and legal audit of Proton AG’s current infrastructure. The results show a systemic disconnect between their "100% Swiss" marketing and their actual ope
+
+Source: Hacker News
+URL: https://news.ycombinator.com/item?id=47364922
+
+## 7. Tech giants sign energy pledge at White House ahead of midterms
 
 Hacker News
 
 Source: Hacker News
 URL: https://www.reuters.com/sustainability/climate-energy/trump-meet-tech-giants-energy-pledge-ahead-midterms-2026-03-04/
 
-## 4. Show HN: OpenMandate – Declare what you need, get matched
+## 8. The World Needs China's Climate Tech. That's the Dilemma
 
-Hi HN, I'm Raj.We all spend a bulk of our time looking for the right job, cofounders, hires. Post on boards, search, connect, ask around. Hit ratio is very low. There's this whole unsaid rule that you have to build your network for this kind of thing
-
-Source: Hacker News
-URL: https://openmandate.ai
-
-## 5. From trash to climate tech: Rubber gloves find new life as carbon capturers
-
-Every year, over 100 billion nitrile rubber gloves are produced. They are made from synthetic polymers—a material chemically related to plastic and derived from crude oil. The vast majority is used in the health care sector,
+There’s a Chinese expression—zuò shan guan hǔ dòu—which roughly translates to “Sit on the mountain and watch tigers fight.” For attendees at this year’s World Economic Forum (WEF) annual meeting in ...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/weather/topstories/from-trash-to-climate-tech-rubber-gloves-find-new-life-as-carbon-capturers/ar-AA1Xek4z
+URL: https://www.yahoo.com/news/articles/world-needs-chinas-climate-tech-205052083.html
 
-## 6. A Physicist‑Turned‑VC Says Our Climate Playbook Is Broken—and Entrepreneurs Are the Only Ones Who Can Fix It
+## 9. Venture Capital Is Rushing to Invest in Climate Tech, but on 1 Condition
 
-Google X founding member Tom Chi says our climate, tech, and economic systems are breaking. His new book shows entrepreneurs how to regain agency in an unstable century.
-
-Source: DuckDuckGo News
-URL: https://www.inc.com/tim-crino/a-physicist-turned-vc-says-our-climate-playbook-is-broken-and-entrepreneurs-are-the-only-ones-who-can-fix-it/91302943
-
-## 7. Dutch climate tech start-up Proba expands into the U.S. and Brazil following €1.25M raise to scale Scope 3 reductions
-
-Our ambition is to make fertilizer-related Scope 3 reductions standard practice in global agri-food supply chains."—
+The halo effect of AI extends even to the troubled climate tech sector. According to a Pitchbook analyst note, investment in climate tech companies that were linked to AI surged to a record high in ...
 
 Source: DuckDuckGo News
-URL: https://www.freep.com/press-release/story/148769/dutch-climate-tech-start-up-proba-expands-into-the-u-s-and-brazil-following-e1-25m-raise-to-scale-scope-3-reductions/
+URL: https://www.inc.com/chloe-aiello/venture-capital-investing-climate-tech-ai-pitchbook/91290738
 
-## 8. Show HN: Groundwork – Organizing the AI-Driven "Time Surplus" for Impact
+## 10. Climate tech companies dominate PNW funding with the three biggest investment rounds in 2025
 
-Hi HNToday we are launching Groundwork (https://www.groundwork.today), but before getting into the platform itself, I want to share the macro thesis that led us to build it.The Macro Shift: The "Time Surplus" When you look at the history of human lab
-
-Source: Hacker News
-URL: https://www.groundwork.today
-
-## 9. The World Needs China's Climate Technology. That's the Dilemma
-
-For attendees at this year's World Economic Forum (WEF) annual meeting in Davos, Switzerland, this image was on full display. Inside WEF's Congress Center, wealthy nations circled and lunged. U.S. President Donald Trump's Greenland theatrics made him
+Sustainability: News about the rapidly growing climate tech sector and other areas of innovation to protect our planet. SEE MORE by Lisa Stiffler on Aug 28, 2025 at 7:00 am October 14, 2025 at 4:10 pm ...
 
 Source: DuckDuckGo News
-URL: https://time.com/7373140/china-world-leader-climate-energy-technology/
+URL: https://www.geekwire.com/2025/climate-tech-companies-dominate-pnw-funding-with-the-three-biggest-investment-rounds-in-2025/
 
-## 10. Trump policies aren't stopping VCs from plowing big money into climate tech
+## 11. Trump policies aren’t stopping VCs from plowing big money into climate tech
 
-It's not an easy time to run a climate tech company in the U.S. But data from the first half of the year shows something surprising: Despite the changes in federal policy, investment in these companies is growing. The State of Climate Tech, a new glo
+It’s not an easy time to run a climate tech company in the U.S. But data from the first half of the year shows something surprising: Despite the changes in federal policy, investment in these ...
 
 Source: DuckDuckGo News
 URL: https://www.fastcompany.com/91365539/trump-policies-arent-stopping-vcs-from-plowing-big-money-into-climate-tech
 
-## 11. The climate tech making retail smarter and more profitable
+## 12. 15 Climate Tech Startups to Watch in 2026 - Trellis Group (formerly GreenBiz)
 
-Retail is changing, but not because it wants to. From fashion to food, most C-suites are still running on 20th-century systems, designed for a world where raw materials were cheap, landfills were bottomless, and customers didn't ask hard questions.
+15 Climate Tech Startups to Watch in 2026&nbsp;&nbsp;Trellis Group (formerly GreenBiz)
 
-Source: DuckDuckGo News
-URL: https://www.fastcompany.com/91361872/the-climate-tech-making-retail-smarter-and-more-profitable
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMickFVX3lxTE41NVAxMlg3Vm9jTm1DQk9tTGsyRUxXRkJjd0QxOTJSQU5fdng3QUo1MU1DUDBDdV9OanFHTFMycVVfeFBTWkVEYmliOUlRSTV3QlFyU2tqbGJ4VFl1eEpuLWYyY28xbWN6dllmcl9sNDJGZw?oc=5

@@ -1,0 +1,30 @@
+{
+  "updated_at": "2026-03-25T02:18:07.129265+00:00",
+  "items": [
+    {
+      "id": "9c2177971ad6",
+      "title": "test",
+      "content": "hello world",
+      "platform": "x",
+      "status": "queued",
+      "source_file": "",
+      "created_at": "2026-03-25T02:13:45.175312+00:00",
+      "schedule_at": "",
+      "published_at": "",
+      "publish_result": ""
+    },
+    {
+      "id": "b4566b05342c",
+      "title": "dup",
+      "content": "short text",
+      "platform": "x",
+      "status": "queued",
+      "source_file": "",
+      "fingerprint": "e0fae6f7911290f4",
+      "created_at": "2026-03-25T02:18:07.129063+00:00",
+      "schedule_at": "",
+      "published_at": "",
+      "publish_result": ""
+    }
+  ]
+}

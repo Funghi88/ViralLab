@@ -3,6 +3,8 @@ import os
 import re
 import time
 from typing import Optional
+from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
 
 from src.ddg_client import get_ddgs_class
 
@@ -227,6 +229,30 @@ def score_berger(text: str) -> dict:
 
 
 def extract_youtube_id(url: str) -> Optional[str]:
-    """Extract video ID from YouTube URL."""
-    m = re.search(r"(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]{11})", url)
-    return m.group(1) if m else None
+    """Extract 11-char video ID from common YouTube URL shapes."""
+    if not url:
+        return None
+    _id_re = r"([a-zA-Z0-9_-]{11})"
+    patterns = (
+        r"(?:youtube\.com/watch\?[^#]*[&?]v=)" + _id_re,
+        r"(?:youtube\.com/watch\?v=)" + _id_re,
+        r"youtu\.be/" + _id_re,
+        r"youtube\.com/shorts/" + _id_re,
+        r"youtube\.com/live/" + _id_re,
+        r"youtube\.com/embed/" + _id_re,
+    )
+    for pat in patterns:
+        m = re.search(pat, url)
+        if m:
+            return m.group(1)
+    try:
+        parsed = urlparse(url)
+        host = (parsed.netloc or "").lower()
+        if "youtube.com" in host or "youtu.be" in host:
+            for key in ("v", "vi"):
+                vals = parse_qs(parsed.query).get(key)
+                if vals and len(vals[0]) == 11 and re.match(r"^[a-zA-Z0-9_-]{11}$", vals[0]):
+                    return vals[0]
+    except Exception:
+        pass
+    return None

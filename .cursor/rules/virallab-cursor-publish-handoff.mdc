@@ -1,0 +1,27 @@
+---
+description: ViralLab 与 Cursor Skills 分工 — 成品 markdown 交给 wechat-mp-auto / xiaohongshu-auto 发公众号与小红书
+alwaysApply: false
+---
+
+# ViralLab × Cursor：公众号 / 小红书发布手递手
+
+## 分工（不要混在同一套 Webhook 里硬接）
+
+| 环节 | 在哪里做 |
+|------|-----------|
+| 视频转文字、Minto/STEPPS 结构化、Article Lab 改写、`output/*.md` | **ViralLab**（本仓库 + `server.py`） |
+| 发布队列、X / 博客（`X_PUBLISH_WEBHOOK` / `BLOG_PUBLISH_WEBHOOK`） | **ViralLab** `/publish` |
+| **微信公众号**图文（mp 后台排版、预览、发表） | **Cursor Agent** + 全局技能 **`wechat-mp-auto`**（浏览器自动化 `mp.weixin.qq.com`） |
+| **小红书**图文笔记（创作平台上传、话题、定时） | **Cursor Agent** + 全局技能 **`xiaohongshu-auto`**（`creator.xiaohongshu.com`） |
+
+## 推荐操作顺序
+
+1. 在 ViralLab 里完成：转写 → 改写 → 导出或保存为 `output/article_rewrite_*.md` / `transcript_*.md`（或复制发布队列里的正文）。
+2. 在 Cursor 新对话中说明：「按 **wechat-mp-auto**（或 **xiaohongshu-auto**）把下面 markdown 发到公众号/小红书」，并贴上**已定稿**的正文；若含图片，提供本机图片路径列表。
+3. Agent 需已链接真源：`~/cursor-skills-source` → `link-to-cursor.sh`，且 **cursor-ide-browser** MCP 可用（登录扫码由你在浏览器完成）。
+
+## 注意
+
+- 平台 ToS、登录态、界面改版会导致自动化失败；失败时按 skill 里的手动回退步骤操作。
+- 公众号正文外链、竞品平台名等有平台规范，以 **wechat-mp-auto** 内校验为准。
+- 不要把公众号/小红书的账号密码写进仓库或 skill；仅用已登录会话 + 扫码续期。

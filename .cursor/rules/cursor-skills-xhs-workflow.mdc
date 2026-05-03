@@ -1,0 +1,39 @@
+---
+description: ViralLab — XHS 全文/转写/改稿与全局 skills 对齐（cursor-skills-source）
+alwaysApply: true
+---
+
+# ViralLab × cursor-skills-source（小红书逐字稿 / 高转化稿 / 口播）
+
+真源目录：`~/cursor-skills-source`。安装/更新后在本机执行 `~/cursor-skills-source/link-to-cursor.sh`，Cursor 从 `~/.cursor/skills/<name>/SKILL.md` 加载。
+
+## 何时引用本规则
+
+用户要做：小红书博主逐字稿、笔记全文、视频转文字、高转化图文/口播稿、去 AI 腔润色、口播结构排练。
+
+## 1. 单条笔记全文与评论（与代码爬虫分工）
+
+- **本仓库 Playwright 搜索爬虫**：[`tools/china_crawler/platforms/xhs.py`](tools/china_crawler/platforms/xhs.py) 负责 **关键词搜索 → 笔记卡片 URL 列表**，不打开详情页抠正文。
+- **单条 URL 全文 / 展开 / 评论**：在 Cursor 内按全局技能 **content-scraper** 执行（依赖 **browser-automation** + **cursor-ide-browser** MCP）：详情页、点击「展开」、拼接 `.note-text` 段落；评论建议上限约 50 条；PC 端 `www.xiaohongshu.com` 通常更易抓取。登录墙出现时按 skill 要求用户登录后再继续。
+
+## 2. 视频逐字稿
+
+优先级与 **video-transcribe** 及现有代码一致：**平台内嵌字幕 > yt-dlp 抽音频 > Whisper / MLX**。ViralLab 实现入口：[`server.py`](server.py) `video-to-text`、`_fetch_transcript_from_input`；[`src/media_transcribe.py`](src/media_transcribe.py)。
+
+**限制**：小红书站内涵直链常受登录与风控影响；任意 XHS URL 不一定能被 yt-dlp 直接拉流。可行路径：已下载/录屏的本地音视频 → 走 `media_transcribe` 或 skill 中的 Whisper 流程。
+
+## 3. 高转化文稿链路
+
+- **ad-copywriting**：Brief、角度、7:3、小红书正文模板、抖音/视频号口播脚本（含停顿/语气）。
+- **content-rewrite**：先解构爆款逻辑骨架，再换案例与表达做原创（避免与原文连续重复）。
+- **ai-polish**：中文去 AI 腔、朗读节奏检查。英文或多语稿可辅以 **humanizer**（与 ai-polish 勿重复劳动）。
+
+口播表现力以 **ad-copywriting** 脚本层 + **yizhou-ppt** 的演讲备注（时间分配、开场/互动）为辅；**不能替代**真人录像复盘与练习。
+
+## 4. 可选：发布
+
+**xiaohongshu-auto** 面向创作平台图文发布自动化；注意平台 ToS、登录与合规标注。
+
+## 5. 「26 个新技能」逐条打分
+
+若需要对用户自定义的 **26 个技能名** 逐一评分，请用户提供清单或 `git log` / 提交范围；本规则不替代该清单。

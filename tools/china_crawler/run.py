@@ -14,6 +14,9 @@ _PLATFORM_IDS = {
     "shipinhao": "shipinhao",
     "zhihu": "zhihu",
     "bilibili": "bilibili",
+    "tiktok": "tiktok",
+    "x": "x",
+    "instagram": "instagram",
 }
 _FETCH_FUNCS = {
     "xhs": "fetch_xhs_search",
@@ -21,6 +24,9 @@ _FETCH_FUNCS = {
     "shipinhao": "fetch_shipinhao_search",
     "zhihu": "fetch_zhihu_search",
     "bilibili": "fetch_bilibili_search",
+    "tiktok": "fetch_tiktok_search",
+    "x": "fetch_x_search",
+    "instagram": "fetch_instagram_search",
 }
 
 # Login URLs for saving session (user logs in in browser, we save storage state)
@@ -29,6 +35,8 @@ _LOGIN_URLS = {
     "douyin": "https://www.douyin.com",
     "zhihu": "https://www.zhihu.com",
     "shipinhao": "https://channels.weixin.qq.com",
+    "x": "https://x.com",
+    "instagram": "https://www.instagram.com",
 }
 
 
@@ -42,8 +50,8 @@ def login_cmd(args: argparse.Namespace) -> int:
     platform = (args.platform or "xhs").lower()
     if platform not in _LOGIN_URLS:
         print(
-            f"Error: unsupported platform {platform}. Use: xhs, douyin, shipinhao, zhihu "
-            "(bilibili does not require login)",
+            f"Error: unsupported platform {platform}. Use: xhs, douyin, shipinhao, zhihu, x, instagram "
+            "(bilibili and tiktok do not require login)",
             file=sys.stderr,
         )
         return 1
@@ -87,7 +95,7 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     if platform not in _PLATFORM_IDS:
-        print(f"Error: unsupported platform {platform}. Use: xhs, douyin, shipinhao, zhihu, bilibili", file=sys.stderr)
+        print(f"Error: unsupported platform {platform}. Use: xhs, douyin, shipinhao, zhihu, bilibili, tiktok, x, instagram", file=sys.stderr)
         return 1
     if crawl_type != "search":
         print(f"Error: unsupported type {crawl_type}. Use: search", file=sys.stderr)
@@ -139,7 +147,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="China crawler (multi-platform search).")
     sub = parser.add_subparsers(dest="command", required=True)
     run_parser = sub.add_parser("run", help="Run a crawl job")
-    run_parser.add_argument("--platform", "-p", default="xhs", help="Platform: xhs, douyin, shipinhao, zhihu, bilibili")
+    run_parser.add_argument("--platform", "-p", default="xhs", help="Platform: xhs, douyin, shipinhao, zhihu, bilibili, tiktok, x, instagram")
     run_parser.add_argument("--type", "-t", default="search", help="Crawl type: search")
     run_parser.add_argument("--keywords", "-k", required=True, help="Search keywords")
     run_parser.add_argument("--max", "-n", default="20", help="Max results (default 20, max 50)")

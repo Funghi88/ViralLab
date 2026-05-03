@@ -1,71 +1,64 @@
 # Trending Videos: trending viral
 
-## 1. 🚀🎬 Top 5 Trending & Viral Moments Compilation!
-- URL: https://www.youtube.com/watch?v=qfwyV9C0FXM
-- Views: N/A
-- **Berger score: 35/100**
+## 1. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 29th
+- URL: https://www.youtube.com/watch?v=YIri00nXVwE
+- Views: 578009
+- **Berger score: 20/100**
+- Magic words: new
+- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 29th New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 12th Connect with me: Facebook: https://facebook.co
+
+## 2. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends May 1st
+- URL: https://www.youtube.com/watch?v=bxU9EvIEd8A
+- Views: 523133
+- **Berger score: 20/100**
+- Magic words: new
+- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends May 1st New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 12th Connect with me: Facebook: https://facebook.com/K
+
+## 3. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 28th
+- URL: https://www.youtube.com/watch?v=wauLH5_XMbw
+- Views: 497334
+- **Berger score: 20/100**
+- Magic words: new
+- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 28th New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 12th Connect with me: Facebook: https://facebook.co
+
+## 4. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends May 2nd
+- URL: https://www.youtube.com/watch?v=gLYFLd88Xu4
+- Views: 436405
+- **Berger score: 20/100**
+- Magic words: new
+- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends May 2nd New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 12th Connect with me: Facebook: https://facebook.com/K
+
+## 5. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 30th
+- URL: https://www.youtube.com/watch?v=7uMfjjOZ3pM
+- Views: 342923
+- **Berger score: 20/100**
+- Magic words: new
+- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends April 30th New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 12th Connect with me: Facebook: https://facebook.co
+
+## 6. Wait for last #shorts #viral #trending #comedy #thimingalam #whatsappstatus
+- URL: https://www.youtube.com/watch?v=m-Lv02metNc
+- Views: 195800
+- **Berger score: 28/100**
 - Magic words: none
-- Here are the Top 5 viral videos from our channel that everyone is talking about! 🔥📺 From emotional debates to trending discussions, these videos gained massive views and love from our audience. ️ Did 
+- Wait for last #shorts #viral #trending #comedy #thimingalam #whatsappstatus @thimingalam4176
 
-## 2. 👉 Top 20 Viral TikTok Dances of 2026 🔥 (Trending Now) 
-- URL: https://www.youtube.com/watch?v=jE4NarpgvFc
-- Views: 1
+## 7. Trending Song 💃 | Viral video #viral #viralvideo
+- URL: https://www.youtube.com/watch?v=F8393iIrx7g
+- Views: 141401
 - **Berger score: 20/100**
 - Magic words: none
-- Description: Welcome to the Top 20 Viral TikTok Dances of 2026 🔥 (Trending Now)! This ultimate dance compilation features the most popular, trending, and iconic TikTok dance moves that are going viral
+- Trending Song 💃 | Viral video #viral #viralvideo Get ready to groove! 🕺💃 Watch this viral dance video featuring the trending song that everyone's talking about! Don't forget to like, comment, and subs
 
-## 3. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 1st
-- URL: https://www.youtube.com/watch?v=kjS1OJU_gxM
-- Views: 590136
-- **Berger score: 20/100**
-- Magic words: new
-- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends March 1st Connect with me: Facebook: https://facebook.com/KuyaMagik Instagram: https://Instagram.com/KuyaMagik Tiktok: https://www.tik
-
-## 4. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends Febuary 28th
-- URL: https://www.youtube.com/watch?v=DW7gpyQRtRM
-- Views: 689920
-- **Berger score: 20/100**
-- Magic words: new
-- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends Febuary 28th Connect with me: Facebook: https://facebook.com/KuyaMagik Instagram: https://Instagram.com/KuyaMagik Tiktok: https://www.
-
-## 5. New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends Febuary 25th
-- URL: https://www.youtube.com/watch?v=Pv3dKpTxIP4
-- Views: 542589
-- **Berger score: 20/100**
-- Magic words: new
-- New Tiktok Mashup 2026 Philippines Party Music Viral Dance Trends February 25th Connect with me: Facebook: https://facebook.com/KuyaMagik Instagram: https://Instagram.com/KuyaMagik Tiktok: https://www
-
-## 6. Spotify Trending 2026 - Viral songs latest - Pop Hits 2026 (Playlist Mix Hits)
-- URL: https://www.youtube.com/watch?v=tV_qYLSRypU
-- Views: 41139
-- **Berger score: 40/100**
-- Magic words: you
-- Spotify Trending 2026 - Viral songs latest - Pop Hits 2026 (Playlist Mix Hits)ơ https://youtu.be/tV_qYLSRypU Music in 2026 doesn't wait — it spreads. This playlist captures the sound that moves across
-
-## 7. How To Find Viral TikTok Trends in Seconds #shorts
-- URL: https://www.youtube.com/watch?v=bYc-bQVd69Q
-- Views: 6
-- **Berger score: 55/100**
-- Magic words: you
-- Do this to find what's trending in your niche in seconds on TikTok. This video shows you how to find trending TikTok posts that you can recreate to go viral in 2026.
-
-## 8. CHANEL X SHINY VIRAL DANCE TREND 🔥 #shorts #dance #couple #trend
-- URL: https://www.youtube.com/watch?v=iME9X01Of7g
-- Views: 37056190
+## 8. Sydney's "Inappropriate" Dance Goes Viral #shorts #sydneysweeney #euphoria
+- URL: https://www.youtube.com/watch?v=xyBrSe9q_tc
+- Views: 64487
 - **Berger score: 15/100**
 - Magic words: none
-- CHANEL X SHINY VIRAL DANCE TREND 🔥 #shorts #dance #couple #trend
+- Sydney's "Inappropriate" Dance Goes Viral #shorts #sydneysweeney #euphoria Sydney Sweeney sparks debate after a controversial wedding dance scene in Euphoria alongside Jacob Elordi. Fans are divided o
 
-## 9. Reality Of Viral Song Papaoutai
-- URL: https://www.youtube.com/watch?v=TsOZu_aYQwU
-- Views: 6793572
-- **Berger score: 20/100**
+## 9. Tiktok Viral Trend |Copines Trend #tiktok #trending #edit #trend #dance #lyrics#viralvideo
+- URL: https://www.youtube.com/watch?v=A8aF6sTwzGE
+- Views: 47194
+- **Berger score: 35/100**
 - Magic words: none
-- Here is the reality of viral song Papaoutai made by AI and what does it mean #factsmine #viral #trending
-
-## 10. Ranking These Viral Filters Had Me Shook 🔥 #tiktok #trending #shorts
-- URL: https://www.youtube.com/watch?v=7iWNbt69gW0
-- Views: 26227
-- **Berger score: 55/100**
-- Magic words: you
-- This is part of our daily viral rankings series - perfect if you love funny TikTok filters, try not to laugh challenges, and meme-style edits. 👉 Make sure to: 👍 LIKE for more parts 💬 COMMENT your favo
+- Tiktok Viral Trend |Copines Trend #tiktok #trending #edit #trend #dance #lyrics#viralvideo Check out this latest #tiktok #trending #dance video featuring multiple groups performing fun moves! This #vi

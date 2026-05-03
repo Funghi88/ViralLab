@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from src.diagnostics import classify_error_message
 from src.video_tools import fetch_viral_videos
 
 
@@ -16,7 +17,8 @@ def main():
         videos = fetch_viral_videos(query, max_results=max_results)
         print(json.dumps(videos, ensure_ascii=False))
     except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+        diag = classify_error_message(str(e), context="video")
+        print(json.dumps({"error": str(e), "diagnostic": diag}, ensure_ascii=False), file=sys.stderr)
         sys.exit(1)
 
 

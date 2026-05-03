@@ -2,7 +2,9 @@
 
 Returns normalized items: {title, snippet, url, date, source}.
 """
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -17,53 +19,75 @@ def _has_feedparser() -> bool:
         return False
 
 
-# Global English long-form writing (intentionally separated from daily news sources)
+# Global English long-form writing — top-tier publications only.
+# Rule: must be globally recognisable brand or widely-cited newsletter.
 LONGFORM_FEEDS_EN = [
-    ("https://stratechery.com/feed/", "Stratechery"),
+    # Major magazine/newspaper long-form
+    ("https://www.theatlantic.com/feed/all/", "The Atlantic"),
+    ("https://www.newyorker.com/feed/everything", "The New Yorker"),
+    ("https://feeds.hbr.org/harvardbusiness/", "Harvard Business Review"),
+    ("https://nymag.com/feed/all", "New York Magazine"),
     ("https://www.niemanlab.org/feed/", "Nieman Lab"),
-    ("https://a16z.com/feed/", "a16z"),
-    ("https://open.substack.com/pub/lennysnewsletter/feed", "Lenny's Newsletter"),
-    ("https://www.notboring.co/feed", "Not Boring"),
+    # Strategy & tech analysis (most-read newsletters)
+    ("https://stratechery.com/feed/", "Stratechery"),
     ("https://www.ben-evans.com/benedictevans?format=rss", "Benedict Evans"),
+    ("https://open.substack.com/pub/lennysnewsletter/feed", "Lenny's Newsletter"),
     ("https://newsletter.pragmaticengineer.com/feed", "The Pragmatic Engineer"),
-    ("https://open.substack.com/pub/oneusefulthing/feed", "One Useful Thing"),
-    ("https://open.substack.com/pub/thegeneralist/feed", "The Generalist"),
-    ("https://www.creativeboom.com/feed/", "Creative Boom"),
-    ("https://www.itsnicethat.com/rss", "It's Nice That"),
-    ("https://eyeondesign.aiga.org/feed/", "AIGA Eye on Design"),
+    ("https://www.notboring.co/feed", "Not Boring"),
+    ("https://open.substack.com/pub/oneusefulthing/feed", "One Useful Thing (Prof. Mollick)"),
+    # Creator economy & media business (must-reads in this space)
+    ("https://bigtechnology.substack.com/feed", "Big Technology (Alex Kantrowitz)"),
+    ("https://hotpod.substack.com/feed", "Hot Pod (Spotify/audio)"),
+    ("https://therebooting.substack.com/feed", "The Rebooting"),
+    ("https://simonowens.substack.com/feed", "The Business of Content"),
     ("https://review.firstround.com/rss/", "First Round Review"),
-    ("https://uxdesign.cc/feed", "UX Collective"),
-    ("https://www.core77.com/rss", "Core77"),
-    ("https://www.smashingmagazine.com/feed/", "Smashing Magazine"),
+    # Venture & startup
+    ("https://a16z.com/feed/", "a16z"),
+    ("https://open.substack.com/pub/thegeneralist/feed", "The Generalist"),
+    # Design & creativity
+    ("https://eyeondesign.aiga.org/feed/", "AIGA Eye on Design"),
+    ("https://www.itsnicethat.com/rss", "It's Nice That"),
 ]
 
-# Chinese long-form/public commentary (CN + Traditional Chinese + SG/TW + diaspora)
+# Chinese long-form — top-tier publications and widely-read newsletters.
 LONGFORM_FEEDS_ZH = [
+    # 台灣 / 港澳 / 全球華文
     ("https://www.thenewslens.com/rss", "關鍵評論網"),
     ("https://www.twreporter.org/a/rss2.xml", "報導者"),
-    ("https://www.zaobao.com.sg/realtime/china/rss.xml", "联合早报"),
-    ("http://www.woshipm.com/feed", "人人都是产品经理"),
     ("https://theinitium.com/feed", "端傳媒"),
-    ("https://www.inside.com.tw/feed", "INSIDE"),
+    ("https://www.zaobao.com.sg/realtime/china/rss.xml", "联合早报"),
     ("https://www.bnext.com.tw/rss", "數位時代"),
+    # 大陆 — 产品 / 创作者 / 商业
+    ("http://www.woshipm.com/feed", "人人都是产品经理"),
+    ("https://www.inside.com.tw/feed", "INSIDE"),
     ("https://buzzorange.com/techorange/feed", "TechOrange"),
+    ("https://jiemian.com/rss/", "界面新闻"),
 ]
 
-# Global podcast feeds
+# English podcasts — verified RSS, top-tier by audience and influence.
 PODCAST_FEEDS_EN = [
-    ("https://feeds.simplecast.com/54nAGcIl", "a16z Podcast"),
+    # Business & entrepreneurship (massive audiences)
+    ("https://feeds.npr.org/510313/podcast.xml", "How I Built This (NPR)"),
+    ("https://feeds.simplecast.com/Kf0D7OJ8", "Masters of Scale (Reid Hoffman)"),
+    ("https://feeds.megaphone.fm/all-in", "All-In Podcast"),
+    ("https://feeds.simplecast.com/n44TzStf", "My First Million"),
+    ("https://rss.art19.com/tim-ferriss-show", "The Tim Ferriss Show"),
+    ("https://feeds.simplecast.com/7mQx7Hsy", "20VC"),
+    # Tech & AI (widely trusted)
     ("https://feeds.lexfridman.com/lex-fridman-podcast", "Lex Fridman Podcast"),
     ("https://feeds.transistor.fm/acquired", "Acquired"),
-    ("https://feeds.simplecast.com/7mQx7Hsy", "20VC"),
     ("https://feeds.simplecast.com/tOjNXec5", "Lenny's Podcast"),
+    ("https://feeds.simplecast.com/54nAGcIl", "a16z Podcast"),
+    # Creator economy & design
     ("https://feeds.transistor.fm/design-better", "Design Better Podcast"),
     ("https://feeds.99percentinvisible.org/99percentinvisible", "99% Invisible"),
 ]
 
-# Chinese podcast feeds (where public RSS is available)
+# Chinese podcasts — only those with confirmed public RSS feeds.
 PODCAST_FEEDS_ZH = [
     ("https://uxcoffee.typlog.io/episodes/feed.xml", "UX Coffee 设计咖"),
-    ("https://feed.xyzfm.space/gbmFM", "设计相关播客"),
+    ("https://storyfm.com.cn/feed/episodes", "故事 FM"),
+    ("https://feed.xyzfm.space/gbmFM", "商业访谈播客"),
 ]
 
 LONGFORM_SOURCE_NAMES = {name for _, name in LONGFORM_FEEDS_EN + LONGFORM_FEEDS_ZH}
@@ -73,40 +97,51 @@ PODCAST_SOURCE_NAMES = {name for _, name in PODCAST_FEEDS_EN + PODCAST_FEEDS_ZH}
 REGION_TAGS = ("CN", "TW", "SG", "Diaspora", "Global EN")
 SOURCE_REGION_MAP = {
     # English ecosystem
-    "Stratechery": "Global EN",
+    "The Atlantic": "Global EN",
+    "The New Yorker": "Global EN",
+    "Harvard Business Review": "Global EN",
+    "New York Magazine": "Global EN",
     "Nieman Lab": "Global EN",
-    "a16z": "Global EN",
-    "Lenny's Newsletter": "Global EN",
-    "Not Boring": "Global EN",
+    "Stratechery": "Global EN",
     "Benedict Evans": "Global EN",
+    "Lenny's Newsletter": "Global EN",
     "The Pragmatic Engineer": "Global EN",
-    "One Useful Thing": "Global EN",
-    "The Generalist": "Global EN",
-    "Creative Boom": "Global EN",
-    "It's Nice That": "Global EN",
-    "AIGA Eye on Design": "Global EN",
+    "Not Boring": "Global EN",
+    "One Useful Thing (Prof. Mollick)": "Global EN",
+    "Big Technology (Alex Kantrowitz)": "Global EN",
+    "Hot Pod (Spotify/audio)": "Global EN",
+    "The Rebooting": "Global EN",
+    "The Business of Content": "Global EN",
     "First Round Review": "Global EN",
-    "UX Collective": "Global EN",
-    "Core77": "Global EN",
-    "Smashing Magazine": "Global EN",
-    "a16z Podcast": "Global EN",
+    "a16z": "Global EN",
+    "The Generalist": "Global EN",
+    "AIGA Eye on Design": "Global EN",
+    "It's Nice That": "Global EN",
+    "How I Built This (NPR)": "Global EN",
+    "Masters of Scale (Reid Hoffman)": "Global EN",
+    "All-In Podcast": "Global EN",
+    "My First Million": "Global EN",
+    "The Tim Ferriss Show": "Global EN",
+    "20VC": "Global EN",
     "Lex Fridman Podcast": "Global EN",
     "Acquired": "Global EN",
-    "20VC": "Global EN",
     "Lenny's Podcast": "Global EN",
+    "a16z Podcast": "Global EN",
     "Design Better Podcast": "Global EN",
     "99% Invisible": "Global EN",
     # Chinese ecosystem
     "關鍵評論網": "TW",
     "報導者": "TW",
-    "联合早报": "SG",
-    "人人都是产品经理": "CN",
     "端傳媒": "Diaspora",
-    "INSIDE": "TW",
+    "联合早报": "SG",
     "數位時代": "TW",
+    "INSIDE": "TW",
     "TechOrange": "TW",
+    "人人都是产品经理": "CN",
+    "界面新闻": "CN",
     "UX Coffee 设计咖": "CN",
-    "设计相关播客": "Diaspora",
+    "故事 FM": "CN",
+    "商业访谈播客": "CN",
 }
 
 # Priority themes: AI-era transition pain points and practical pathways
@@ -177,6 +212,41 @@ def _focus_score(title: str, snippet: str, lang: str) -> int:
         if "how to" in text or "guide" in text or "case study" in text:
             score += 1
     return score
+
+
+def _parse_item_date(s: str) -> float:
+    """Parse RSS date to UTC timestamp; 0 if unknown."""
+    if not s or not isinstance(s, str):
+        return 0.0
+    s = s.strip()
+    try:
+        from email.utils import parsedate_to_datetime
+
+        dt = parsedate_to_datetime(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except Exception:
+        pass
+    try:
+        if ("T" in s or (len(s) >= 10 and s[4] == "-" and s[7] == "-")):
+            iso = s.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+    except Exception:
+        pass
+    return 0.0
+
+
+def _recency_boost(date_str: str) -> float:
+    """Small score bump for newer items so stale episodes do not dominate the list."""
+    ts = _parse_item_date(date_str)
+    if ts <= 0:
+        return 0.0
+    age_days = max(0.0, (time.time() - ts) / 86400.0)
+    return max(0.0, 3.0 - age_days / 40.0)
 
 
 def classify_focus_theme(title: str, snippet: str, lang: str) -> str:
@@ -258,9 +328,13 @@ def fetch_longform_and_podcasts(
         )
 
     items = long_items + podcast_items
-    # Prioritize AI-era transition pain points and practical pathways.
+    # Theme relevance first, then slight preference for newer publishes (avoids years-old podcast episodes on top).
     items.sort(
-        key=lambda it: _focus_score(it.get("title", ""), it.get("snippet", ""), lang),
+        key=lambda it: (
+            _focus_score(it.get("title", ""), it.get("snippet", ""), lang)
+            + _recency_boost(it.get("date") or ""),
+            _parse_item_date(it.get("date") or ""),
+        ),
         reverse=True,
     )
     sources: list[str] = []

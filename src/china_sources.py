@@ -13,7 +13,7 @@ from typing import Optional
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _CRAWLER_RESULTS_FILE = _PROJECT_ROOT / "output" / "china_crawler_results.json"
 _CRAWLER_OUTPUT_DIR = _PROJECT_ROOT / "output"
-_CRAWLER_PLATFORMS = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili")
+_CRAWLER_PLATFORMS = ("xhs", "douyin", "shipinhao", "zhihu", "bilibili", "tiktok", "x", "instagram")
 # Platform search URL templates (user searches directly on platform)
 CHINA_PLATFORM_LINKS = {
     "douyin": {
@@ -191,6 +191,9 @@ def get_crawler_china_results(platform_filter: Optional[list[str]] = None) -> li
                 "shipinhao": "shipinhao",
                 "zhihu": "zhihu",
                 "bilibili": "bilibili",
+                "tiktok": "tiktok",
+                "x": "x",
+                "instagram": "instagram",
             }.get(p, p)
             if pid not in platform_filter and p not in platform_filter:
                 continue

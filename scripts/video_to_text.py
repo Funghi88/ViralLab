@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.media_transcribe import transcribe_with_videocaptioner
+from src.media_transcribe import transcribe_best_effort
 from src.video_tools import extract_youtube_id, score_berger
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -40,9 +40,13 @@ def main():
         transcript = get_transcript(vid)
         out_id = vid
     if not transcript:
-        transcript, _ = transcribe_with_videocaptioner(src, lang="en")
+        out = transcribe_best_effort(src, lang="en")
+        transcript = out.text
     if not transcript:
-        print("Could not fetch transcript. Install videocaptioner for ASR fallback.")
+        print(
+            "Could not fetch transcript. Install videocaptioner and/or "
+            "WhisperX (pip install -r requirements-asr.txt; see README)."
+        )
         sys.exit(1)
 
     score = score_berger(transcript)
