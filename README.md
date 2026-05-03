@@ -134,6 +134,8 @@ pip install videocaptioner
 
 ViralLab uses YouTube captions first when available. For Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, and broader podcast/audio links, VideoCaptioner enables ASR fallback transcript generation.
 
+**Douyin → transcript:** **Prefer pasting a local video/audio path** on the Video to Text page after saving the clip (most reliable). Optional URL flow uses VideoCaptioner and/or **`yt-dlp`**; Douyin URLs often fail without **`douyin.com` cookies** Netscape **`config/ytdlp_cookies.txt`** (see **`config/README-ytdlp-cookies.md`** / **`YTDLP_COOKIES_FILE`** — app-only login is not enough). Set **`VIRALLAB_VIDEOCAPTIONER_BIN`** if Videocaptioner lives outside this repo.
+
 **Higher-quality ASR (optional):** Install WhisperX for multilingual speech-to-text with word-level timestamps and alignment (better for subtitles and noisy short video). Requires `ffmpeg` on your PATH. With no `VIRALLAB_WHISPER_MODEL` set, GPU/MPS use `large-v3`; on CPU, `VIRALLAB_WHISPER_MAX_ACCURACY=1` (default) also uses `large-v3` (slower), or set it to `0` for `medium` only on CPU.
 
 ```bash

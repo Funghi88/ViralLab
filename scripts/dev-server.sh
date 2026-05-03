@@ -20,5 +20,8 @@ fi
 pkill -f "server.py" >/dev/null 2>&1 || true
 sleep 0.5
 
+# yt-dlp: include -v in stderr for 「影片转文字」 (proxy map, extractor). Disable: VIRALLAB_YTDLP_VERBOSE=0 ./scripts/dev-server.sh
+export VIRALLAB_YTDLP_VERBOSE="${VIRALLAB_YTDLP_VERBOSE:-1}"
+
 echo "Starting ViralLab → http://127.0.0.1:5001"
 exec .venv/bin/python server.py

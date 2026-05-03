@@ -14,15 +14,46 @@ if str(PROJECT_ROOT) not in sys.path:
 import requests
 
 from src.media_transcribe import (
+    _douyin_cookie_file_runtime_status,
+    _douyin_failure_diagnosis_block,
     _expand_short_url,
+    _looks_like_douyin_url,
+    _normalize_douyin_watch_url,
     _normalize_local_media_ref,
+    _netscape_cookie_names_in_file,
     _pick_youtube_merged_file,
     _try_transcribe_candidates,
+    _yt_cookie_extras_nonempty,
+    _yt_dlp_verbose,
+    _find_yt_dlp_bin,
     download_youtube_video,
 )
 
 
 class MediaTranscribeTests(unittest.TestCase):
+    def test_yt_dlp_verbose_env(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "VIRALLAB_YTDLP_VERBOSE": "",
+                "VIRALLAB_DEBUG_MEDIA": "",
+                "VIRALLAB_DEBUG": "",
+                "FLASK_DEBUG": "",
+            },
+            clear=False,
+        ):
+            self.assertFalse(_yt_dlp_verbose())
+        with patch.dict(os.environ, {"VIRALLAB_YTDLP_VERBOSE": "1"}, clear=False):
+            self.assertTrue(_yt_dlp_verbose())
+        with patch.dict(os.environ, {"VIRALLAB_YTDLP_VERBOSE": "0"}, clear=False):
+            self.assertFalse(_yt_dlp_verbose())
+        with patch.dict(
+            os.environ,
+            {"VIRALLAB_YTDLP_VERBOSE": "", "VIRALLAB_DEBUG_MEDIA": "1"},
+            clear=False,
+        ):
+            self.assertTrue(_yt_dlp_verbose())
+
     def test_normalize_local_media_ref_file_url_decodes_path(self) -> None:
         p = Path(__file__).resolve()
         normalized = _normalize_local_media_ref(f"file://{p.as_posix()}")
@@ -30,6 +61,137 @@ class MediaTranscribeTests(unittest.TestCase):
 
     def test_normalize_local_media_ref_strips_quotes(self) -> None:
         self.assertEqual(_normalize_local_media_ref('"/tmp/a b.mp4"'), "/tmp/a b.mp4")
+
+    def test_looks_like_douyin_url(self) -> None:
+        self.assertTrue(_looks_like_douyin_url("https://www.douyin.com/video/7632345202723769627"))
+        self.assertTrue(_looks_like_douyin_url("https://v.douyin.com/foobar/"))
+        self.assertFalse(_looks_like_douyin_url("https://www.bilibili.com/video/BV1xx411c7mD"))
+
+    def test_normalize_douyin_jingxuan_modal_id_to_video(self) -> None:
+        u = "https://www.douyin.com/jingxuan?modal_id=7627253494123099634"
+        self.assertEqual(_normalize_douyin_watch_url(u), "https://www.douyin.com/video/7627253494123099634")
+
+    def test_normalize_douyin_leaves_video_url(self) -> None:
+        u = "https://www.douyin.com/video/7627253494123099634?extra=1"
+        self.assertEqual(_normalize_douyin_watch_url(u), u)
+
+    def test_yt_cookie_extras_skips_browser_when_cookie_file_configured(self) -> None:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as f:
+            f.write("# Netscape HTTP Cookie File\n")
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\tsid\tfakevalue\n")
+            fp = Path(f.name)
+        try:
+            with patch.dict(
+                os.environ,
+                {
+                    "YTDLP_COOKIES_FILE": str(fp),
+                    "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                },
+                clear=False,
+            ):
+                ex = _yt_cookie_extras_nonempty("https://www.douyin.com/video/7632345202723769627")
+            self.assertTrue(any(x and x[0] == "--cookies" for x in ex))
+            self.assertFalse(any("--cookies-from-browser" in x for x in ex))
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_yt_cookie_extras_keeps_browser_for_non_douyin_even_with_cookie_file(self) -> None:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as f:
+            f.write("# Netscape HTTP Cookie File\n")
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\tsid\tfakevalue\n")
+            fp = Path(f.name)
+        try:
+            with patch.dict(
+                os.environ,
+                {
+                    "YTDLP_COOKIES_FILE": str(fp),
+                    "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                },
+                clear=False,
+            ):
+                ex = _yt_cookie_extras_nonempty("https://www.bilibili.com/video/BV1234567890")
+            self.assertTrue(any(x and x[0] == "--cookies" for x in ex))
+            self.assertTrue(any("--cookies-from-browser" in x for x in ex))
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_yt_cookie_comments_only_still_uses_browser_for_douyin(self) -> None:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as f:
+            f.write("# only comments — no tab-separated cookie rows\n# export from browser and paste here\n")
+            fp = Path(f.name)
+        try:
+            with patch.dict(
+                os.environ,
+                {
+                    "YTDLP_COOKIES_FILE": str(fp),
+                    "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                },
+                clear=False,
+            ):
+                ex = _yt_cookie_extras_nonempty("https://www.douyin.com/video/1")
+            self.assertTrue(any("--cookies-from-browser" in x for x in ex))
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_yt_cookie_extras_includes_browser_without_cookie_file(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "YTDLP_COOKIES_FILE": "/nonexistent/virallab_no_cookie_file_12345.txt",
+                "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+            },
+            clear=False,
+        ):
+            ex = _yt_cookie_extras_nonempty("https://www.bilibili.com/video/BV1234567890")
+        self.assertTrue(any("--cookies-from-browser" in x for x in ex))
+
+    def test_douyin_without_cookie_file_single_browser_fragment(self) -> None:
+        with patch("src.media_transcribe._yt_cookie_file_fragments", return_value=[]):
+            with patch.dict(
+                os.environ,
+                {
+                    "YTDLP_COOKIES_FILE": "",
+                    "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_DOUYIN_WIDE_BROWSER": "",
+                    "YTDLP_COOKIES_BROWSER": "chrome",
+                    "YTDLP_COOKIES_PROFILE": "",
+                },
+                clear=False,
+            ):
+                ex = _yt_cookie_extras_nonempty("https://www.douyin.com/video/1")
+        browserish = [x for x in ex if any(a == "--cookies-from-browser" for a in x)]
+        self.assertEqual(len(browserish), 1)
+        self.assertEqual(browserish[0], ["--cookies-from-browser", "chrome"])
+
+    def test_douyin_wide_browser_env_restores_multi_probe(self) -> None:
+        with patch("src.media_transcribe._yt_cookie_file_fragments", return_value=[]):
+            with patch.dict(
+                os.environ,
+                {
+                    "YTDLP_COOKIES_FILE": "",
+                    "VIRALLAB_YTDLP_DOUYIN_WIDE_BROWSER": "1",
+                    "VIRALLAB_YTDLP_SKIP_BROWSER_COOKIES": "",
+                    "VIRALLAB_YTDLP_USE_BROWSER_COOKIES": "",
+                },
+                clear=False,
+            ):
+                ex = _yt_cookie_extras_nonempty("https://www.douyin.com/video/1")
+        browserish = [x for x in ex if any(a == "--cookies-from-browser" for a in x)]
+        self.assertGreaterEqual(len(browserish), 4)
+
+    def test_find_yt_dlp_prefers_project_venv_over_path(self) -> None:
+        venv_ytdlp = PROJECT_ROOT / ".venv" / "bin" / "yt-dlp"
+        if not venv_ytdlp.is_file():
+            self.skipTest("no .venv/bin/yt-dlp")
+        with patch.dict(os.environ, {"VIRALLAB_YTDLP_BIN": ""}, clear=False):
+            with patch("src.media_transcribe.shutil.which", return_value="/opt/homebrew/bin/yt-dlp"):
+                picked = _find_yt_dlp_bin()
+        self.assertEqual(Path(picked).resolve(), venv_ytdlp.resolve())
 
     def test_expand_short_url_falls_back_when_proxy_fails(self) -> None:
         ok = MagicMock()
@@ -122,6 +284,99 @@ class MediaTranscribeTests(unittest.TestCase):
             path, err = download_youtube_video("https://example.com/x", Path(td))
             self.assertIsNone(path)
             self.assertEqual(err, "not_youtube")
+
+    def test_netscape_cookie_names_parses_sixth_field(self) -> None:
+        with tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False, mode="w", encoding="utf-8"
+        ) as f:
+            f.write("# meta\n")
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\ts_v_web_id\txxx\n")
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\tother\tfoo\n")
+            fp = Path(f.name)
+        try:
+            names = _netscape_cookie_names_in_file(fp)
+            self.assertEqual(names, {"s_v_web_id", "other"})
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_douyin_cookie_runtime_status_with_env_file(self) -> None:
+        with tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False, mode="w", encoding="utf-8"
+        ) as f:
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\ts_v_web_id\tx\n")
+            fp = Path(f.name)
+        try:
+            with patch.dict(os.environ, {"YTDLP_COOKIES_FILE": str(fp)}, clear=False):
+                with patch("src.media_transcribe._repo_root", return_value=PROJECT_ROOT):
+                    st = _douyin_cookie_file_runtime_status()
+            self.assertEqual(st["n_cookie_files_with_netscape_rows"], 1)
+            self.assertTrue(st["has_s_v_web_id_cookie_name"])
+            self.assertEqual(st["distinct_cookie_name_count"], 1)
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_douyin_cookie_runtime_status_missing_s_v_web_id(self) -> None:
+        with tempfile.NamedTemporaryFile(
+            suffix=".txt", delete=False, mode="w", encoding="utf-8"
+        ) as f:
+            f.write(".douyin.com\tTRUE\t/\tFALSE\t0\tsession_other\tx\n")
+            fp = Path(f.name)
+        try:
+            with patch.dict(os.environ, {"YTDLP_COOKIES_FILE": str(fp)}, clear=False):
+                with patch("src.media_transcribe._repo_root", return_value=PROJECT_ROOT):
+                    st = _douyin_cookie_file_runtime_status()
+            self.assertGreaterEqual(st["n_cookie_files_with_netscape_rows"], 1)
+            self.assertFalse(st["has_s_v_web_id_cookie_name"])
+        finally:
+            fp.unlink(missing_ok=True)
+
+    def test_douyin_cookie_placeholder_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg = root / "config" / "ytdlp_cookies.txt"
+            cfg.parent.mkdir(parents=True)
+            cfg.write_text("# comments only placeholder\n")
+            with patch("src.media_transcribe._repo_root", return_value=root):
+                with patch.dict(os.environ, {"YTDLP_COOKIES_FILE": ""}, clear=False):
+                    st = _douyin_cookie_file_runtime_status()
+            self.assertTrue(st["config_ytdlp_cookies_placeholder_only"])
+
+    def test_douyin_failure_diagnosis_three_branches(self) -> None:
+        b0 = _douyin_failure_diagnosis_block(
+            {
+                "n_cookie_files_with_netscape_rows": 0,
+                "has_s_v_web_id_cookie_name": False,
+                "config_ytdlp_cookies_placeholder_only": False,
+            }
+        )
+        self.assertIn("--cookies", b0)
+
+        b1 = _douyin_failure_diagnosis_block(
+            {
+                "n_cookie_files_with_netscape_rows": 1,
+                "has_s_v_web_id_cookie_name": False,
+                "config_ytdlp_cookies_placeholder_only": False,
+            }
+        )
+        self.assertIn("s_v_web_id", b1)
+
+        b2 = _douyin_failure_diagnosis_block(
+            {
+                "n_cookie_files_with_netscape_rows": 1,
+                "has_s_v_web_id_cookie_name": True,
+                "config_ytdlp_cookies_placeholder_only": False,
+            }
+        )
+        self.assertIn("风控", b2)
+
+        b_ph = _douyin_failure_diagnosis_block(
+            {
+                "n_cookie_files_with_netscape_rows": 0,
+                "has_s_v_web_id_cookie_name": False,
+                "config_ytdlp_cookies_placeholder_only": True,
+            }
+        )
+        self.assertIn("只剩说明", b_ph)
 
 
 if __name__ == "__main__":

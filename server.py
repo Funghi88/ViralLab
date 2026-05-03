@@ -889,12 +889,21 @@ def _t(key: str, lang: str) -> str:
         # Video to Text — different content per language zone
         "video2text_title": ("Video to Text", "影片转文字"),
         "video2text_tagline": ("Paste a video. Get the transcript.", "粘贴视频。获取逐字稿"),
-        "video2text_accuracy_note": ("YouTube uses existing captions first. For Bilibili/Douyin/Xiaohongshu/Shipinhao/Xiaoyuzhou and audio links/files, we can fallback to speech-to-text when VideoCaptioner is installed.", "YouTube 优先使用现有字幕；对 B站/抖音/小红书/视频号/小宇宙及音频链接/文件，在安装 VideoCaptioner 后可回退到语音转文字。"),
-        "video2text_placeholder": ("https://www.youtube.com/watch?v=... or https://www.xiaohongshu.com/...", "可粘贴 YouTube/B站/抖音/小红书/视频号/小宇宙链接"),
+        "video2text_accuracy_note": (
+            "**Douyin:** save the clip to disk and paste **local video/audio path** here (recommended — URL fetch breaks often without heavy cookie setup). YouTube prefers existing captions first. Other URLs use yt-dlp / VideoCaptioner; optional WhisperX for speech-only.",
+            "**抖音（推荐）：** 先把视频**保存到本机**，在下面粘贴 **`/路径/文件名.mp4`**（或拖拽得到的路径）；不要在抖音依赖网页链接。**YouTube：** 优先现成字幕。**其它：** yt-dlp / VideoCaptioner，可选 WhisperX 语音转文字。",
+        ),
+        "video2text_placeholder": (
+            "Paste local path e.g. /Users/you/Movies/clip.mp4 or a YouTube / Bilibili / XHS URL",
+            "可粘贴本地文件路径（如 `/Users/you/Movies/抖音.mp4`）或 YouTube/B站/小红书等链接（抖音不推荐用链接）",
+        ),
         "video2text_btn": ("Get transcript →", "获取逐字稿 →"),
-        "douyin_session_test_btn": ("Test Douyin session", "测试抖音登录状态"),
-        "douyin_session_testing": ("Testing Douyin session...", "正在检测抖音登录状态..."),
-        "video2text_hint": ("Supports YouTube, Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, podcast/audio links and local media path · e.g. ", "支持 YouTube、B站、抖音、小红书、视频号、小宇宙、播客/音频链接与本地媒体路径 · 例如 "),
+        "douyin_session_test_btn": ("Douyin URL test (optional)", "可选：抖音链接自检"),
+        "douyin_session_testing": ("Testing Douyin URL...", "正在检测抖音链接…"),
+        "video2text_hint": (
+            "Local file path recommended for Douyin. Also: YouTube, Bilibili, Xiaohongshu, Shipinhao, Xiaoyuzhou, podcast links · e.g. ",
+            "抖音建议用**本地视频路径**；也支持 YouTube、B站、小红书、视频号、小宇宙、播客链接 · 例如 ",
+        ),
         "video2text_note_minto": ("After you get a transcript, use the <strong>Structure (Minto)</strong> tab above the transcript to see conclusion → key points → evidence.", "获取逐字稿后，用上方的<strong>结构（金字塔）</strong>标签查看结论 → 要点 → 论据。"),
         "video2text_tab_structure": ("Structure (Minto)", "结构（金字塔）"),
         "video2text_export_mode": ("Export", "导出"),
@@ -909,8 +918,8 @@ def _t(key: str, lang: str) -> str:
         "video2text_processing": ("Processing your transcript…", "正在处理逐字稿…"),
         "video2text_processing_sub": ("This can take a few seconds for captions and longer for ASR. Please keep this page open.", "字幕模式通常几秒，ASR 模式会更久。请保持页面开启。"),
         "video2text_err_douyin": (
-            "Douyin transcript is blocked by platform session checks. Open the same video in Chrome first and retry; if needed set YTDLP_COOKIES_PROFILE (e.g. Default, Profile 1).",
-            "抖音拉取受登录态影响。请先在 Chrome 中打开同一视频再试；必要时设置 YTDLP_COOKIES_PROFILE（如 Default、Profile 1）。",
+            "Douyin URL fetch failed. Prefer a **local downloaded file**: paste `/path/to/video.mp4` here and retry. Cookie-based URL fetching is brittle.",
+            "抖音**链接**拉取失败。**推荐**改贴**本地下载的视频路径**（如 `/Movies/片段.mp4`）再获取逐字稿；依赖 Cookie 在线拉取很不稳定。",
         ),
         "video2text_err_xhs": (
             "Xiaohongshu: the note must include video (not image-only). If it still fails, open the note in Chrome while logged in and retry, or set YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE. Align terminal HTTP_PROXY with Cursor: http://127.0.0.1:18080 (gost); avoid stale QuickQ ports. Short links retry without a broken proxy.",
@@ -2089,13 +2098,16 @@ def api_video_to_text():
     url = (request.form.get("url") or req_json.get("url") or "").strip()
     if not url:
         return jsonify({"error": "Missing url"}), 400
-    transcript, caption_source = _fetch_transcript_from_input(url, _get_lang())
+    transcript, caption_source, fail_detail = _fetch_transcript_from_input(url, _get_lang())
     if not transcript:
         hint = (
             "ASR unavailable: install `videocaptioner` and/or optional WhisperX "
             "(`pip install -r requirements-asr.txt`; see README)."
         )
-        return jsonify({"error": "Transcript unavailable", "hint": hint}), 400
+        payload = {"error": "Transcript unavailable", "hint": hint}
+        if fail_detail:
+            payload["detail"] = fail_detail[:24000]
+        return jsonify(payload), 400
 
     score = score_berger(transcript)
     lang = _get_lang()
@@ -3310,37 +3322,42 @@ def api_test_douyin_session():
     return jsonify(result)
 
 
-def _fetch_transcript_from_input(input_ref: str, lang: str) -> tuple[str, str]:
-    """Fetch transcript from YouTube captions first, then ASR fallback."""
+def _fetch_transcript_from_input(input_ref: str, lang: str) -> tuple[str, str, str]:
+    """Fetch transcript from YouTube captions first, then ASR fallback.
+
+    Returns ``(text, caption_source, failure_detail)``. ``failure_detail`` is non-empty when
+    text is empty and ASR failed after download attempts (often yt-dlp/VideoCaptioner stderr).
+    """
     ref = (input_ref or "").strip()
     if not ref:
-        return "", ""
+        return "", "", ""
 
     vid = extract_youtube_id(ref)
     if vid:
         transcript, caption_source = _fetch_transcript_prefer_manual(vid, lang)
         if transcript:
-            return transcript, caption_source
+            return transcript, caption_source, ""
 
     if (ref.startswith("http://") or ref.startswith("https://")) and not is_supported_external_media_url(ref):
         # Still try ASR fallback for generic podcast/article pages.
         pass
     out = transcribe_best_effort(ref, lang=lang)
     if out.text:
-        return out.text, out.source
-    return "", ""
+        return out.text, out.source, ""
+    return "", "", (out.detail or "").strip()
 
 
 @app.route("/video-to-text", methods=["GET", "POST"])
 def video_to_text():
     lang = _get_lang()
     msg = ""
+    fail_detail = ""
     result = None
     if request.method == "POST":
         url = (request.form.get("url") or "").strip()
         if url:
             try:
-                transcript, caption_source = _fetch_transcript_from_input(url, lang)
+                transcript, caption_source, fail_detail = _fetch_transcript_from_input(url, lang)
                 if not transcript:
                     if has_videocaptioner() or has_whisperx():
                         ul = (url or "").lower()
@@ -3593,6 +3610,18 @@ def video_to_text():
     else:
         result_html = '<div class="v2t-result-section" id="v2tResult"></div>'
 
+    msg_parts: list[str] = []
+    if msg:
+        msg_parts.append(f'<p class="muted" style="margin-bottom:0.65rem;">{_html_escape(msg)}</p>')
+    if fail_detail:
+        msg_parts.append(
+            '<pre style="white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.45;'
+            "max-height:340px;overflow:auto;padding:10px 12px;background:var(--cream-dark);"
+            'border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;">'
+            f'{_html_escape(fail_detail[:14000])}</pre>'
+        )
+    msg_combo = "".join(msg_parts)
+
     body = f"""
     <style>{v2t_styles}</style>
     <div class="v2t-wrap">
@@ -3619,7 +3648,7 @@ def video_to_text():
                 <small>{_html_escape(_t("video2text_processing_sub", lang))}</small>
             </div>
         </div>
-        {f'<p class="muted" style="margin-bottom:1rem;">{_html_escape(msg)}</p>' if msg else ''}
+        {msg_combo}
         {result_html}
         {f'<p class="section-desc muted" style="margin-top:0.85rem;">{_t("video2text_note_minto", lang)}</p>' if result else ''}
     </div>

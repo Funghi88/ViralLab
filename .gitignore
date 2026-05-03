@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 docs/
+.local/
+config/ytdlp_cookies.txt
 
 # yt-dlp artifacts under output/ (often > GitHub's file size limit)
 output/youtube_*
