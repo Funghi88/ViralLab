@@ -1,67 +1,67 @@
 # Raw news results: climate tech
 
-## 1. Clean energy economy is ‘repricing itself,’ investor says at DC Climate Week
+## 1. How Quantum Computing Can Solve Energy And Climate Challenges
 
-Decarbonization is not ESG, it's EBITDA,” Climate Innovation Capital Managing Partner Nelson Switzer said at the opening of ...
-
-Source: DuckDuckGo News
-URL: https://finance.yahoo.com/sectors/energy/articles/clean-energy-economy-repricing-itself-124000761.html
-
-## 2. How 12 Climate Tech Startups Are Shaping the $2.3 Trillion Energy Transition
-
-Clean transportation is the biggest chunk of the climate tech investing pie. The sector saw $893 billion in funding last year ...
+Quantum computing promises to reshape energy by enabling advanced simulations and accelerating materials discovery for carbon ...
 
 Source: DuckDuckGo News
-URL: https://www.bloomberg.com/features/2026-green-tech-startups-bnef-pioneer-award-winners/
+URL: https://www.forbes.com/sites/annabroughel/2026/05/07/how-quantum-computing-can-solve-energy-and-climate-challenges/
 
-## 3. From trash to climate tech: Rubber gloves find new life as carbon capturers
+## 2. Vertical agrivoltaics in a temperate climate: Technical and social dimensions
+
+Hacker News
+
+Source: Hacker News
+URL: https://www.sciencedirect.com/science/article/pii/S2772427125001664
+
+## 3. Climate tech startups turn to AI
+
+AI is becoming harder to avoid across climate tech in general, and solar developers in particular face narrowing margins.
+
+Source: DuckDuckGo News
+URL: https://finance.yahoo.com/sectors/technology/articles/climate-tech-startups-turn-ai-120416444.html
+
+## 4. The New Climate Playbook Focuses on Systems, Not Silver Bullets
+
+Looking for real-world climate crisis tech solutions? While regulations roll back, these 10 most innovative companies in ...
+
+Source: DuckDuckGo News
+URL: https://www.msn.com/en-us/money/smallbusiness/the-new-climate-playbook-focuses-on-systems-not-silver-bullets/ar-AA22ctgS?ocid=BingNewsVerp
+
+## 5. techUK Climate Policy Forum April event summary
+
+UK convened its inaugural Climate Policy Forum, bringing together members, policymakers and industry experts to explore key ...
+
+Source: DuckDuckGo News
+URL: https://www.techuk.org/resource/techuk-climate-policy-forum-april-event-summary.html
+
+## 6. From trash to climate tech: Rubber gloves find new life as carbon capturers
 
 Hacker News
 
 Source: Hacker News
 URL: https://phys.org/news/2026-02-trash-climate-tech-rubber-gloves.html
 
-## 4. The frantic, high-tech fight to stop climate-fueled dengue fever
+## 7. The frantic, high-tech fight to stop climate-fueled dengue fever
 
 Hacker News
 
 Source: Hacker News
 URL: https://grist.org/health/the-fight-to-stop-climate-fueled-dengue-fever-mosquitoes/
 
-## 5. Improved EV battery gains will outmatch degradation from climate change
+## 8. Improved EV battery gains will outmatch degradation from climate change
 
 Hacker News
 
 Source: Hacker News
 URL: https://techxplore.com/news/2026-03-ev-battery-gains-outmatch-degradation.html
 
-## 6. Proton's Swiss Myth: US Jurisdiction via Cloudflare and FAA Arbitration Clauses
+## 9. Proton's Swiss Myth: US Jurisdiction via Cloudflare and FAA Arbitration Clauses
 
 The "Swiss Sanctuary" is a Network and Legal MirageAs a Business customer, I performed a technical and legal audit of Proton AG’s current infrastructure. The results show a systemic disconnect between their "100% Swiss" marketing and their actual ope
 
 Source: Hacker News
 URL: https://news.ycombinator.com/item?id=47364922
-
-## 7. Tech giants sign energy pledge at White House ahead of midterms
-
-Hacker News
-
-Source: Hacker News
-URL: https://www.reuters.com/sustainability/climate-energy/trump-meet-tech-giants-energy-pledge-ahead-midterms-2026-03-04/
-
-## 8. The World Needs China's Climate Tech. That's the Dilemma
-
-There’s a Chinese expression—zuò shan guan hǔ dòu—which roughly translates to “Sit on the mountain and watch tigers fight.” For attendees at this year’s World Economic Forum (WEF) annual meeting in ...
-
-Source: DuckDuckGo News
-URL: https://www.yahoo.com/news/articles/world-needs-chinas-climate-tech-205052083.html
-
-## 9. Venture Capital Is Rushing to Invest in Climate Tech, but on 1 Condition
-
-The halo effect of AI extends even to the troubled climate tech sector. According to a Pitchbook analyst note, investment in climate tech companies that were linked to AI surged to a record high in ...
-
-Source: DuckDuckGo News
-URL: https://www.inc.com/chloe-aiello/venture-capital-investing-climate-tech-ai-pitchbook/91290738
 
 ## 10. Climate tech companies dominate PNW funding with the three biggest investment rounds in 2025
 

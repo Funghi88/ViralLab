@@ -8,6 +8,7 @@ Strategy:
 from __future__ import annotations
 
 import os
+import json
 import re
 import shutil
 import subprocess
@@ -55,18 +56,19 @@ def _cmd_env_for_media_subprocess() -> dict[str, str]:
 
 
 def _douyin_restore_parent_http_proxy(cmd_env: dict[str, str]) -> dict[str, str]:
-    """Copy process HTTP(S)_PROXY into Douyin yt-dlp subprocess (default subprocess env strips them).
+    """Optionally re-add HTTP(S)_PROXY to a proxy-stripped env for Douyin subprocesses.
 
-    Aligns egress with browsers using local gost/QuickQ when the server inherits those vars.
-    Opt out: ``VIRALLAB_DOUYIN_SKIP_PROXY_RESTORE=1``.
+    Intended for in-China VPN scenarios where the dev server runs behind a domestic proxy
+    and Douyin needs to go through the same proxy.
+
+    When an overseas proxy is active (e.g. gost → overseas exit), set
+    ``VIRALLAB_DOUYIN_SKIP_PROXY_RESTORE=1`` so the overseas proxy is not re-added —
+    Douyin's API returns empty JSON when it detects a non-CN IP, which yt-dlp misreports
+    as "Fresh cookies needed".
+
+    Callers should always pass a proxy-stripped env (``_env_without_proxy(cmd_env)``);
+    this function then conditionally restores proxy vars from the parent process.
     """
-    if (os.environ.get("VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY") or "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    ):
-        return cmd_env
     if (os.environ.get("VIRALLAB_DOUYIN_SKIP_PROXY_RESTORE") or "").strip().lower() in (
         "1",
         "true",
@@ -75,12 +77,10 @@ def _douyin_restore_parent_http_proxy(cmd_env: dict[str, str]) -> dict[str, str]
     ):
         return cmd_env
     out = dict(cmd_env)
-    restored: list[str] = []
     for k in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
         v = (os.environ.get(k) or "").strip()
         if v:
             out[k] = v
-            restored.append(k)
     return out
 
 
@@ -420,6 +420,77 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+def _douyin_aweme_id(url: str) -> str:
+    """Extract aweme_id (numeric video ID) from any Douyin URL form."""
+    u = (url or "").strip()
+    # /video/<id> form
+    m = re.search(r"/video/(\d+)", u)
+    if m:
+        return m.group(1)
+    # modal_id=<id> query param
+    from urllib.parse import parse_qs, urlparse
+    qs = parse_qs(urlparse(u).query)
+    for k in ("modal_id", "aweme_id"):
+        v = qs.get(k, [])
+        if v and str(v[0]).isdigit():
+            return str(v[0])
+    return ""
+
+
+def _douyin_mobile_api_download(aweme_id: str, work_dir: Path) -> tuple[Path | None, str]:
+    """Download Douyin video via the mobile app API, bypassing the broken web extractor.
+
+    Uses ``api.amemv.com/aweme/v1/feed/`` which returns direct CDN video URLs without
+    requiring JavaScript-signed tokens.  No cookies or proxy needed from CN networks.
+    Returns ``(media_path, error_string)``.
+    """
+    if not aweme_id:
+        return None, "no aweme_id"
+    api_url = f"https://api.amemv.com/aweme/v1/feed/?aweme_id={aweme_id}&type=0"
+    ua_app = (
+        "com.ss.android.ugc.aweme/110101 "
+        "(Linux; U; Android 10; zh_CN; Pixel 3; Build/QQ1A.190205.002; Cronet/58.0.2991.0)"
+    )
+    try:
+        import urllib.request as _ureq
+        req = _ureq.Request(api_url, headers={"User-Agent": ua_app, "Accept": "application/json"})
+        with _ureq.urlopen(req, timeout=12) as r:  # type: ignore[assignment]
+            data = json.loads(r.read())
+    except Exception as e:
+        return None, f"mobile API fetch failed: {e}"
+
+    aweme_list = data.get("aweme_list") or []
+    if not aweme_list:
+        return None, f"mobile API returned no aweme_list (status={data.get('status_code')})"
+
+    aweme = aweme_list[0]
+    video = aweme.get("video") or {}
+    play_urls: list[str] = (video.get("play_addr") or {}).get("url_list") or []
+    if not play_urls:
+        return None, "mobile API: no play_addr url_list in response"
+
+    desc = re.sub(r'[\\/:*?"<>|]', "_", (aweme.get("desc") or "douyin_video")[:60]).strip() or "douyin_video"
+    dest = work_dir / f"{desc}.mp4"
+    dl_headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.douyin.com/"}
+
+    for video_url in play_urls:
+        try:
+            req2 = _ureq.Request(video_url, headers=dl_headers)
+            with _ureq.urlopen(req2, timeout=90) as resp:
+                ct = resp.headers.get("content-type", "")
+                if "video" not in ct and "octet" not in ct:
+                    continue
+                dest.write_bytes(resp.read())
+            if dest.stat().st_size > 10_000:
+                return dest, ""
+            dest.unlink(missing_ok=True)
+        except Exception as e:
+            last = str(e)
+            continue
+
+    return None, f"mobile API: all {len(play_urls)} URLs failed to download"
+
+
 def _looks_like_douyin_url(url: str) -> bool:
     u = (url or "").lower()
     return "douyin.com" in u or "v.douyin.com" in u or "iesdouyin.com" in u
@@ -754,7 +825,7 @@ def test_douyin_session(input_ref: str = "") -> dict:
     resolved = _normalize_douyin_watch_url(_expand_short_url(raw))
     if "douyin.com" not in resolved:
         return {"ok": False, "message": "Please provide a Douyin link.", "resolved_url": resolved}
-    env = _douyin_restore_parent_http_proxy(dict(_cmd_env_for_media_subprocess()))
+    env = _douyin_restore_parent_http_proxy(_env_without_proxy(_cmd_env_for_media_subprocess()))
     venv_bin = str(Path(__file__).resolve().parent.parent / ".venv" / "bin")
     env["PATH"] = venv_bin + os.pathsep + env.get("PATH", "")
 
@@ -888,7 +959,9 @@ def transcribe_best_effort(
             is_dy = _looks_like_douyin_url(resolved_url)
 
             if is_dy:
-                dy_env = _douyin_restore_parent_http_proxy(cmd_env)
+                # Always strip proxy first — overseas proxy causes Douyin API to return empty JSON.
+                # _douyin_restore_parent_http_proxy re-adds domestic proxy only when needed.
+                dy_env = _douyin_restore_parent_http_proxy(_env_without_proxy(cmd_env))
                 media_path, ytdl_err = _download_with_yt_dlp(resolved_url, work_dir, dy_env)
                 if not media_path and vc_bin:
                     dl_vc = subprocess.run(
@@ -903,6 +976,14 @@ def transcribe_best_effort(
                         media_path = _pick_downloaded_media(work_dir)
                     else:
                         vc_err = _stderr_tail(dl_vc, 1400)
+                # Mobile API fallback: bypasses yt-dlp's broken web extractor by using
+                # the Android app API which returns direct CDN URLs without JS signing.
+                if not media_path:
+                    aweme_id = _douyin_aweme_id(resolved_url)
+                    if aweme_id:
+                        media_path, mob_err = _douyin_mobile_api_download(aweme_id, work_dir)
+                        if not media_path:
+                            vc_err = (vc_err + "\nmobile API: " + mob_err).strip()
             elif vc_bin:
                 dl_vc = subprocess.run(
                     [vc_bin, "download", resolved_url],
@@ -1003,20 +1084,55 @@ def _resolve_audio_from_page(url: str) -> str:
     return ""
 
 
+def _is_xhs_error_url(url: str) -> bool:
+    """True when XHS redirected to its error/404 page (errorCode in query string)."""
+    u = (url or "").lower()
+    return "xiaohongshu.com/404" in u and "errorcode" in u
+
+
 def _expand_short_url(url: str) -> str:
-    """Expand short/shared links (xhslink, v.douyin, etc.) to canonical target URL."""
+    """Expand short/shared links (xhslink, v.douyin, etc.) to canonical target URL.
+
+    For XHS short links: always try direct (no-proxy) first because routing through an
+    overseas proxy causes xiaohongshu.com to return a /404 error page.
+    """
     u = _extract_first_url(url)
     if not looks_like_url(u):
         return u
     headers = {"User-Agent": "Mozilla/5.0"}
-    # 1) Try direct redirect expansion.
+    is_xhs_short = "xhslink.com" in u.lower() or "xiaohongshu.com" in u.lower()
+
+    def _get_no_proxy(target: str) -> str | None:
+        """Try GET without any proxy (direct connection). Returns final URL or None."""
+        try:
+            s = requests.Session()
+            s.trust_env = False
+            r = s.get(target, timeout=12, headers=headers, allow_redirects=True)
+            if r.url and r.url.startswith("http") and not _is_xhs_error_url(r.url):
+                return r.url.strip()
+        except Exception:
+            pass
+        return None
+
+    # XHS short links: direct first to avoid overseas-proxy 404
+    if is_xhs_short:
+        result = _get_no_proxy(u)
+        if result:
+            return result
+
+    # 1) Try redirect expansion (respects env proxy via _requests_get_no_proxy_fallback).
     try:
         r = _requests_get_no_proxy_fallback(
             u, timeout=12, headers=headers, allow_redirects=True
         )
         if r.url and r.url.startswith("http"):
             final = r.url.strip()
-            if final:
+            # If we got an XHS error page via proxy, retry direct
+            if _is_xhs_error_url(final):
+                direct = _get_no_proxy(u)
+                if direct:
+                    return direct
+            elif final:
                 return final
     except Exception:
         pass
@@ -1027,7 +1143,7 @@ def _expand_short_url(url: str) -> str:
         )
         if r.url and r.url.startswith("http"):
             final = r.url.strip()
-            if final:
+            if not _is_xhs_error_url(final) and final:
                 return final
     except Exception:
         pass

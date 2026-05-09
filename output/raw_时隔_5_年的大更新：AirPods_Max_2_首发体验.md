@@ -1,85 +1,85 @@
 # Raw news results: 时隔 5 年的大更新：AirPods Max 2 首发体验
 
-## 1. AirPods Max 2首发体验_新浪新闻 - 手机新浪网
+## 1. 「维新宇航」完成数千万元天使+轮融资，7座3吨级eVTOL将于7月进行首飞测试｜36氪首发
 
-AirPods Max 2首发体验_新浪新闻&nbsp;&nbsp;手机新浪网
+文 | 阿至 36氪获悉，低空出行产品研制商「维新宇航」已完成数千万元天使+轮融资，本轮融资由策源资本领投、金舵投资跟投，资金将主要用于加速公司首款主力机型 Vector 5的研发迭代、首飞测试与适航取证进程。 维新宇航成立于2023年，是36氪长期关注的企业，其专注于大载客量、大载重eVTOL/eCTOL产品的研发及制造。加上6个月前连续完成的种子轮、天使轮，目前维新宇航已完成三轮融资，累计资金交割总额超亿元人民币。 现阶段，维新宇航的主力机型Vector 5为一款7座3吨级纯电复合翼eVTO
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiY0FVX3lxTE1RbXEydmJ6T2p1ek1fdHhrMlZ0RHdzS1FzbUVUU3luTzUweG0wN3dMNVpIZDZDRVRadVh0M2tYei1FSTltWFFGeXVnZFRWSmhUdGlFVGVrVERDaElTMi1qTktLcw?oc=5
+Source: 36氪
+URL: https://36kr.com/p/3800495686163721?f=rss
 
-## 2. 苹果AirPods Max 2首发即享国补199元起 换新再减300元 - 驱动之家
+## 2. 卡位黄金价格带，问界M6向下争夺年轻群体｜最前线
 
-苹果AirPods Max 2首发即享国补199元起 换新再减300元&nbsp;&nbsp;驱动之家
+2026年的中国新能源SUV市场正经历着前所未有的内卷。 问界依托华为技术体系，推出了定位更亲民的全新车型 M6， 瞄准主流家用消费群体。放在问界品牌整体销量连续数月下滑、赛力斯盈利能力承压的背景下，M6的到来既是“救兵”，更是一场不容有失的“大考”。 卡位黄金价格带，向下争夺年轻群体 从产品命名逻辑看，M6位于M5与M7之间，车身尺寸为4960×1985×1736mm，轴距2950mm，属于标准的中大型五座SUV。官方定位为“新锐智慧SUV”，目标用户从问界以往的主力“30岁以上家庭用户和商务
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiWEFVX3lxTE1FRVktTnZ3enFqZzlHZzE5YXVCdFEtdmlobS0taGx5S3NKb0sza3FEbVZNNHhRQXRhUVpVT0dFdDFpbVNTalJKQm94bGpQaHhpNWtDd29RYzI?oc=5
+Source: 36氪
+URL: https://36kr.com/p/3800183520091398?f=rss
 
-## 3. 苹果高管揭秘 AirPods Max 2 耳机：特定音频任务 H2 芯片算力已超 Mac - 17173
+## 3. 第一代全固态电池迈入规模化市场，「纯锂新能源」完成数千万元Pre-A+轮融资 | 36氪首发
 
-苹果高管揭秘 AirPods Max 2 耳机：特定音频任务 H2 芯片算力已超 Mac&nbsp;&nbsp;17173
+文 | 张冰冰 编辑 | 阿至 36氪获悉，北京纯锂新能源科技有限公司（以下简称「纯锂新能源」）近日宣布完成数千万元Pre-A+轮融资，投资方为亦庄国投，云道资本担任独家财务顾问，资金将用于产品研发、市场拓展及产线落地。 「纯锂新能源」成立于2022年5月，聚焦全固态电池研发，通过自研复合电解质及超临界包覆工艺，破解全固态电池核心固固接触难题。2023年4月在北京亦庄建成小试线，量产10Ah全固态电芯；2023年5月在河南兰考县国电投新能源产业园启动建设500MWh规模量产线；2024年10月实
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiZEFVX3lxTE9GZDNUa0NtemVKNF8tWTF3eFRJTEtIYlk5amJwcXJsUUFfT0JnM2FiMlA0dDZQejlwalZVYXp2eE1ncW1LWGQxZnQ2UUpHNEw5NzFXQWVYU2VrVjdkSFhabjRfa0o?oc=5
+Source: 36氪
+URL: https://36kr.com/p/3800022823951363?f=rss
 
-## 4. ​微星全新泰坦重塑高性能游戏本体验，早鸟首发享双重好礼 - TOM科技
+## 4. 36氪首发 | 清华系AI Infra厂商完成数亿元融资，以GPU为核心重构计算机系统架构
 
-​微星全新泰坦重塑高性能游戏本体验，早鸟首发享双重好礼&nbsp;&nbsp;TOM科技
+作者 | 乔钰杰 编辑 | 袁斯来 硬氪获悉，北京容芯致远科技有限公司（以下简称“容芯致远”）近日完成天使轮数亿元融资。本轮由北京绿色能源和低碳产业基金与赛富投资基金领投，顺禧基金、富华资本、万利达集团、长江创新投、水木清华校友基金、梅花创投等跟投。云岫资本此前参与了公司种子轮投资，本轮继续跟投，并担任长期独家财务顾问。 AI浪潮下，算力需求激增，传统以CPU为中心的架构瓶颈愈发凸显：CPU成为数据调度与交互的核心限制，GPU之间通信效率不足，内存无法实现统一地址空间共享，整体算力利用率较低。
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiVkFVX3lxTFBFQmJ3bHpoTTk4bkJpdFRzQTRoNVVMd0UwamFUUDRfZFliY1VaekZDeVFocGFCaVNWU1dhTmtBU0xfdTRYYjMzUVpQRjBYNUNrVUxNc0xR?oc=5
+Source: 36氪
+URL: https://36kr.com/p/3799984046333186?f=rss
 
-## 5. 苹果2024秋季新品发布会汇总速览：有你心动的吗？ - C114通信网
+## 5. 受累内存涨价，苹果或取消入门版 MacBook Neo
 
-苹果2024秋季新品发布会汇总速览：有你心动的吗？&nbsp;&nbsp;C114通信网
+由于持续内存短缺，MacBook Neo […]
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiT0FVX3lxTE1sM3ozanU3U1lCbjdlejdjQkduQnM4WHpLbExwNkllbEdFOVJfSTNLbHhhcExMUEdtejVvXzlCa0tmWVdJdnlsMDlPUW02VWs?oc=5
+Source: TechNode 中文
+URL: https://cn.technode.com/post/2026-05-08/apple-macbook-neo-price-increase-ram/
 
-## 6. 苹果，又换了一年的皮 - 36kr.com
+## 6. 独家｜苹果第一个 AI 硬件，还没发布就已经难产了
 
-苹果，又换了一年的皮&nbsp;&nbsp;36kr.com
+苹果的第一款 AI 穿戴产品，将是 AirPods。#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiTkFVX3lxTFBMQm1XTHh2V1VMVGJmeGhoSmpuZ1JVV3JIRXdIMUxGa3ZDMkZoWDk5UFByRFg0QTVMbm5jVzQ4dnljLWlqVm5OenBsemNTUQ?oc=5
+Source: 爱范儿
+URL: https://www.ifanr.com/1665172?utm_source=rss&utm_medium=rss&utm_campaign=
 
-## 7. 时隔十年，Google Maps 迎来史诗级大更新！导航变 3D，搜索变对话 - 爱范儿
+## 7. 独家｜苹果带摄像头的AirPods或被迫暂停，部分产线「原地解散」
 
-时隔十年，Google Maps 迎来史诗级大更新！导航变 3D，搜索变对话&nbsp;&nbsp;爱范儿
+苹果 AI 硬件最激进的赌注，撞上了全球最严的隐私墙。#欢迎关注爱范儿官方微信公众号：爱范儿（微信号：ifanr），更多精彩内容第一时间为您奉上。
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiQ0FVX3lxTE9CVWI1VXlwclRBTkd0ZVdFTFhuX21LY0wxUFpTakJDUjBBUmxzZWZTZ2dDYk92Mk14ekN1YzlSMmdTaUE?oc=5
+Source: 爱范儿
+URL: https://www.ifanr.com/1665134?utm_source=rss&utm_medium=rss&utm_campaign=
 
-## 8. “城市更新”写入总体要求，时隔10年召开的中央城市工作会议释放哪些新信号 - thepaper.cn
+## 8. 扫地机祖师爷再创业：造了一只懂你的「人造赛博宠物」
 
-“城市更新”写入总体要求，时隔10年召开的中央城市工作会议释放哪些新信号&nbsp;&nbsp;thepaper.cn
+作者｜ Moonshot 编辑｜ 靖宇 当下的科技圈，具身智能的叙事出奇地一致。 波士顿动力的 Atlas 正在展示跑酷，特斯拉的 Optimus 试图精准捏起一颗鸡蛋，Figure 01 已经进驻宝马工厂开始搬运箱子。仿佛所有人都在比拼，谁能成为第一个「史塔克工业」（《钢铁侠》中的公司）。 就在这股人形劳工狂热中，一家名为 Familiar Machines 的初创公司出现了。虽是初创，其创始人 Colin Angle 却堪称家庭机器人的祖师爷 。 Colin Angle 与 iRobot R
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiYEFVX3lxTE9yOEFzNE5SM3REWExxSWsxV05nZlQ4Sk5TVjdUOVRFUW1EM2MtZS1UVU9kZXZKVl9qLWFrRHRVbjdZZzFvMmtkejBHemxpZTcyalBReDdKamtJRFBtd3lhWg?oc=5
+Source: 极客公园
+URL: http://www.geekpark.net/news/363853
 
-## 9. 时隔五年！苹果终于发布AirTag二代：精确查找范围/音量提升50% - 17173
+## 9. 派早报：Google 发布 Fitbit Air 等
 
-时隔五年！苹果终于发布AirTag二代：精确查找范围/音量提升50%&nbsp;&nbsp;17173
+高通发布骁龙 6 Gen 5 / 4 Gen 5 移动平台，Google 宣布停运 Project Mariner 等。查看全文
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiZEFVX3lxTE1FdHBDN3JzYmxCZ2JuWmlxalJqUDVsTVpySldWdFFJMzhDYjZSbE5ST1pUenBQRG5hV29sUmR5bVpHVDZid0h1eWJ3T19WaXc0NTBRR09OZGJ3TGN6TTFibGxWRWM?oc=5
+Source: 少数派
+URL: https://sspai.com/post/109489
 
-## 10. 果粉狂欢！苹果三大产品线即将更新_热点资讯 - antutu.com
+## 10. 新玩意 240｜少数派的编辑们最近买了啥？
 
-果粉狂欢！苹果三大产品线即将更新_热点资讯&nbsp;&nbsp;antutu.com
+关于栏目很多读者都会好奇少数派的编辑们到底平时都「买了啥」。我们希望通过「编辑部的新玩意」介绍编辑部成员们最近在用的新奇产品，让他们自己来谈谈这些新玩意的使用体验究竟如何。@西鸽：盖世小鸡G7Pro天 ...查看全文
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiTkFVX3lxTFBpMXVXMlRfaTQ0dm04NEdpUkI0Z25LMHFHdzRLdXR3WF8tUGZuT0N3RkhiNHY4RjQ3NElWaFYySjhOZ0Z3aF9aX2xNU3JBdw?oc=5
+Source: 少数派
+URL: https://sspai.com/post/109474
 
-## 11. 乔布斯「反对」的触屏 MacBook，为什么必然会来？ - 爱范儿
+## 11. Paraform：AI 招聘公司里，最值钱的反而是人
 
-乔布斯「反对」的触屏 MacBook，为什么必然会来？&nbsp;&nbsp;爱范儿
+我最近看了一个播客，是Paraform的创始人 John Kim 分享他的创业经历，内容很实在，我就顺便研究了下这家公司，分享给大家。 AI 时代，很多招聘公司都在讲一件事：用 AI 替代招聘顾问。 但 Paraform 做了相反的选择。 它没有把招聘顾问当成要被淘汰的人，而是把他们变成平台上最重要的资产。 公司一边用 AI 提高招聘效率，一边把大量真实招聘需求分发给独立招聘顾问，让他们用自己的关系、判断和信任网络去完成关键岗位招聘。 这里有个很重要的判断：AI 会让一般能力变便宜，但会让稀缺能
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiQ0FVX3lxTE9oUmtKaTUyS0tfUDRFVG0wM29FSE42ZWl2QWpzdlZSeVNsbXFVN2hVSDFHd0V1dk9ibFpMM0F0WTZmX0U?oc=5
+Source: 人人都是产品经理
+URL: https://www.woshipm.com/share/6391493.html
 
-## 12. “吃鸡”经典海岛大变样？时隔五年，玩家心心念念的3.0版来了！-腾讯新闻 - QQ News
+## 12. 小红书四年AI 路：FOMO、犹豫，到突然加速
 
-“吃鸡”经典海岛大变样？时隔五年，玩家心心念念的3.0版来了！-腾讯新闻&nbsp;&nbsp;QQ News
+作者 | 肖思佳 编辑 | 乔芊 杨轩 所有互联网大中厂都渴望在AI时代博得位置，在这场比赛中，小红书曾是克制的那个。 在一个搜索属性与社区属性并存，以真实经验分享为核心的产品中，活人感与AI、温情和算法，始终像天平的两端。 很长一段时间里，小红书既没有完全缺席技术探索，也没有像许多同行那样高调推进AI产品化。相反，这家公司始终在两股力量的拉锯和平衡中前行：一边持续投入模型能力，一边谨慎控制AI对社区生态的介入。 但2026年，随着Agent叙事的升温，小红书开始显露出某种急迫。 4月30日，小
 
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMiVkFVX3lxTE83R21FWFRIOHB6eTdkRWxGVlc3RURvMnc3Mm4xeHBDZllqLUdDWHl1Z2FxRXpyZG44VDZtMDhQZG5TdjZXVmE1NkJ0Um9MTEJrV0NKNTF3?oc=5
+Source: 36氪
+URL: https://36kr.com/p/3799028783439111?f=rss

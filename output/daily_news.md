@@ -1,108 +1,94 @@
 # Daily News
-**Last updated:** 2026-05-03 13:00 UTC
+**Last updated:** 2026-05-09 05:33 UTC
 Top news for creators. Items 1–10 on main page, load more.
 
 Top 3 = most talked about right now. Xiaohongshu and Douyin creators can reference.
 
 ---
 
-## 1. Systemd-manager-TUI: A TUI application for managing systemd services
+## 1. Using Claude Code: The unreasonable effectiveness of HTML
+
+Examples: https://thariqs.github.io/html-effectiveness/Related: https://simonwillison.net/2026/May/8/unreasonable-effectiven...
+
+Source: Hacker News
+URL: https://twitter.com/trq212/status/2052809885763747935
+
+## 2. Over 97% of the 'Linux' Foundation's Budget Goes Not to Linux
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://github.com/Matheus-git/systemd-manager-tui
+URL: https://techrights.org/n/2026/05/08/Over_97_of_the_Linux_Foundation_s_Budget_Goes_Not_to_Linux.shtml
 
-## 2. Investors pile into clean energy as Iran war drives push for energy security
+## 3. A recent experience with ChatGPT 5.5 Pro
+
+https://twitter.com/wtgowers/status/2052830948685676605https://xcancel.com/wtgowers/status/2052830948685676605
+
+Source: Hacker News
+URL: https://gowers.wordpress.com/2026/05/08/a-recent-experience-with-chatgpt-5-5-pro/
+
+## 4. Meta Shuts Down End-to-End Encryption for Instagram Messaging
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://www.ft.com/content/9921f2b5-c910-4cec-a50f-cad453935a1a
+URL: https://www.pcmag.com/news/meta-shuts-down-end-to-end-encryption-for-instagram-dms-messaging
 
-## 3. Show HN: Apple's Sharp Running in the Browser via ONNX Runtime Web
-
-Hacker News front page
-
-Source: Hacker News
-URL: https://github.com/bring-shrubbery/ml-sharp-web
-
-## 4. Specsmaxxing – On overcoming AI psychosis, and why I write specs in YAML
+## 5. Mux (YC W16) Is Hiring
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://acai.sh/blog/specsmaxxing
+URL: https://www.mux.com/jobs
 
-## 5. Windows API is Successful Cross-Platform API (2024)
-
-Hacker News front page
-
-Source: Hacker News
-URL: https://retrocoding.net/windows-api-is-successful-cross-platform-api
-
-## 6. AI, Intimacy, and the Data You Never Meant to Share
+## 6. When is your birthday? The math behind hash collisions
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://fshot.org/techzone/the-algorithm-knows.php
+URL: https://0xkrt26.github.io/math_behind_security/2026/05/08/birthday-problem.html
 
-## 7. Care homes and hotels in Japan shut as expansion strategy unravels
-
-Hacker News front page
-
-Source: Hacker News
-URL: https://www.newsonjapan.com/article/149075.php
-
-## 8. Maryland to ban A.I.-driven price increases in grocery stores
+## 7. You gave me a u32. I gave you root. (io_uring ZCRX freelist LPE)
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://www.nytimes.com/2026/05/01/business/surveillance-pricing-groceries-maryland.html
+URL: https://ze3tar.github.io/post-zcrx.html
 
-## 9. A couple million lines of Haskell: Production engineering at Mercury
+## 8. Google broke reCAPTCHA for de-googled Android users
+
+Related: Google Cloud fraud defense, the next evolution of reCAPTCHA - https://news.ycombinator.com/item?id=48039362also: Google Cloud Fraud Defence is just WEI repackaged - https://news.ycombinator.com/item?id=48063199
+
+Source: Hacker News
+URL: https://reclaimthenet.org/google-broke-recaptcha-for-de-googled-android-users
+
+## 9. Teaching Claude Why
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://blog.haskell.org/a-couple-million-lines-of-haskell/
+URL: https://www.anthropic.com/research/teaching-claude-why
 
-## 10. Clojurists Together – Q2 2026 Open Source Funding Announcement
+## 10. AI is breaking two vulnerability cultures
 
 Hacker News front page
 
 Source: Hacker News
-URL: https://www.clojuriststogether.org/news/q2-2026-funding-announcement/
+URL: https://www.jefftk.com/p/ai-is-breaking-two-vulnerability-cultures
 
-## 11. West Bengal Assembly election 2026: 5 key fights to watch as Bengal heads for verdict day
+## 11. Tamil Nadu government election LIVE: VCK, Left parties hint backing to Vijay's TVK; key briefing today
 
-Amid elaborate security arrangements and heightened political tension, a clutch of key constituencies is set to offer early ...
+Vijay-led Tamilaga Vettri Kazhagam, which won 108 seats in its maiden Tamil Nadu Assembly election held on April 23, was ...
 
 Source: DuckDuckGo News
-URL: https://www.moneycontrol.com/news/india/west-bengal-assembly-election-2026-5-key-fights-to-watch-as-bengal-heads-for-verdict-day-13906606.html
+URL: https://www.indiatvnews.com/tamil-nadu/news-tamil-nadu-government-election-live-vck-left-parties-hint-backing-to-vijay-s-tvk-key-briefing-today-dmk-aiadmk-tamil-nadu-cm-swearing-in-1040468
 
-## 12. New Job Listings
+## 12. 1 at-bat, 1 hit for D-backs' No. 1 prospect Waldschmidt
 
-Are you looking to hire? Share your opening to the marketing professionals here on r/marketing. Please include title, description, full-time or part-time, location (on-site location or remote), and a link to apply. Don't forget to add to our communit
-
-Source: Reddit r/marketing
-URL: https://www.reddit.com/r/marketing/comments/1sgz5ry/new_job_listings/
-
-## 13. AppsFlyer use hundreds of Reddit accounts to leave fake positive reviews of their service
-
-As you know there are many companies on Reddit trying to cheat potential clients by posting fake positive reviews of their services. AppsFlyer are probably the most egregious when it comes to this. Their cheating works like this - They create a fake
-
-Source: Reddit r/marketing
-URL: https://www.reddit.com/r/marketing/comments/1s1lelq/appsflyer_use_hundreds_of_reddit_accounts_to/
-
-## 14. The final frontiers: States where BJP has never formed a sarkar and why May 4 results matter
-
-Counting begins May 4 for 824 seats in five assemblies. BJP aims to expand in West Bengal, Kerala, and Tamil Nadu. Results ...
+The Triple-A Reno Aces were in Sacramento on Thursday night when Diamondbacks top prospect Ryan Waldschmidt was summoned into ...
 
 Source: DuckDuckGo News
-URL: https://www.moneycontrol.com/news/india/the-final-frontiers-states-where-bjp-has-never-formed-a-sarkar-and-why-may-4-results-matter-13906575.html
+URL: https://www.mlb.com/news/ryan-waldschmidt-d-backs-no-1-prospect-called-up-for-big-league-debut?t=mlb-pipeline-coverage
 
 
 ---

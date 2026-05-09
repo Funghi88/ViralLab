@@ -1,11 +1,11 @@
 # Raw news results: no-code tools
 
-## 1. Google boosts Sheets automation with no-code and AI tools
+## 1. AI agents and no-code tools mark new phase in app creation
 
-Google has expanded automation in Sheets with new no‑code tools like Sheet Automation and AI‑powered Workspace Intelligence. Users can now manage tasks such as form handling, project tracking, and ...
+Microsoft’s latest Visual Studio 2026 update and Lovable Labs’ mobile app launch highlight a shift toward AI-driven and no-code development. Visual Studio now supports scalable cloud agents, enhanced ...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/google-boosts-sheets-automation-with-no-code-and-ai-tools/gm-GM423E98AC?ocid=BingNewsVerp
+URL: https://www.msn.com/en-us/news/other/ai-agents-and-no-code-tools-mark-new-phase-in-app-creation/gm-GM68BEC03F?ocid=BingNewsVerp
 
 ## 2. Show HN: Vibe Check – Client-side invisible Unicode steganography scanner
 
@@ -49,26 +49,26 @@ In today’s fast-paced business environment, efficiency and productivity are pa
 Source: DuckDuckGo News
 URL: https://www.geeky-gadgets.com/6-awesome-no-code-ai-tools-you-need-to-know-about/
 
-## 8. 3 Cutting-Edge No-Code AI Tools Shaping the Future
-
-In today’s rapidly evolving technological landscape, no-code AI tools are transforming the way businesses and individuals approach software development and automation. These innovative platforms ...
-
-Source: DuckDuckGo News
-URL: https://www.geeky-gadgets.com/3-cutting-edge-no-code-ai-tools-shaping-the-future/
-
-## 9. 10 Free no-code tools to start your business in 2024
+## 8. 10 Free no-code tools to start your business in 2024
 
 Starting a business can be a daunting prospect, especially when considering the costs and technical expertise required to set up your operations. However, the rise of no-code tools has revolutionized ...
 
 Source: DuckDuckGo News
 URL: https://www.geeky-gadgets.com/essential-no-code-business-start-up-tools/
 
-## 10. Pienso builds no-code tools for training AI models
+## 9. Pienso builds no-code tools for training AI models
 
 Add Yahoo as a preferred source to see more of our stories on Google. Earth (focus on Europe) represented by little dots, binary code and lines - big data, global business, cryptocurrency 3D render ...
 
 Source: DuckDuckGo News
 URL: https://www.yahoo.com/news/pienso-builds-no-code-tools-120038000.html
+
+## 10. Low-Code And No-Code: 19 Potential Downsides To Be Aware Of
+
+Low-code and no-code tools are becoming increasingly popular in businesses across industries, and their appeal is clear. These tools’ prebuilt templates and components can help skilled developers ...
+
+Source: DuckDuckGo News
+URL: https://www.forbes.com/councils/forbestechcouncil/2023/07/28/low-code-and-no-code-19-potential-downsides-to-be-aware-of/
 
 ## 11. Low-code and no-code in the real world: Five steps for success
 
@@ -77,9 +77,9 @@ For this to happen, however, I believe leaders and teams need to ground themselv
 Source: DuckDuckGo News
 URL: https://www.fastcompany.com/90808169/low-code-and-no-code-in-the-real-world-five-steps-for-success
 
-## 12. 19 vibe coding tools for democratizing app development - cio.com
+## 12. Why No-Code Couldn’t Build the Personal Site I Actually Needed - HackerNoon
 
-19 vibe coding tools for democratizing app development&nbsp;&nbsp;cio.com
+Why No-Code Couldn’t Build the Personal Site I Actually Needed&nbsp;&nbsp;HackerNoon
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMimwFBVV95cUxOV1Z6Q3pNTUs3V1BqNjJUS1VXZk11TzMzamNYd1hQdGw1R0Y2T0xMaE94VVJJTVlua3pjdjZzUGY2VmdXYkdtLWVqcjZsUGF6NGxhclNtaHNEMHN2dHdFRm5PN0ZBUXc1ZFBlNnA0R09XdjRxMHM3VFR1TFpiZW5OaDFXNWc2bVNUTGI2dXlfSG56ckF5STk1dFNuaw?oc=5
+URL: https://news.google.com/rss/articles/CBMijAFBVV95cUxPeUVkU1YyRWhaMDFadzJVWUdpQ1Q0MmNCQ19nMTVLODNfd0gtQS1Jc0VodHUyU21hTzg3ZEVYeklBclVzS3FLamQ4U2hKeE4xQWNHZFV0QjdyandiNEtIZVk4NnlpZERWbzZJTGh6NXZSMFhPYndPUFhtQ1JZQ283NTBvX1VsUHpMVEhaNQ?oc=5

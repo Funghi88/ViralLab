@@ -1,85 +1,85 @@
 # Raw news results: creator economy
 
-## 1. TikTok and YouTube tighten monetization rules as creator economy shifts
+## 1. OnlyFans Valued at $3.15 Billion in Deal to Sell Minority Stake to Architect...
 
-TikTok’s 2026 algorithm overhaul and YouTube’s updated monetization policies are redefining how creators earn, emphasizing originality, niche consistency, and authentic engagement over raw views. The ...
-
-Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/tiktok-and-youtube-tighten-monetization-rules-as-creator-economy-shifts/gm-GM08ED582C?ocid=BingNewsVerp
-
-## 2. Shannon Elizabeth says she made $1.2 million in her first week on OnlyFans — what it says about the new creator economy
-
-“American Pie” star is the latest example of how the creator economy has changed the Hollywood dynamic and shown the ...
+The parent company of OnlyFans, the porn-friendlycreatorsite that rakes in billions of dollars in...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/money/general/shannon-elizabeth-says-she-made-1-2-million-in-her-first-week-on-onlyfans-what-it-says-about-the-new-creator-economy/ar-AA227ieh?ocid=BingNewsVerp
+URL: https://variety.com/2026/digital/news/onlyfans-valuation-3-15-billion-sale-stake-architect-capital-1236741700/
 
-## 3. Toxic workplace claims spotlight leadership gaps in $250B creator economy
+## 2. The CEO of You: Building the Business Behind the Spotlight
 
-High-profile workplace controversies involving MrBeast and Alex Cooper have intensified scrutiny on the $250 billion creator economy’s leadership challenges. Many top creators enter business without ...
-
-Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/toxic-workplace-claims-spotlight-leadership-gaps-in-250b-creator-economy/gm-GM733DFE61?ocid=BingNewsVerp
-
-## 4. Reports reveal 2026 creator economy strategies and tools
-
-A wave of recent reports outlines how creators and brands are adapting to a fast-evolving digital economy. Insights span monetization tools, influencer discovery platforms, TikTok growth blueprints, ...
+The difference is between those who treat their careers as a series of performances and those who...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/reports-reveal-2026-creator-economy-strategies-and-tools/gm-GM8D74305D?ocid=BingNewsVerp
+URL: https://www.rollingstone.com/culture-council/articles/ceo-of-you-building-the-business-behind-the-spotlight-1235559018/
 
-## 5. TikTok Live surges as gaming and creator economy evolve in 2026
+## 3. Retail Investors Are Doubling Down And Fear May Be Driving The Rally
 
-TikTok Live has emerged as a dominant force in live streaming, nearly matching half of global viewership in Q1 2026, while gaming content and creator monetization tools rapidly evolve. Reports show ...
-
-Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/tiktok-live-surges-as-gaming-and-creator-economy-evolve-in-2026/gm-GMB194711A?ocid=BingNewsVerp
-
-## 6. Passes rebrands as creator accelerator amid booming economy
-
-Passes, a Los Angeles-based creator platform, has rebranded as a 'creator accelerator' to position itself as long-term business infrastructure for creators. The move comes as the U.S. creator economy ...
+Retail investors keep buying the dip as volatility rises, fueling the AI‑driven rally. This piece ex...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/other/passes-rebrands-as-creator-accelerator-amid-booming-economy/gm-GM6E23D8B3?ocid=BingNewsVerp
+URL: https://finance.yahoo.com/markets/stocks/articles/retail-investors-doubling-down-fear-143348658.html
 
-## 7. Show HN: Cardcast.gg – Play paper Magic: The Gathering over webcam
+## 4. Justin Wolfers, Cable's Favorite Economist, Joins the Creator Economy
 
-I've been building https://cardcast.gg, a web app for playing paper Magic: The Gathering remotely. You point a webcam at your play area and it identifies cards as you put them down. It's an alternative to Spelltable that I built for my friend group t
+Hacker News
 
 Source: Hacker News
-URL: https://cardcast.gg
+URL: https://www.nytimes.com/2026/05/06/business/dealbook/justin-wolfers-media-company.html
 
-## 8. Copy of the email I sent to my undergraduate professors on Nov 30, 2025
+## 5. Justin Wolfers, Cable’s Favorite Economist, Joins the Creator Economy
 
-After further consideration, I have come to the conclusion that graduate education in Economics would be impractical for me and not aligned with my goals. So you do not have to expect to write a letter of recommendation for me. Also, I would like to
+With his crisp breakdowns of President Trump’s trade moves and distinctive Aussie accent, Mr. Wolfer...
 
-Source: Hacker News
-URL: https://news.ycombinator.com/item?id=47763617
+Source: DuckDuckGo News
+URL: https://www.nytimes.com/2026/05/06/business/dealbook/justin-wolfers-media-company.html
 
-## 9. Skills are quietly becoming the unit of agent knowledge
+## 6. Made By All Launches New Venture Made By Us Studios As Tanya Cohen Joins Leanne...
+
+EXCLUSIVE: Digital management company Made By All is launching Made By Us Studios, evolving from a...
+
+Source: DuckDuckGo News
+URL: https://www.yahoo.com/entertainment/articles/made-launches-venture-made-us-130000371.html
+
+## 7. The Rise Of The 'Casting Era' In The Creator Economy
+
+AI is turning thecreator economyinto a commodity. While the middle market drowns in generic data, elite brands are going analog to find what the algori...
+
+Source: DuckDuckGo News
+URL: https://finance.yahoo.com/sectors/technology/articles/rise-casting-era-creator-economy-042059988.html
+
+## 8. Skills are quietly becoming the unit of agent knowledge
 
 In the last few months agent skills went from a niche Claude Code feature to something every major runtime supports. Anthropic has an official skills repo. OpenAI shipped skills in Codex with a built-in skill-creator. Karpathy talks about "everything
 
 Source: Hacker News
 URL: https://news.ycombinator.com/item?id=47475832
 
-## 10. AI makes everything easy to build and impossible to sell
+## 9. AI makes everything easy to build and impossible to sell
 
 Hacker News
 
 Source: Hacker News
 URL: https://www.vita-ai.net/blogs/ai-creator-economy-disruption
 
-## 11. What the 2026 AI price hikes taught me about lean engineering
+## 10. Why the Internet Built for Friends Felt More Meaningful Than AI
 
-I spent the last two weeks struggling with AI costs going up like crazy. I realized I had been treating AI tokens as if they were free. Like many others, I fell into the trap of using premium, Ferrari-level models to perform supermarket-run tasks. I
+At the beginning of the social internet there was a very simple promise. Technology would help people stay connected to those who were already part of their lives. There was no obsession with “audiences”, no creator economy, no algorithms deciding wh
 
 Source: Hacker News
-URL: https://news.ycombinator.com/item?id=47377220
+URL: https://news.ycombinator.com/item?id=47300512
 
-## 12. SU launches 1st academic program from Center for the Creator Economy - The Daily Orange
+## 11. Show HN: Lesso – a place for writers to build courses
 
-SU launches 1st academic program from Center for the Creator Economy&nbsp;&nbsp;The Daily Orange
+Hey HN,About 10 years ago, before I had any real experience in the industry, I kept finding myself with ideas and things I wanted to teach. I'd write blog posts. Unpaid, unstructured, no audience. I always knew I wanted to turn that into something mo
+
+Source: Hacker News
+URL: https://www.lesso.app
+
+## 12. Inside the current state of generative AI in the creator economy - Digiday
+
+Inside the current state of generative AI in the creator economy&nbsp;&nbsp;Digiday
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMihgFBVV95cUxOaUZ1a3psdjRFeE1qUFJfdEJuNkxrX3o4LXNmdmFNMTVKejA3YmpueTJWRjRva01nV2lQTHZXTlN4b1ozSnZsQ1BaaWFvUThiclY0c01xS2w1SGpDMm9GUFVhdHdCZUlMQjFwOTlHNGJwTDVrU1R3RlZkUlVSYUtVRDlCWHl6QQ?oc=5
+URL: https://news.google.com/rss/articles/CBMiggFBVV95cUxNSExnMGFuUk1JbGx6c1BvNWpTc0daWTRPYldFN1FEVkx0SkZ3SV9FQVNGZzN3M1VId1NHQlA5eHkxa1Y4bFdHdTVRWU55LUlrSS1IbXo4ZGMySlppQ3AxTWNTYmxkNml4cVVER2ExS3V3dEloT01xalBFa0MwaW9fZTJn?oc=5
