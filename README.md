@@ -1,68 +1,35 @@
 # ViralLab
 
-
-
 **Engineer your influence. Turn noise into viral.**
 
 **[Try it live →](https://virallab.onrender.com)**
 
-ViralLab scores content using Jonah Berger's STEPPS framework — behavioral science, not guesswork. Design content that spreads.
-
-ViralLab now includes professional, project-level skill workflows for:
-
-- strict Berger STEPPS contagious evaluation
-- strict Minto Pyramid structuring (conclusion-first, grouped logic, evidence mapping)
-- multi-source crawling + SEO discovery for bilingual tag coverage
-
-**English and Chinese channels use different sources.** The English daily digest pulls from tech/media RSS, DuckDuckGo & Google News (Reddit/forum URLs are filtered out), and Hacker News. Optional: YouTube, NewsAPI. The Chinese channel uses Weibo, Zhihu, Douyin, Baidu, Bilibili, 少数派, IT之家, 36氪, 今日头条, 掘金, and PTT (Taiwan). Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
-
-**英文与中文频道使用不同来源。** 英文每日新闻来自科技媒体 RSS、DuckDuckGo/Google 新闻（会过滤 Reddit 等论坛链）、Hacker News；可选 YouTube、NewsAPI。中文频道来自微博、知乎、抖音、百度、B站、少数派、IT之家、36氪、今日头条、掘金、PTT（台湾）。双语用户可按偏好切换频道，获取不同生态的内容。
+ViralLab is an end-to-end bilingual (EN / ZH) intelligence, rewriting, and publishing workbench for content creators. It gathers global news, deep long-form essays, podcasts, and viral videos, scores them with **Jonah Berger's STEPPS** behavioral science framework, structures arguments using the **Minto Pyramid Principle**, and publishes directly to your blog and social channels.
 
 ---
 
-## Who is this for?
+## Core Workflow: Spot → Rewrite → Publish
 
-**Content creators** — YouTubers, course builders, newsletter writers, social media managers. Anyone who wants to:
-
-- Catch what's trending in their niche
-- Know *why* content goes viral (science, not guesswork)
-- Turn video into text for scripts, blogs, or repurposing
-- Build their channel around topics that actually spread
-
-If you create content and want to be ahead of the curve, ViralLab is for you.
-
----
-
-## What does it do?
-
-1. **Gather trends** — Search news and videos by topic. No API keys. DuckDuckGo (global) + Bilibili (China).
-2. **Score with Berger** — Every piece gets a 0–100 score based on Jonah Berger's STEPPS (Social Currency, Triggers, Emotion, Public, Practical, Stories) and magic words. Science-backed.
-3. **Video/audio to text** — Paste YouTube/Bilibili/Douyin/Xiaohongshu/Shipinhao/Xiaoyuzhou/podcast links (or local media path). Export transcript markdown and score the script.
-4. **One dashboard** — News, videos, transcripts. All in one place. Simple.
+1. **Daily News & AI Authority (`/daily`)** — Global news digest (EN & ZH kept strictly separated) plus a founder-grade **AI Authority Brief** auto-tagged into 4 strategic layers (`Research`, `Industry`, `Investment`, `Strategy & Society`).
+   * **Global EN sources (40+ verified feeds):** BBC World & Tech, NPR World & Tech, The Guardian, Al Jazeera, Deutsche Welle (DW), France 24, CNA Singapore, South China Morning Post, The Japan Times, ABC News Australia, Financial Times, Semafor, New York Times Tech, CNBC, TechCrunch, The Verge, Wired, Ars Technica, MIT Technology Review, Axios, Rest of World, OpenAI Blog, Google AI & DeepMind Blogs, Hugging Face, BAIR, Simon Willison, Hacker News, and Google News.
+   * **Chinese ZH sources (17+ verified feeds):** 量子位, IT之家, 爱范儿, 少数派, Solidot, 开源中国, 人人都是产品经理, 创业邦, 德国之声中文, 法广中文 RFI, plus targeted signals from 机器之心, DeepTech, 甲子光年, 阿里研究院, and 新智元.
+2. **News by Topic (`/news`)** — Search any topic in English or Chinese with live auto-refreshing background search, platform hot-topic discovery (HN, Lobste.rs, Dev.to, GitHub, Bilibili, Weibo/Zhihu/Douyin/Baidu/PTT), and field-heat breakdowns.
+3. **Long-form & Podcasts (`/longform`)** — Curated essays and top podcasts (The Atlantic, The New Yorker, The Economist, Stratechery, Pragmatic Engineer, Hard Fork, Acquired, Lenny's Podcast, FT中文网, 纽约时报中文网, 報導者, 端傳媒, 阮一峰的网络日志, UX Coffee, etc.).
+4. **Viral Videos & Social Discovery (`/viral`, `/china-content`)** — Instant cached trending videos for **Global (YouTube)** and **China (Bilibili + optional Playwright crawlers for Xiaohongshu, Douyin, Zhihu, Shipinhao, TikTok, X, Instagram)** with Berger STEPPS scores and 3 content angles per item.
+5. **Video / Audio to Text + Image OCR (`/video-to-text`)** — Paste a YouTube/Bilibili/Douyin/XHS/podcast URL or local media path to extract transcripts (YouTube captions → `yt-dlp` → VideoCaptioner / optional WhisperX) with STEPPS + Minto analysis. Also supports YouTube video/audio downloads and offline Chinese/Latin **Image OCR** via RapidOCR + ONNX.
+6. **1-Click Rewrite (`/article-lab`)** — Every card on `/daily`, `/news`, and `/longform` has **✍️ Rewrite** and **🚀 Publish** buttons. Rewrite transcripts or articles into conclusion-first **Minto Pyramid** drafts with full **STEPPS** diagnosis (works rule-based with no API keys, or enhanced via OpenAI / Anthropic / Gemini).
+7. **5-Channel Publish Hub & Scheduler (`/publish`)** — Queue, schedule (auto-dispatched every minute by APScheduler), format, and publish directly to:
+   * **Personal Blog (GitHub Pages / Jekyll)** — Native Jekyll frontmatter (`layout: post`, `title`, `date`, `category`, `excerpt`) committed directly to `_posts/` or `_drafts/` via GitHub API (preconfigured for `Funghi88/funghi88.github.io`), or 1-click Copy Jekyll `.md`.
+   * **Telegram** — Direct Bot API HTML publishing with automatic chunking for long posts.
+   * **WeChat 公众号** — Direct Draft Box API (`draft/add`) + 1-click **Copy WeChat Rich HTML** (inline-styled HTML that pastes cleanly into `mp.weixin.qq.com` with zero keys required).
+   * **Xiaohongshu 小红书** — Native mobile formatter (≤20-char hook title, emoji paragraphs, `#tags`) + 1-click Copy & Open Creator Studio + optional webhook.
+   * **X (Twitter)** — Direct X API v2 OAuth 1.0a publishing (with automatic numbered multi-tweet threads) + webhook fallback + 1-click Copy Thread & Open X Composer.
 
 ---
 
-## Professional Skill Sets Built In
+## Quick Start (macOS / Linux)
 
-Reusable Cursor Agent skills (Minto Pyramid, Berger STEPPS, crawling/SEO, platform virality, etc.) live in a **single machine-wide source**: `~/cursor-skills-source`. Run `~/cursor-skills-source/link-to-cursor.sh` once per Mac so Cursor loads them from `~/.cursor/skills/` in every project. See `.cursor/skills/README.md` for setup; do not duplicate those skills inside this repo.
-
-1. **Minto Pyramid Structuring** (`minto-pyramid-structuring`)
-  - Enforces single governing thought, grouped key points, and mapped evidence.
-  - Supports strict structure for transcript-to-article workflows.
-2. **Contagious Berger STEPPS** (`contagious-berger-stepps`)
-  - Applies auditable STEPPS scoring and diagnosis for article/video/news cards.
-  - Helps answer: "Which content attracts attention?" and "What should we borrow?"
-3. **Multi-Source Crawling + SEO** (`multi-source-crawling-seo`, `technical-seo-discovery`)
-  - Expands discovery workflows for news, podcasts, and videos.
-  - Keeps EN/ZH ecosystems separated and generates hot-tag references for both.
-
-These skills are designed for repeated, professional use across teams—not one-off prompting.
-
----
-
-## How to use it
-
-### Quick start (3 steps)
+Requires **Python 3.12** (recommended) and `ffmpeg` (for audio/video processing).
 
 ```bash
 git clone https://github.com/Funghi88/ViralLab.git
@@ -73,120 +40,104 @@ cd ViralLab
 
 Open **[http://127.0.0.1:5001](http://127.0.0.1:5001)** in your browser.
 
-### Commands
+### Useful Commands
 
-
-| What you want                        | Command                                                         |
-| ------------------------------------ | --------------------------------------------------------------- |
-| **Daily news** (top 3 today)         | `.venv/bin/python main.py --daily-news`                         |
-| News on a topic                      | `.venv/bin/python main.py --search-only "AI agents"`            |
-| Viral videos (ranked by spread rate) | `.venv/bin/python main.py --videos "trending viral"`            |
-| Videos + full transcript (markdown)  | `.venv/bin/python main.py --videos "AI explainer" --transcript` |
-| Single media link/file → text        | `.venv/bin/python main.py --video-to-text <url_or_media_path>`  |
-| Web dashboard                        | `.venv/bin/python server.py`                                    |
-| Web dashboard (safe restart)         | `./scripts/dev-server.sh`                                       |
-
-
-### In the app
-
-- **Daily News** — Top stories for creators (EN/ZH). With `server.py` running, the digest refreshes about every **30 minutes**; if `output/daily_news_updated.txt` is older than **~8 hours**, opening `/daily` also kicks off a **debounced background refresh**. Use **立即刷新** anytime, or `GET /api/refresh-daily` from cron on sleeping hosts. See `.env.example` (`DAILY_REFRESH_INTERVAL_MINUTES`, etc.).
-- **AI Authority Brief** — On `/daily`, a dedicated section tracks authoritative AI sources and auto-labels each card into four strategy layers (`Research`, `Industry`, `Investment`, `Strategy & Society`) plus cadence (`Daily/Weekly/Monthly/Quarterly`). Full brief: `output/daily_ai_authority.md`; cron endpoint: `GET /api/refresh-ai-authority`.
-- **Strict language split** — English content stays in English pages/files, Chinese content stays in Chinese pages/files (including AI Authority and topic news).
-- **News vs long-form split** — `/daily` and `/news` keep news-only cards; blogs/newsletters/research-report style sources are routed to `/longform`.
-- **Your field** — Choose your field (fashion, tech, food, beauty, content) for curated trends, color forecasting, and reliable resources.
-- **Viral Videos** — Search by topic (YouTube or Bilibili). Berger score, content angles, trend lifecycle.
-- **Long-form & Podcasts** — Dedicated page for deep articles + podcast signals, with EN/ZH hot-tag references.
-- **STEPPS & Magic Words** — Learn how we score. Jonah Berger's framework, explained.
-- **Video to Text** — Paste platform URL/audio link (or local media path) → markdown transcript + Berger score + Minto structure tab.
-- **Article Lab + Publish Queue** — Rewrite markdown with Minto + STEPPS, then queue/approve publish to X or blog.
-- **WeChat 公众号 / 小红书** — ViralLab 不内置 mp/小红书后台自动化。定稿 markdown 后，在 **Cursor** 里让 Agent 按全局技能 **wechat-mp-auto**、**xiaohongshu-auto** 操作浏览器发布（真源 `~/cursor-skills-source`，先跑 `link-to-cursor.sh`）。发布页 `/publish` 有简要说明。详见 `.cursor/rules/virallab-cursor-publish-handoff.mdc`。
-- **Workflow hardening** — Publish queue includes duplicate prevention, quality warnings, and audit events for safer agentic automation.
+| Task | Command |
+| :--- | :--- |
+| Start local dashboard (auto-reload) | `./scripts/dev-server.sh` |
+| Refresh all feeds (hot list, daily, longform, videos, topics) | `.venv/bin/python scripts/refresh_all_content.py` |
+| Daily news + AI Authority only | `.venv/bin/python main.py --daily-news` |
+| Search news on a topic | `.venv/bin/python main.py --search-only "AI agents"` |
+| Viral videos (+ optional `--transcript`) | `.venv/bin/python main.py --videos "AI explainer" --transcript` |
+| Single media URL or local file → transcript | `.venv/bin/python main.py --video-to-text <url_or_path>` |
+| Upgrade `yt-dlp` in `.venv` | `./scripts/upgrade-ytdlp.sh` |
+| Run full test suite | `.venv/bin/python -m unittest discover -s tests` |
 
 ---
 
-## Why Berger?
+## Network & macOS VPN Support
 
-We use Jonah Berger's research from *Contagious* and *Magic Words*. Not random. Not algorithmic engagement hacks. **Behavioral science** — what actually makes people share.
+ViralLab's [src/proxy_env.py](src/proxy_env.py) handles macOS VPN environments automatically — no hardcoded proxy ports required:
 
-High score = content that taps into social currency, emotion, practical value, stories. The stuff that spreads.
+* **TUN VPN mode (e.g., QuickQ TUN):** Detected cleanly as direct/TUN routing with zero dead-port stalls.
+* **Floating SOCKS5 / HTTP proxies:** Dynamically inspects macOS `scutil --proxy` (with native `PySocks` / `socksio` support) and fast-probes ports before use, adapting automatically whenever your VPN reconnects and changes ports.
+* **Domestic vs Overseas routing:** China-domestic endpoints (Douyin, XHS short links, WeChat API) bypass overseas proxies automatically.
+* Check live proxy status anytime at `GET /api/health`.
 
 ---
 
-## Install
+## Configuration (`.env`)
 
+Copy `.env.example` to `.env`. News, long-form, viral videos, OCR, and platform formatters work **without any API keys**. Add keys only for the optional features you want:
+
+### AI-Enhanced Scoring & Rewrites (Optional)
+Multi-provider client ([src/llm_client.py](src/llm_client.py)) tries configured keys in order with automatic fallback:
 ```bash
-./scripts/install.sh
+OPENAI_API_KEY=sk-...             # Default model: gpt-4.1-mini (override: VIRALLAB_OPENAI_MODEL)
+ANTHROPIC_API_KEY=sk-ant-...      # Default model: claude-haiku-4-5 (override: VIRALLAB_ANTHROPIC_MODEL)
+GEMINI_API_KEY=...                # Default model: gemini-2.5-flash (override: VIRALLAB_GEMINI_MODEL)
 ```
 
-Python 3.12+. No API keys for news/videos.
-
-**Publish queue webhooks (optional):**
-
+### 5-Channel Live Publishing (Optional)
 ```bash
-X_PUBLISH_WEBHOOK=https://your-endpoint/x
-BLOG_PUBLISH_WEBHOOK=https://your-endpoint/blog
+# Personal Blog (GitHub Pages / Jekyll)
+GITHUB_TOKEN=ghp_...
+GITHUB_BLOG_REPO=Funghi88/funghi88.github.io
+GITHUB_BLOG_BRANCH=main
+GITHUB_BLOG_CATEGORY=Writing
+
+# Telegram Channel / Chat
+TELEGRAM_BOT_TOKEN=123456789:AA...
+TELEGRAM_CHAT_ID=@your_channel
+
+# WeChat Official Account Draft Box (or use 1-click Copy WeChat Rich HTML with no keys)
+WECHAT_APP_ID=wx...
+WECHAT_APP_SECRET=...
+WECHAT_THUMB_MEDIA_ID=...
+
+# X (Twitter) — Direct API v2 (OAuth 1.0a) OR Webhook (n8n / Make / Zapier)
+X_API_KEY=...
+X_API_SECRET=...
+X_ACCESS_TOKEN=...
+X_ACCESS_TOKEN_SECRET=...
+# X_PUBLISH_WEBHOOK=https://...
+
+# Xiaohongshu (or use 1-click Copy XHS Format with no keys)
+# XHS_PUBLISH_WEBHOOK=https://...
 ```
 
-If webhook is unset, publish actions are still tracked locally in `output/publish_queue.json`.
+### Optional Media & Crawlers
+* **Douyin → Transcript:** Pasting a local downloaded video/audio path is most reliable. For URLs, see `config/README-ytdlp-cookies.md`.
+* **Higher-Quality Local ASR (WhisperX):** `pip install -r requirements-asr.txt` (automatically uses CPU `int8` on Apple Silicon to avoid `ctranslate2` MPS issues).
+* **Playwright Crawlers (XHS / Douyin / Zhihu / Shipinhao / X / Instagram):**
+  ```bash
+  .venv/bin/python -m playwright install chromium
+  .venv/bin/python -m tools.china_crawler login --platform xhs
+  .venv/bin/python -m tools.china_crawler run --platform xhs --keywords "AI"
+  ```
+* **Automatic Storage Cleanup:** `src/output_cleanup.py` automatically prunes stale `raw_*`, `videos_*`, `transcript_*`, `article_rewrite_*`, `youtube_*`, `viral_cache_*`, and `handoff_*` artifacts older than `OUTPUT_RETENTION_DAYS` (default: 3 days) and deletes intermediate `yt-dlp` fragments after merging.
 
-**Transcript coverage (recommended):**
+---
 
-```bash
-pip install videocaptioner
-```
+## API Endpoints
 
-ViralLab uses YouTube captions first when available. For Bilibili, Douyin, Xiaohongshu, Shipinhao, Xiaoyuzhou, and broader podcast/audio links, VideoCaptioner enables ASR fallback transcript generation.
-
-**Douyin → transcript:** **Prefer pasting a local video/audio path** on the Video to Text page after saving the clip (most reliable). Optional URL flow uses VideoCaptioner and/or **`yt-dlp`**; Douyin URLs often fail without **`douyin.com` cookies** Netscape **`config/ytdlp_cookies.txt`** (see **`config/README-ytdlp-cookies.md`** / **`YTDLP_COOKIES_FILE`** — app-only login is not enough). Set **`VIRALLAB_VIDEOCAPTIONER_BIN`** if Videocaptioner lives outside this repo.
-
-**Higher-quality ASR (optional):** Install WhisperX for multilingual speech-to-text with word-level timestamps and alignment (better for subtitles and noisy short video). Requires `ffmpeg` on your PATH. With no `VIRALLAB_WHISPER_MODEL` set, GPU/MPS use `large-v3`; on CPU, `VIRALLAB_WHISPER_MAX_ACCURACY=1` (default) also uses `large-v3` (slower), or set it to `0` for `medium` only on CPU.
-
-```bash
-pip install -r requirements-asr.txt
-```
-
-Environment variables: see `.env.example` (`VIRALLAB_ASR_ENGINE`, `VIRALLAB_WHISPER_MODEL`, `VIRALLAB_WHISPER_MAX_ACCURACY`, `VIRALLAB_WHISPER_DEVICE`, `VIRALLAB_WHISPER_BATCH_SIZE`, `VIRALLAB_WHISPER_LOG`, `VIRALLAB_FFMPEG_AF_PRESET`). Default `VIRALLAB_ASR_ENGINE=auto` uses WhisperX when installed, otherwise VideoCaptioner. Render and other small hosts often omit this extra stack; keep `requirements.txt` only for minimal deploys. `VIRALLAB_WHISPER_LOG` (default on) toggles stderr lines prefixed with `[whisperx]`: the pre-run settings line and a short `[whisperx] error: …` line if ASR fails (no traceback); set to `0` to silence both.
-
-**China users:** DuckDuckGo and YouTube require VPN. Use our China sources (Bilibili, Douyin, Xiaohongshu, Shipinhao) for content without VPN. See [CHINA_ACCESS.md](CHINA_ACCESS.md).
-
-**Platform note:** Some sources (e.g. TikTok/Douyin/Xiaohongshu/Shipinhao) are constrained by platform policies. ViralLab supports a hybrid approach: official search links + optional crawler outputs where feasible.
-
-**China crawler (optional):** To add content from Xiaohongshu, Douyin, Zhihu, and Shipinhao to the China viral feed: use the **Fetch** card on the Viral page (source = China), or run the CLI:
-
-```bash
-pip install playwright
-playwright install chromium
-.venv/bin/python -m tools.china_crawler run --platform xhs --keywords "关键词"
-# Or: bilibili, douyin, shipinhao, zhihu
-```
-
-Results are written to `output/china_crawler_<platform>.json`. The app merges them into the China list and shows content type (video, post, article, note). Many platforms may require login for full results. See [docs/CHINA_SOURCES_ROADMAP.md](docs/CHINA_SOURCES_ROADMAP.md).
+* `GET /api/health` — Server health & active proxy mode (`direct`, `scutil_socks`, `scutil_http`, `env`)
+* `GET /api/digests` · `GET /api/digests/<filename>` · `GET /api/export/<filename>?format=markdown|notion|obsidian`
+* `GET /api/refresh-daily` · `GET /api/refresh-ai-authority` · `GET /api/refresh-videos` *(supports `?key=CRON_SECRET`)*
+* `POST /api/search-news` · `GET /api/search-news-status?stem=<stem>`
+* `GET /api/viral-videos?q=<query>&source=global|china` *(15-min cache; `&refresh=1` to bypass)*
+* `POST /api/video-to-text` · `POST /api/youtube-formats` · `POST /api/youtube-download` · `POST /api/image-ocr`
+* `POST /api/china-crawl` · `POST /api/china-content-evaluate` · `POST /api/china-content-rewrite`
+* `POST /api/handoff` · `POST /api/publish/format`
 
 ---
 
 ## Deploy
 
-[Deploy to Render](https://render.com/deploy?repo=https://github.com/Funghi88/ViralLab)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Funghi88/ViralLab)
 
-1. Click the button above (or go to [render.com](https://render.com) → New → Web Service).
-2. Connect your GitHub and select the ViralLab repo. Render detects `render.yaml`.
-3. Add env vars if needed: `OPENAI_API_KEY` or `GEMINI_API_KEY` for AI features.
-4. Deploy. Live at [virallab.onrender.com](https://virallab.onrender.com).
+1. Connect your GitHub repo on [render.com](https://render.com) — Render auto-detects `render.yaml`.
+2. Add any optional API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`, `GITHUB_TOKEN`, `TELEGRAM_BOT_TOKEN`, `CRON_SECRET`).
+3. Optional cron keep-fresh: schedule `GET https://<your-app>/api/refresh-daily?key=YOUR_CRON_SECRET`.
 
-**Keep content fresh:** [cron-job.org](https://cron-job.org) → Create job → URL: `https://virallab.onrender.com/api/refresh-daily?key=YOUR_CRON_SECRET` → Daily at 8:00.
-
-See [DEPLOY.md](DEPLOY.md) for full instructions.
-
----
-
-## For developers
-
-- **China Access** — VPN requirements, China sources (Bilibili, Douyin, Xiaohongshu, Shipinhao). See [CHINA_ACCESS.md](CHINA_ACCESS.md).
-- **API** — `GET /api/digests` (list), `GET /api/digests/<filename>`, `GET /api/export/<filename>?format=markdown|notion|obsidian`, `GET /api/viral-videos?q=<query>&source=global|china`, `POST /api/video-to-text`.
-- **China crawler** — `tools/china_crawler`: optional Playwright-based XHS search; output merges into China viral when present. [docs/CHINA_SOURCES_ROADMAP.md](docs/CHINA_SOURCES_ROADMAP.md).
-- **Project skills** — Professional reusable workflows live in `.cursor/skills/`:
-  - `minto-pyramid-structuring`
-  - `contagious-berger-stepps`
-  - `multi-source-crawling-seo`
-  - `technical-seo-discovery`
-
+See [DEPLOY.md](DEPLOY.md) and [CHINA_ACCESS.md](CHINA_ACCESS.md) for details.

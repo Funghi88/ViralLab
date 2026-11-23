@@ -1023,8 +1023,8 @@ def _t(key: str, lang: str) -> str:
         "viral_error": ("Error", "加载失败"),
         "viral_china_unavailable": ("Bilibili may be unreachable from your network. Try switching to Global (YouTube) source above.", "B站 API 可能无法访问（需在中国网络）。请切换至上方「全球 (YouTube)」来源重试。"),
         "viral_china_proxy_placeholder": (
-            "e.g. http://127.0.0.1:18080 (gost / same as Cursor)",
-            "本机 HTTP 前端，如 http://127.0.0.1:18080（gost，与 Cursor 一致）",
+            "Auto-detected from macOS VPN/proxy (optional: http://127.0.0.1:7890)",
+            "默认自动检测本机 VPN/系统代理（可选填如 http://127.0.0.1:7890）",
         ),
         "viral_china_retry_with_proxy": ("Retry", "重试"),
         "viral_timeout": ("Request timeout", "请求超时"),
@@ -1065,8 +1065,8 @@ def _t(key: str, lang: str) -> str:
             "抖音**链接**拉取失败。**推荐**改贴**本地下载的视频路径**（如 `/Movies/片段.mp4`）再获取逐字稿；依赖 Cookie 在线拉取很不稳定。",
         ),
         "video2text_err_xhs": (
-            "Xiaohongshu: the note must include video (not image-only). If it still fails, open the note in Chrome while logged in and retry, or set YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE. Align terminal HTTP_PROXY with Cursor: http://127.0.0.1:18080 (gost); avoid stale QuickQ ports. Short links retry without a broken proxy.",
-            "小红书：需为视频笔记（纯图文无法转写）。若仍失败，请在已登录的 Chrome 中打开该笔记后重试，或配置 YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE。终端 HTTP_PROXY 建议与 Cursor 一致使用 http://127.0.0.1:18080（gost），勿沿用已失效的 QuickQ 口；短链在代理不可连时会尝试直连。",
+            "Xiaohongshu: the note must include video (not image-only). If it still fails, open the note in Chrome while logged in and retry, or set YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE. Short links retry direct automatically.",
+            "小红书：需为视频笔记（纯图文无法转写）。若仍失败，请在已登录的 Chrome 中打开该笔记后重试，或配置 YTDLP_COOKIES_BROWSER / YTDLP_COOKIES_PROFILE。短链会自动尝试直连。",
         ),
         "video2text_err_generic": (
             "Transcript unavailable for this link right now.",
@@ -7340,11 +7340,10 @@ def docs_bilibili_vpn():
             </ul>
         </div>
         <div class="card" style="max-width:640px; margin-top:1rem;">
-            <div class="tip-header"><span class="tip-label">方式二：单独给 B 站设代理</span></div>
-            <p class="section-desc">若无法分流，在项目根目录建 <code>.env</code>，写入：</p>
-            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">BILIBILI_PROXY=http://127.0.0.1:18080</pre>
-            <p class="section-desc muted" style="margin-top:0.35rem;">与 Cursor 一致：本机 gost 固定口（Quick Queue 上游由 qq-http-bridge 自动对齐）。若你用的是别的 HTTP 前端，把端口改成你的监听口。</p>
-            <p class="section-desc muted" style="margin-top:0.5rem;">保存后重启 <code>python server.py</code>，再在「热门视频」选中国来源重试。</p>
+            <div class="tip-header"><span class="tip-label">方式二：自动检测 / 手动指定代理</span></div>
+            <p class="section-desc">ViralLab 会自动检测本机 VPN（TUN 模式与 macOS 浮动 SOCKS/HTTP 代理）。如需单独指定，在 <code>.env</code> 写入：</p>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem; overflow-x:auto;">BILIBILI_PROXY=http://127.0.0.1:7890</pre>
+            <p class="section-desc muted" style="margin-top:0.5rem;">保存后重启 <code>./scripts/dev-server.sh</code>，再在「热门视频」选中国来源重试。</p>
         </div>
         <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← 返回热门视频</a></p>
     </section>
@@ -7361,11 +7360,10 @@ def docs_bilibili_vpn():
             </ul>
         </div>
         <div class="card" style="max-width:640px; margin-top:1rem;">
-            <div class="tip-header"><span class="tip-label">Option 2: Bilibili-only proxy</span></div>
-            <p class="section-desc">Create <code>.env</code> in project root with:</p>
-            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem;">BILIBILI_PROXY=http://127.0.0.1:18080</pre>
-            <p class="section-desc muted" style="margin-top:0.35rem;">Same stable local HTTP front as Cursor (gost); Quick Queue upstream is updated by qq-http-bridge. Use your listen port if different.</p>
-            <p class="section-desc muted" style="margin-top:0.5rem;">Restart the server, then try China source again on the Viral page.</p>
+            <div class="tip-header"><span class="tip-label">Option 2: Auto-detect / custom proxy</span></div>
+            <p class="section-desc">ViralLab auto-detects macOS VPN/proxy settings (TUN mode &amp; floating SOCKS5/HTTP). To override manually, add to <code>.env</code>:</p>
+            <pre class="muted" style="background:var(--bg); padding:0.75rem; border-radius:6px; font-size:0.85rem;">BILIBILI_PROXY=http://127.0.0.1:7890</pre>
+            <p class="section-desc muted" style="margin-top:0.5rem;">Restart with <code>./scripts/dev-server.sh</code>, then try China source again on the Viral page.</p>
         </div>
         <p class="section-desc muted" style="margin-top:1rem;"><a href="/viral">← Back to Viral</a></p>
     </section>
