@@ -1,19 +1,21 @@
-"""Simple publish queue for ViralLab.
+"""Multi-channel publish queue & scheduler for ViralLab.
 
-Flow: queue draft -> approve/publish action -> optional webhook dispatch.
+Flow: queue draft -> approve/publish now (or auto-dispatch at schedule_at) -> connector dispatch.
+Supports: blog (funghi88.github.io Jekyll/GitHub API), telegram, wechat, xiaohongshu, x.
 """
-
 from __future__ import annotations
 
-import json
-import os
 import hashlib
+import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import requests
+from src.publish_connectors import (
+    dispatch_publish,
+    normalize_platform,
+)
 
 OUTPUT = Path(__file__).resolve().parent.parent / "output"
 QUEUE_FILE = OUTPUT / "publish_queue.json"
@@ -68,6 +70,28 @@ def validate_publish_content(content: str) -> list[str]:
     return warnings
 
 
+def parse_schedule_time(schedule_at: str) -> datetime | None:
+    """Parse `schedule_at` into an aware datetime (local timezone when tz is omitted)."""
+    s = (schedule_at or "").strip()
+    if not s:
+        return None
+    local_tz = datetime.now().astimezone().tzinfo
+    try:
+        iso = s.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(iso)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=local_tz)
+        return dt
+    except ValueError:
+        pass
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M"):
+        try:
+            return datetime.strptime(s, fmt).replace(tzinfo=local_tz)
+        except ValueError:
+            continue
+    return None
+
+
 def list_publish_items(limit: int = 40) -> list[dict[str, Any]]:
     items = _read_queue()
     items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
@@ -78,11 +102,13 @@ def queue_publish_item(
     *,
     title: str,
     content: str,
-    platform: str = "x",
+    platform: str = "blog",
     source_file: str = "",
     schedule_at: str = "",
+    draft: bool = False,
+    category: str = "",
 ) -> dict[str, Any]:
-    platform_norm = "blog" if platform == "blog" else "x"
+    platform_norm = normalize_platform(platform)
     fp = _fingerprint(title, content, platform_norm)
     items = _read_queue()
     for old in items:
@@ -97,26 +123,23 @@ def queue_publish_item(
         "content": (content or "").strip(),
         "platform": platform_norm,
         "status": "queued",
+        "draft": bool(draft),
+        "category": (category or "").strip()[:40],
         "source_file": (source_file or "").strip(),
         "fingerprint": fp,
         "created_at": _now_iso(),
         "schedule_at": (schedule_at or "").strip(),
         "published_at": "",
+        "published_url": "",
         "publish_result": "",
     }
     items.append(item)
     _write_queue(items)
-    _append_event("queue_add", {"id": item["id"], "platform": item["platform"]})
+    _append_event("queue_add", {"id": item["id"], "platform": item["platform"], "draft": item["draft"]})
     return item
 
 
-def _publish_webhook_for_platform(platform: str) -> str:
-    if platform == "blog":
-        return os.environ.get("BLOG_PUBLISH_WEBHOOK", "").strip()
-    return os.environ.get("X_PUBLISH_WEBHOOK", "").strip()
-
-
-def publish_item_now(item_id: str) -> tuple[bool, str, dict[str, Any] | None]:
+def publish_item_now(item_id: str, *, force_draft: bool | None = None) -> tuple[bool, str, dict[str, Any] | None]:
     items = _read_queue()
     idx = next((i for i, x in enumerate(items) if x.get("id") == item_id), -1)
     if idx < 0:
@@ -127,39 +150,74 @@ def publish_item_now(item_id: str) -> tuple[bool, str, dict[str, Any] | None]:
         _append_event("publish_invalid", {"id": item_id, "reason": "empty_content"})
         return False, "Content is empty.", item
 
-    webhook = _publish_webhook_for_platform(item.get("platform", "x"))
-    payload = {
-        "id": item.get("id"),
-        "title": item.get("title", ""),
-        "content": item.get("content", ""),
-        "platform": item.get("platform", "x"),
-        "source_file": item.get("source_file", ""),
-        "schedule_at": item.get("schedule_at", ""),
-        "created_at": item.get("created_at", ""),
-    }
+    platform = normalize_platform(item.get("platform", "x"))
+    is_draft = bool(item.get("draft")) if force_draft is None else bool(force_draft)
+    category = (item.get("category") or "").strip()
+
     try:
-        if webhook:
-            r = requests.post(webhook, json=payload, timeout=12)
-            r.raise_for_status()
-            result = f"Webhook published ({r.status_code})."
-        else:
-            # Safe local fallback when webhook is not configured.
-            result = "No webhook configured; marked as published locally."
-        item["status"] = "published"
-        item["published_at"] = _now_iso()
+        ok, result, pub_url = dispatch_publish(
+            platform,
+            item.get("title", ""),
+            item.get("content", ""),
+            draft=is_draft,
+            category=category,
+        )
+        if ok:
+            item["status"] = "published"
+            item["published_at"] = _now_iso()
+            item["published_url"] = pub_url
+            item["publish_result"] = result
+            items[idx] = item
+            _write_queue(items)
+            _append_event("publish_success", {"id": item.get("id"), "platform": platform, "url": pub_url})
+            return True, result, item
+
+        item["status"] = "failed"
+        item["published_url"] = pub_url
         item["publish_result"] = result
         items[idx] = item
         _write_queue(items)
-        _append_event("publish_success", {"id": item.get("id"), "platform": item.get("platform")})
-        return True, result, item
+        _append_event("publish_needs_setup", {"id": item.get("id"), "platform": platform, "reason": result})
+        return False, result, item
     except Exception as e:
         msg = f"Publish failed: {e}"
         item["status"] = "failed"
         item["publish_result"] = msg
         items[idx] = item
         _write_queue(items)
-        _append_event("publish_failed", {"id": item.get("id"), "error": str(e)})
+        _append_event("publish_failed", {"id": item.get("id"), "platform": platform, "error": str(e)})
         return False, msg, item
+
+
+def process_due_scheduled_items(*, now: datetime | None = None) -> list[dict[str, Any]]:
+    """Dispatch any `queued` items whose `schedule_at` timestamp is <= now."""
+    ref_now = now or datetime.now().astimezone()
+    items = _read_queue()
+    due_ids: list[str] = []
+    for it in items:
+        if it.get("status") != "queued":
+            continue
+        sched = parse_schedule_time(it.get("schedule_at") or "")
+        if sched is not None and sched <= ref_now:
+            due_ids.append(str(it.get("id") or ""))
+
+    dispatched: list[dict[str, Any]] = []
+    for item_id in due_ids:
+        if not item_id:
+            continue
+        ok, msg, updated = publish_item_now(item_id)
+        dispatched.append({"id": item_id, "ok": ok, "message": msg, "item": updated})
+    return dispatched
+
+
+def delete_publish_item(item_id: str) -> tuple[bool, str]:
+    items = _read_queue()
+    new_items = [x for x in items if x.get("id") != item_id]
+    if len(new_items) == len(items):
+        return False, "Item not found."
+    _write_queue(new_items)
+    _append_event("queue_delete", {"id": item_id})
+    return True, "Removed from publish queue."
 
 
 def load_markdown_from_output(filename: str) -> tuple[str, str]:

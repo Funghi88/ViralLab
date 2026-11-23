@@ -5,29 +5,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Add src to path for standalone run
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Add project root & src to path for standalone run
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
-# Bypass proxy for DuckDuckGo (fixes "unsuccessful tunnel" in mainland China)
-_PROXY_VARS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy")
+from src.proxy_env import env_for_overseas, load_dotenv_safe
 
 
-def _env_no_proxy():
-    env = os.environ.copy()
-    for v in _PROXY_VARS:
-        env.pop(v, None)
+def _env_for_subproc():
+    env = env_for_overseas(os.environ.copy())
+    env["PYTHONPATH"] = str(ROOT)
     return env
 
 
 def run(topic: str = "AI agents and LLMs"):
     """Run the news crew and save output to output/."""
-    from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv_safe(ROOT / ".env")
     from news_crew import create_news_crew
 
     crew = create_news_crew(topic)
     result = crew.kickoff()
-    output_dir = Path(__file__).parent / "output"
+    output_dir = ROOT / "output"
     output_dir.mkdir(exist_ok=True)
     out_file = output_dir / f"digest_{topic.replace(' ', '_')[:30]}.md"
     out_file.write_text(str(result), encoding="utf-8")
@@ -37,32 +36,29 @@ def run(topic: str = "AI agents and LLMs"):
 
 def run_search_only(topic: str):
     """Run search only (no LLM). Outputs to output/raw_{topic}.md for Cursor summarization."""
-    script = Path(__file__).parent / "scripts" / "search_only.py"
-    subprocess.run([sys.executable, str(script), topic], check=True, env=_env_no_proxy())
+    script = ROOT / "scripts" / "search_only.py"
+    subprocess.run([sys.executable, str(script), topic], check=True, env=_env_for_subproc(), cwd=ROOT)
 
 
 def run_daily_news():
     """Fetch today's top 3 news. Outputs to output/daily_news.md."""
-    root = Path(__file__).parent
-    script = root / "scripts" / "daily_news.py"
-    env = _env_no_proxy()
-    env["PYTHONPATH"] = str(root)
-    subprocess.run([sys.executable, str(script)], check=True, env=env, cwd=root)
+    script = ROOT / "scripts" / "daily_news.py"
+    subprocess.run([sys.executable, str(script)], check=True, env=_env_for_subproc(), cwd=ROOT)
 
 
 def run_videos(query: str, with_transcript: bool = False):
     """Fetch trending videos + Berger scores. Optional: --transcript for manuscript."""
-    script = Path(__file__).parent / "scripts" / "video_trending.py"
+    script = ROOT / "scripts" / "video_trending.py"
     cmd = [sys.executable, str(script), query]
     if with_transcript:
         cmd.append("--transcript")
-    subprocess.run(cmd, check=True, env=_env_no_proxy())
+    subprocess.run(cmd, check=True, env=_env_for_subproc(), cwd=ROOT)
 
 
 def run_video_to_text(url: str):
     """Turn YouTube video into markdown transcript."""
-    script = Path(__file__).parent / "scripts" / "video_to_text.py"
-    subprocess.run([sys.executable, str(script), url], check=True, env=_env_no_proxy())
+    script = ROOT / "scripts" / "video_to_text.py"
+    subprocess.run([sys.executable, str(script), url], check=True, env=_env_for_subproc(), cwd=ROOT)
 
 
 if __name__ == "__main__":

@@ -1,85 +1,85 @@
 # Raw news results: AI agents
 
-## 1. SoC 2 has no real edge
+## 1. Show HN: AirlockAI – Run AI agent next to prod without giving it the keys
 
-lets face it - almost every company has soc 2, so its not gonna magically unlock your dream deal. there have been new certifications ai agents which a lot of fortune 500 companies are trusting - would you get your agents certified - something like AI
+I built this because I wanted Claude Code to help debug real EC2 instances, but I didn't want it holding credentials or kubectl access. The agent runs in a container or microVM with a locked-down network. The only way out is a gateway (MCP) that I co
 
 Source: Hacker News
-URL: https://news.ycombinator.com/item?id=48071158
+URL: https://github.com/larytet-py/AirlockAI
 
-## 2. I built a baremetal RustOS (O(1)allocator NVMeDMA ZeroTrust sandbox for AIAgents
+## 2. Rex: Hashimoto's New Terminal Emulator and Multiplexer for AI Coding Agents
 
 Hacker News
 
 Source: Hacker News
-URL: https://github.com/joreag/polymorph_os
+URL: https://www.superlogical.com/updates/public-testing-beginning
 
-## 3. Ask HN: What are the most joyful AI projects you've seen?
+## 3. Show HN: Crazy simple AI agent orchestration with Markdown and Containers
 
-A lot of AI work I see is about automation, agents, productivity. Useful, but not exactly joyful.What AI projects have you built, used, or seen that felt genuinely fun, playful, weird, beautiful, or surprising?
-
-Source: Hacker News
-URL: https://news.ycombinator.com/item?id=48070363
-
-## 4. Ask HN: Is agent-driven QA a thing?
-
-TDD has become the default workflow for AI coding agents, for a lot of reasons.Something I recently started doing that I really like is, when building a feature, I write acceptance criteria and then I make sure the agents have everything they need to
+I was sick and tired of the bloated mess that Hermes Agent has become, often dealing with hard-to-triage bugs that made managing agents a part-time job. I don't need a self-improving magical agent, I need;- A primary agent to chat to, with sub-agent
 
 Source: Hacker News
-URL: https://news.ycombinator.com/item?id=48069781
+URL: https://github.com/ameesme/shoebox
 
-## 5. Show HN: Contral – the agent which will teach you while you build with AI
+## 4. Guided tours for AI agents via WebMCP
 
 Hacker News
 
 Source: Hacker News
-URL: https://contral.ai
+URL: https://github.com/fboldo/webmcp-tour
 
-## 6. Visa Cards For AI Agents: Visa And Inflow Enable Agentic Payments
+## 5. AI agents violate website scraping policies ~97% of the time (NeurIPS2026)
 
-AI agents can now spend your money. Perhaps more importantly, you can put guardrails around exactly how ... and how much.
+Hacker News
 
-Source: DuckDuckGo News
-URL: https://www.forbes.com/sites/johnkoetsier/2026/05/08/visa-cards-for-ai-agents-visa-and-inflow-enable-agentic-payments/
+Source: Hacker News
+URL: https://scrapebench.github.io/
 
-## 7. Google tests new AI agent to take on OpenClaw with advanced task automation: Report
+## 6. Exclusive: AWS Marketplace head on letting AI agents shop for software: 'People can't wait three months to get access to the latest one'
 
-Alphabet‘s Google GOOGL GOOG is reportedly developing an AI personal agent for its Gemini app, capable of performing tasks on ...
-
-Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/money/other/google-tests-new-ai-agent-to-take-on-openclaw-with-advanced-task-automation-report/ar-AA22v8oj?ocid=BingNewsVerp
-
-## 8. Google tests 'Remy' AI agent with 24/7 proactive tasks
-
-What is Remy?: Remy is Google’s proactive AI agent within Gemini, designed to handle tasks automatically across personal, ...
+AWS Marketplace lets companies give AI agents a budget to buy software products.
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/news/insight/google-tests-remy-ai-agent-with-24-7-proactive-tasks/gm-GMD3D335E2?ocid=BingNewsVerp
+URL: https://www.msn.com/en-ca/technology/artificial-intelligence/exclusive-aws-marketplace-head-on-letting-ai-agents-shop-for-software-people-can-t-wait-three-months-to-get-access-to-the-latest-one/ar-AA2hNJnk?ocid=BingNewsVerp
 
-## 9. What exactly is an AI voice agent? And why does it matter in enterprise communication?
+## 7. Exclusive-signal restricts screenshots to block AI agents from reading messages
 
-AI voice agents go far beyond traditional IVR. Here's what they are, how they work in enterprise settings, and what to check ...
-
-Source: DuckDuckGo News
-URL: https://www.msn.com/en-us/technology/artificial-intelligence/what-exactly-is-an-ai-voice-agent-and-why-does-it-matter-in-enterprise-communication/ar-AA22GH52?ocid=BingNewsVerp
-
-## 10. As AI creeps into telecoms, call centre agents worry they'll be replaced
-
-Some call centre agents at a major Canadian telecom company say they fear for their jobs as AI takes an increasing presence ...
+By Katie Paul NEW YORK, Nov 20 (Reuters) - Encrypted messaging service Signal said on Friday it would restrict screenshots to ...
 
 Source: DuckDuckGo News
-URL: https://www.msn.com/en-ca/news/canada/as-ai-creeps-into-telecoms-call-centre-agents-worry-they-ll-be-replaced/ar-AA22FzCZ?ocid=BingNewsVerp
+URL: https://www.msn.com/en-au/news/other/exclusive-signal-restricts-screenshots-to-block-ai-agents-from-reading-messages/ar-AA2hPXFD?ocid=BingNewsVerp
 
-## 11. The Tech Download: Meta, Google enter AI agent race as ‘agentic wars’ heat up - CNBC
+## 8. Banks are warning customers they could be liable for an AI agent's mistakes
 
-The Tech Download: Meta, Google enter AI agent race as ‘agentic wars’ heat up&nbsp;&nbsp;CNBC
+Several banks have recently warned customers that handing over financial power to AI agents comes with some big risks.
+
+Source: DuckDuckGo News
+URL: https://www.msn.com/en-au/money/general/banks-are-warning-customers-they-could-be-liable-for-an-ai-agent-s-mistakes/ar-AA2hLCBB?ocid=BingNewsVerp
+
+## 9. Banks Have Had It Up to Here With Your AI Agent - WIRED
+
+Banks Have Had It Up to Here With Your AI Agent WIRED
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMijAFBVV95cUxOVjJERTBZZG1ScVNHY1g0OXplNjE5NUdPXzZ5Y3FnZjhkNVR6Rlk1Qk1yUmphYVJnMHlGemRVeld4bFE2aG9TdnEtVVZmNWtWOFM4ZlRqcTJtUF8xUGRnNDZoQ0p6MTNQOVlKanYyZGFtOUw4Tzg4ajkxcUhVeE95THJrbHlpbVVyNGF1X9IBkgFBVV95cUxOVDMzTGdVci1xZGdrSzd1T280RlB6NzRGYjZ5MjlPM0hwQ3VQUVQwUG41X1RSa09fVmhEZ2lWOVUyTE9Qb2tiSEl3OXpXWUxVaUlZXzZhRksyQi1RNFU1R1Q4djg4OXFWSTltbFpPSm5pY0psVHZ6dmtkanpLeGpxV19EbTZZc1h5Und3cGUtZV9Sdw?oc=5
+URL: https://news.google.com/rss/articles/CBMic0FVX3lxTE9pUy1ObG9vc0x4SEwtc2xRdFNzNldlekRzdXZhOTNWZnByOUh2TzRsUEI2dWhiM2Y3cmZEZGZrQ1RBLUx5VDhreGo5YW1GRVZtZnNlNmlRSjFvRlFkcnlwZFEtYnJFOUZ3SWxrYlZfWG5ka3c?oc=5
 
-## 12. Google Is Building an AI Agent That Could Be Its Answer to OpenClaw - Business Insider
+## 10. EXCLUSIVE: Some US banks tighten AI-agent controls on concern about models escaping safeguards - Reuters
 
-Google Is Building an AI Agent That Could Be Its Answer to OpenClaw&nbsp;&nbsp;Business Insider
+EXCLUSIVE: Some US banks tighten AI-agent controls on concern about models escaping safeguards Reuters
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMijgFBVV95cUxQam5OZlpIZUhBYlBSXzBWNk04b296RGt3NmNSWjBqQUg1eXdFMTF4QV9vT2lEdjNUT2NxT00zNmVtVExMelJhQ1Z4cThDTENQNTdSLUxzS3g3QzhJMGVveFRTTHhGUHBvdjhQSzYtVURKdDRIbEpUMkJ0M3loWXNFSHN3Sjl4Z1BQOUJNcDJn?oc=5
+URL: https://news.google.com/rss/articles/CBMizgFBVV95cUxPb0pELTVieEVteWV5TWE5cU80T1M4MmNHVmxQVjNmb0tkQ3diUHRFSTg0X1NJTnhEMGZHcS1CaFZfRHUyeWUyQ0RSMWVOa2drMEY0VG1Ba3puU0FmamtxdzF3dFFLaXl0TGloeVIteHFxMkNiRlFLMU5Yc0FUeDNvVzJZS0lLS2t1TWo5Tmk1RWJjMGlHQ2Q2eXlwc1NRU0lXNEFxODVLZ1FmQm4xLUR0QWFoRTRTS1FqSE5FRGVfUzNPaFZGUlNJREtSb0ZjUQ?oc=5
+
+## 11. Best Personal AI Agents in 2026: OpenClaw, Hermes Agent, Gemini Spark and More, Compared on Memory, Security and Cost - MarkTechPost
+
+Best Personal AI Agents in 2026: OpenClaw, Hermes Agent, Gemini Spark and More, Compared on Memory, Security and Cost MarkTechPost
+
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMieEFVX3lxTE1nc0dpa1NLeUJ6cjdlcDFHekxYLXZqMWxYY3ZwVnRFMVlmQWZoWU5NUkJKd21nSUdwVXk2YlJoQUNhandPT0E5aG5HVVRaaGUxR1lnbzZNNk5BTVlEVjlHNDdTVkZkbXA1eGtaa2JOR0lXajRVczRQZdIBeEFVX3lxTE1nc0dpa1NLeUJ6cjdlcDFHekxYLXZqMWxYY3ZwVnRFMVlmQWZoWU5NUkJKd21nSUdwVXk2YlJoQUNhandPT0E5aG5HVVRaaGUxR1lnbzZNNk5BTVlEVjlHNDdTVkZkbXA1eGtaa2JOR0lXajRVczRQZQ?oc=5
+
+## 12. The first agentic AI Black Friday is off to a rocky start - Business Insider
+
+The first agentic AI Black Friday is off to a rocky start Business Insider
+
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMimgFBVV95cUxQTE1ZTTVuc21zeGpzZEJyRHkyZkM1dG5yR0I5WUVXM2ljT09vVGR0T0x2cGVrSjZDSndyTzZ3OU1iY244MUhhRnE3NkhQZnBIY3RyQjF5S3JDVUFvS2VwWXdVM3M3VjRtNnhuZWdBbFpfYXpGbnMzaHJSMWZTaGlmS0Zfc3ZGT0xvX0lHdGxGSTdQcXhNLXpDWFlR?oc=5

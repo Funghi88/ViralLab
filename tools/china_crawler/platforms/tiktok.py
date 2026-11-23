@@ -21,7 +21,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Any
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 # Trending hashtag seeds — used when no specific keyword is given
 _TRENDING_TAGS = ["viral", "trending", "fyp", "foryou"]
@@ -94,13 +94,14 @@ def _ytdlp_flat(url: str, max_results: int) -> list[dict]:
 def _ddg_tiktok(keywords: str, max_results: int) -> list[dict]:
     """DuckDuckGo video search filtered to tiktok.com — discovery fallback."""
     try:
-        from duckduckgo_search import DDGS
+        from src.ddg_client import get_ddgs_class
+        DDGS = get_ddgs_class()
     except ImportError:
         return []
     query = f"site:tiktok.com {keywords}"
     try:
         with DDGS() as ddgs:
-            raw = list(ddgs.videos(keywords=query, max_results=max_results))
+            raw = list(ddgs.videos(query, max_results=max_results))
         items = []
         for r in raw:
             url = r.get("content") or r.get("url") or ""

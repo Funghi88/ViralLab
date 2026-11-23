@@ -106,8 +106,10 @@ def parse_daily_news(content: str) -> list[dict[str, Any]]:
             continue
         title = lines[0].strip()
         url = ""
-        snippet = ""
+        snippet_parts: list[str] = []
         source = ""
+        layer = ""
+        cadence = ""
         for line in lines[1:]:
             s = line.strip()
             if s.startswith("URL:"):
@@ -115,12 +117,22 @@ def parse_daily_news(content: str) -> list[dict[str, Any]]:
                 break
             if s.startswith("Source:"):
                 source = s[7:].strip()
+            elif s.startswith("Layer:"):
+                layer = s[6:].strip()
+            elif s.startswith("Cadence:"):
+                cadence = s[8:].strip()
             elif s and not s.startswith("---"):
-                snippet = s[:200]
+                snippet_parts.append(s)
+        snippet = " ".join(snippet_parts)[:200]
         if not source and url:
             source = _infer_source_from_url(url)
         if title:
-            items.append({"title": title, "url": url, "snippet": snippet, "source": source})
+            item = {"title": title, "url": url, "snippet": snippet, "source": source}
+            if layer:
+                item["layer"] = layer
+            if cadence:
+                item["cadence"] = cadence
+            items.append(item)
     return items
 
 
@@ -128,9 +140,26 @@ def parse_file(path: Path) -> tuple[str, list[dict]]:
     """Parse file by type. Returns (type, items)."""
     content = path.read_text(encoding="utf-8", errors="replace")
     name = path.stem
-    if name == "daily_news" or name == "daily_news_zh":
+    if name in (
+        "daily_news",
+        "daily_news_zh",
+        "daily_ai_authority",
+        "daily_ai_authority_zh",
+        "longform_ai_authority",
+        "longform_ai_authority_zh",
+    ):
         items = parse_daily_news(content)
-        return ("daily_news" if name == "daily_news" else "daily_news_zh", items)
+        if name == "daily_news":
+            return ("daily_news", items)
+        if name == "daily_news_zh":
+            return ("daily_news_zh", items)
+        if name == "daily_ai_authority_zh":
+            return ("daily_ai_authority_zh", items)
+        if name == "longform_ai_authority":
+            return ("longform_ai_authority", items)
+        if name == "longform_ai_authority_zh":
+            return ("longform_ai_authority_zh", items)
+        return ("daily_ai_authority", items)
     if name.startswith("raw_"):
         items = parse_raw_news(content)
         return ("news", items)

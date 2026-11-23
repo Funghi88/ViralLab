@@ -18,8 +18,13 @@ OUTPUT = PROJECT_ROOT / "output"
 def get_transcript(video_id: str) -> str:
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
-        segments = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join(s["text"] for s in segments)
+        api = YouTubeTranscriptApi()
+        fetched = api.fetch(video_id, languages=["en", "zh-Hans", "zh-Hant", "zh"])
+        snippets = getattr(fetched, "snippets", fetched)
+        return " ".join(
+            getattr(s, "text", None) or (s.get("text", "") if isinstance(s, dict) else "")
+            for s in snippets
+        ).strip()
     except ImportError:
         return ""
     except Exception:

@@ -21,11 +21,14 @@ def _ollama_running() -> bool:
 def get_llm() -> LLM:
     """Select LLM: API keys (Gemini, OpenAI, Anthropic) or local Ollama."""
     if os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"):
-        return LLM(model="gemini/gemini-2.0-flash", temperature=0.7)
+        model = os.getenv("VIRALLAB_GEMINI_MODEL", "gemini-2.5-flash")
+        return LLM(model=f"gemini/{model}", temperature=0.7)
     if os.getenv("OPENAI_API_KEY"):
-        return LLM(model="openai/gpt-4o", temperature=0.7)
+        model = os.getenv("VIRALLAB_OPENAI_MODEL", "gpt-4.1")
+        return LLM(model=f"openai/{model}", temperature=0.7)
     if os.getenv("ANTHROPIC_API_KEY"):
-        return LLM(model="anthropic/claude-3-5-sonnet-20241022", temperature=0.7)
+        model = os.getenv("VIRALLAB_ANTHROPIC_MODEL", "claude-sonnet-4-5")
+        return LLM(model=f"anthropic/{model}", temperature=0.7)
     if _ollama_running():
         return LLM(model="ollama/llama3", base_url="http://127.0.0.1:11434", temperature=0.7)
     raise RuntimeError(

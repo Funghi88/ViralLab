@@ -5,10 +5,11 @@ then crawler loads config/china_crawler_douyin_state.json.
 """
 from __future__ import annotations
 
+import os
 import urllib.parse
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _STATE_PATH = _PROJECT_ROOT / "config" / "china_crawler_douyin_state.json"
 _CHROME_USER_DATA = Path.home() / "Library" / "Application Support" / "Google" / "Chrome"
 
@@ -205,7 +206,7 @@ def fetch_douyin_search(keywords: str, max_results: int = 20, headless: bool = T
                 context.close()
             browser.close()
 
-        if not raw:
+        if not raw and os.environ.get("VIRALLAB_DOUYIN_USE_LIVE_CHROME_PROFILE", "").strip().lower() in ("1", "true", "yes"):
             raw = _try_profile_context(p, search_url, max_results=max_results, headless=headless)
 
     return raw[:max_results]

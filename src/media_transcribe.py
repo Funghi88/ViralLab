@@ -14,12 +14,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 import requests
 
+from src.output_cleanup import cleanup_youtube_fragments
+from src.proxy_env import env_for_overseas
 from src.transcription.config import get_asr_engine, get_ffmpeg_af_preset
 from src.transcription.preprocess import extract_audio_for_asr
 from src.transcription.whisperx_runner import has_whisperx, transcribe_audio_path
@@ -48,10 +52,10 @@ def _env_without_proxy(base: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def _cmd_env_for_media_subprocess() -> dict[str, str]:
-    """Subprocess env for videocaptioner / yt-dlp. Strips proxy by default (domestic CDNs)."""
+    """Subprocess env for videocaptioner / yt-dlp. Auto-resolves live proxy (QuickQ HTTP/SOCKS or TUN)."""
     v = (os.environ.get("VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY") or "").strip().lower()
     if v in ("1", "true", "yes", "on"):
-        return dict(os.environ)
+        return env_for_overseas(os.environ)
     return _env_without_proxy()
 
 
@@ -99,11 +103,213 @@ def _yt_dlp_stderr_tail_max() -> int:
     return 16000 if _yt_dlp_verbose() else 2800
 
 
+def _yt_dlp_concurrent_fragments() -> str:
+    raw = (os.environ.get("VIRALLAB_YTDLP_CONCURRENT_FRAGMENTS") or "8").strip()
+    try:
+        n = int(raw)
+    except ValueError:
+        n = 8
+    return str(max(1, min(n, 16)))
+
+
 def _stderr_tail(proc: subprocess.CompletedProcess[str], max_len: int = 1800) -> str:
     combined = ((proc.stderr or "") + "\n" + (proc.stdout or "")).strip()
     if len(combined) <= max_len:
         return combined
     return "…" + combined[-max_len:]
+
+
+_YTDLP_PROGRESS_RE = re.compile(
+    r"\[download\]\s+(?P<pct>\d+(?:\.\d+)?)%\s+of\s+~?\s*(?P<total>[^\s]+)?"
+    r"(?:\s+at\s+(?P<speed>[^\s]+))?"
+    r"(?:\s+ETA\s+(?P<eta>[^\s]+))?",
+    re.IGNORECASE,
+)
+
+
+def _parse_yt_dlp_progress_line(line: str) -> dict | None:
+    """Parse one ``yt-dlp --newline`` progress line into a compact status dict."""
+    s = (line or "").strip()
+    if not s:
+        return None
+    m = _YTDLP_PROGRESS_RE.search(s)
+    if m:
+        try:
+            pct = float(m.group("pct") or 0.0)
+        except ValueError:
+            pct = 0.0
+        return {
+            "stage": "downloading",
+            "percent": max(0.0, min(pct, 99.0)),
+            "total": (m.group("total") or "").strip(),
+            "speed": (m.group("speed") or "").strip(),
+            "eta": (m.group("eta") or "").strip(),
+            "message": s,
+        }
+    if s.startswith("[Merger]") or "Merging formats" in s:
+        return {"stage": "merging", "percent": 96.0, "message": s}
+    if s.startswith("[ExtractAudio]"):
+        return {"stage": "processing", "percent": 96.0, "message": s}
+    if s.startswith("[download] Destination:") or s.startswith("[download] Resuming download"):
+        return {"stage": "starting", "percent": 2.0, "message": s}
+    if "has already been downloaded" in s:
+        return {"stage": "complete", "percent": 100.0, "message": s}
+    return None
+
+
+def _run_ytdlp_download_with_progress(
+    cmd: list[str],
+    *,
+    timeout_sec: int,
+    cwd: Path | None,
+    progress_callback: Callable[[dict], None],
+) -> subprocess.CompletedProcess[str]:
+    """Run yt-dlp while streaming progress; retry once without proxy on proxy failure."""
+
+    def _run(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+        started = time.time()
+        lines: list[str] = []
+        proc = subprocess.Popen(
+            cmd,
+            cwd=str(cwd) if cwd is not None else None,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=env,
+            bufsize=1,
+        )
+        try:
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                lines.append(line)
+                if len(lines) > 500:
+                    lines = lines[-500:]
+                parsed = _parse_yt_dlp_progress_line(line)
+                if parsed:
+                    progress_callback(parsed)
+                if time.time() - started > timeout_sec:
+                    proc.kill()
+                    raise subprocess.TimeoutExpired(cmd, timeout_sec)
+            rc = proc.wait(timeout=max(1, timeout_sec - int(time.time() - started)))
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
+            raise
+        combined = "".join(lines)
+        return subprocess.CompletedProcess(cmd, rc, stdout=combined, stderr="")
+
+    base_env = env_for_overseas(os.environ)
+    first = _run(base_env)
+    if first.returncode == 0:
+        return first
+    if not _yt_dlp_is_proxy_error(_stderr_tail(first, 1400)):
+        return first
+    progress_callback({"stage": "retrying", "percent": 1.0, "message": "Retrying without proxy"})
+    return _run(_env_without_proxy(base_env))
+
+
+def _yt_dlp_youtube_extractor_arg_variants() -> list[list[str]]:
+    """Extractor-args ladder for YouTube anti-bot/challenge resilience."""
+    custom = (os.environ.get("VIRALLAB_YTDLP_YOUTUBE_EXTRACTOR_ARGS") or "").strip()
+    raw_variants: list[list[str]] = []
+    if custom:
+        raw_variants.append(["--extractor-args", custom])
+    raw_variants.extend(
+        [
+            ["--extractor-args", "youtube:player_client=android,ios,tv;player_skip=webpage,configs"],
+            ["--extractor-args", "youtube:player_client=android,ios,tv"],
+            ["--extractor-args", "youtube:player_client=android,web"],
+            ["--extractor-args", "youtube:player_client=android"],
+            [],
+        ]
+    )
+    out: list[list[str]] = []
+    seen: set[tuple[str, ...]] = set()
+    for variant in raw_variants:
+        key = tuple(variant)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(variant)
+    return out
+
+
+def _yt_dlp_is_youtube_challenge_error(detail: str) -> bool:
+    s = (detail or "").lower()
+    needles = (
+        "[jsc]",
+        "remote components challenge solver",
+        "deno",
+        "po token",
+        "player_client",
+        "sign in to confirm you’re not a bot",
+        "sign in to confirm you're not a bot",
+    )
+    return any(n in s for n in needles)
+
+
+def _yt_dlp_is_proxy_error(detail: str) -> bool:
+    s = (detail or "").lower()
+    needles = (
+        "proxyerror",
+        "socks",
+        "connection refused",
+        "failed to establish a new connection",
+        "unable to connect to proxy",
+    )
+    return any(n in s for n in needles)
+
+
+def _run_ytdlp_with_proxy_fallback(
+    cmd: list[str],
+    *,
+    timeout_sec: int,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Run yt-dlp with live resolved proxy (QuickQ HTTP/SOCKS or TUN); retry once without proxy on proxy failure."""
+    base_env = env_for_overseas(os.environ)
+    run_kwargs = {
+        "capture_output": True,
+        "text": True,
+        "timeout": timeout_sec,
+        "env": base_env,
+    }
+    if cwd is not None:
+        run_kwargs["cwd"] = cwd
+    r = subprocess.run(cmd, **run_kwargs)
+    if r.returncode == 0:
+        return r
+    err = _stderr_tail(r, 1400)
+    if not _yt_dlp_is_proxy_error(err):
+        return r
+    run_kwargs["env"] = _env_without_proxy(base_env)
+    return subprocess.run(cmd, **run_kwargs)
+
+
+def _yt_dlp_add_youtube_hints(detail: str) -> str:
+    d = (detail or "").strip()
+    if not d:
+        return d
+    s = d.lower()
+    hints: list[str] = []
+    if "older than 90 days" in s or "use that to update" in s or "yt-dlp version" in s:
+        hints.append(
+            "Hint: yt-dlp is outdated. Run `./scripts/upgrade-ytdlp.sh` (preferred) "
+            "or `./.venv/bin/pip install -U yt-dlp`."
+        )
+    if _yt_dlp_is_youtube_challenge_error(s):
+        hints.append(
+            "Hint: YouTube anti-bot challenge detected. ViralLab retries multiple YouTube "
+            "player clients automatically. If it still fails, upgrade yt-dlp and retry."
+        )
+    if _yt_dlp_is_proxy_error(s):
+        hints.append(
+            "Hint: Network/proxy path failed for yt-dlp. Verify your HTTP proxy is alive; "
+            "if needed set `VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY=1` before starting server."
+        )
+    if not hints:
+        return d
+    return d + "\n\n" + "\n".join(hints)
 
 
 def _session_get_trust_env_false(url: str, method: str, **kwargs):
@@ -240,8 +446,16 @@ def has_yt_dlp() -> bool:
     return bool(_find_yt_dlp_bin())
 
 
-def _pick_youtube_merged_file(output_dir: Path, vid: str) -> Path | None:
-    """Return final merged file ``youtube_{vid}.<ext>``, not fragments ``youtube_{vid}.f251.webm``."""
+def _pick_youtube_merged_file(
+    output_dir: Path,
+    vid: str,
+    *,
+    created_after: float | None = None,
+) -> Path | None:
+    """Return final file ``youtube_{vid}.<ext>``, skipping format fragments.
+
+    Supports both merged video outputs and audio-only outputs.
+    """
     prefix = f"youtube_{vid}"
     candidates: list[Path] = []
     for p in output_dir.glob(f"{prefix}.*"):
@@ -250,6 +464,8 @@ def _pick_youtube_merged_file(output_dir: Path, vid: str) -> Path | None:
         if p.suffix.lower() not in MEDIA_EXTS:
             continue
         if p.stem != prefix:
+            continue
+        if created_after is not None and p.stat().st_mtime < created_after:
             continue
         candidates.append(p)
     if not candidates:
@@ -265,13 +481,253 @@ def _pick_youtube_merged_file(output_dir: Path, vid: str) -> Path | None:
     return sorted(candidates, key=sort_key)[0]
 
 
-def download_youtube_video(url: str, output_dir: Path) -> tuple[Path | None, str]:
-    """Download a single YouTube video to ``output_dir`` as ``youtube_{id}.<ext>``.
+def _safe_int(value) -> int:
+    try:
+        if value is None:
+            return 0
+        if isinstance(value, bool):
+            return int(value)
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
 
-    YouTube streams are lossy; we avoid *extra* quality loss by preferring MKV merge first:
-    VP9/AV1 + Opus muxes cleanly in MKV (stream copy). Forcing MP4 first often re-encodes
-    audio or produces bad muxes (glitchy / ``broken-up`` sound). MP4 is tried after MKV for
-    player compatibility.
+
+def _human_filesize(num_bytes: int) -> str:
+    if num_bytes <= 0:
+        return ""
+    units = ("B", "KB", "MB", "GB", "TB")
+    size = float(num_bytes)
+    idx = 0
+    while size >= 1024 and idx < len(units) - 1:
+        size /= 1024.0
+        idx += 1
+    if idx == 0:
+        return f"{int(size)} {units[idx]}"
+    return f"{size:.1f} {units[idx]}"
+
+
+def _youtube_selector_ok(selector: str) -> bool:
+    s = (selector or "").strip()
+    return bool(re.fullmatch(r"[A-Za-z0-9+._/\[\]\(\)<>=~*:-]{1,180}", s))
+
+
+def _parse_yt_dlp_json(stdout_text: str) -> dict | None:
+    txt = (stdout_text or "").strip()
+    if not txt:
+        return None
+    try:
+        parsed = json.loads(txt)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        pass
+    start = txt.find("{")
+    end = txt.rfind("}")
+    if start >= 0 and end > start:
+        blob = txt[start : end + 1]
+        try:
+            parsed = json.loads(blob)
+            return parsed if isinstance(parsed, dict) else None
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
+def probe_youtube_formats(url: str) -> tuple[dict | None, str]:
+    """Return downloadable YouTube format options for UI/API selection."""
+    raw = _extract_first_url((url or "").strip())
+    if not raw:
+        return None, "missing_url"
+    vid = extract_youtube_id(raw)
+    if not vid:
+        return None, "not_youtube"
+    ytdlp = _find_yt_dlp_bin()
+    if not ytdlp:
+        return None, "no_ytdlp"
+    base_cmd = [ytdlp, "--no-update", "--no-playlist", "--no-warnings", "--dump-single-json"]
+    last_err = ""
+
+    def _try_with_extractor_variants(variants: list[list[str]]) -> dict | None:
+        nonlocal last_err
+        for extractor_extra in variants:
+            cmd = base_cmd + extractor_extra + [raw]
+            try:
+                proc = _run_ytdlp_with_proxy_fallback(
+                    cmd,
+                    timeout_sec=90,
+                )
+            except subprocess.TimeoutExpired:
+                last_err = "timeout"
+                continue
+            except OSError as e:
+                last_err = str(e)
+                continue
+            if proc.returncode != 0:
+                last_err = _stderr_tail(proc, 2200) or "yt-dlp failed"
+                continue
+            info = _parse_yt_dlp_json(proc.stdout or "")
+            if info:
+                return info
+            last_err = "invalid_ytdlp_json"
+        return None
+
+    extractor_variants = _yt_dlp_youtube_extractor_arg_variants()
+    info = _try_with_extractor_variants(extractor_variants[:1])
+    if info is None and _yt_dlp_is_youtube_challenge_error(last_err):
+        info = _try_with_extractor_variants(extractor_variants[1:])
+    if not info:
+        return None, _yt_dlp_add_youtube_hints(last_err or "yt-dlp failed")
+
+    formats = info.get("formats") or []
+    if not isinstance(formats, list):
+        formats = []
+
+    video_opts: list[dict] = []
+    audio_opts: list[dict] = []
+    seen_video: set[str] = set()
+    seen_audio: set[str] = set()
+    for fmt in formats:
+        if not isinstance(fmt, dict):
+            continue
+        fmt_id = str(fmt.get("format_id") or "").strip()
+        if not fmt_id or not _youtube_selector_ok(fmt_id):
+            continue
+        ext = str(fmt.get("ext") or "bin").strip().lower()
+        vcodec = str(fmt.get("vcodec") or "none").strip().lower()
+        acodec = str(fmt.get("acodec") or "none").strip().lower()
+        height = _safe_int(fmt.get("height"))
+        fps = _safe_int(fmt.get("fps"))
+        abr = _safe_int(fmt.get("abr"))
+        tbr = _safe_int(fmt.get("tbr"))
+        filesize = _safe_int(fmt.get("filesize") or fmt.get("filesize_approx"))
+        size_label = _human_filesize(filesize)
+        note = str(fmt.get("format_note") or "").strip()
+
+        if vcodec != "none":
+            if acodec != "none":
+                selector = fmt_id
+            elif ext == "mp4":
+                selector = f"{fmt_id}+bestaudio[ext=m4a]/bestaudio/best"
+            else:
+                selector = f"{fmt_id}+bestaudio/best"
+            if not _youtube_selector_ok(selector) or selector in seen_video:
+                continue
+            seen_video.add(selector)
+            res_txt = f"{height}p" if height > 0 else (note or "video")
+            fps_txt = f" {fps}fps" if fps > 0 else ""
+            audio_txt = "with audio" if acodec != "none" else "auto-audio"
+            label = f"{res_txt}{fps_txt} · {ext} · {audio_txt}"
+            if size_label:
+                label += f" · {size_label}"
+            video_opts.append(
+                {
+                    "selector": selector,
+                    "format_id": fmt_id,
+                    "label": label,
+                    "ext": ext,
+                    "height": height,
+                    "fps": fps,
+                    "has_audio": acodec != "none",
+                    "filesize": filesize,
+                }
+            )
+            continue
+
+        if acodec != "none":
+            selector = fmt_id
+            if selector in seen_audio:
+                continue
+            seen_audio.add(selector)
+            bitrate = abr if abr > 0 else tbr
+            br_txt = f"{bitrate}kbps" if bitrate > 0 else (note or "audio")
+            label = f"{br_txt} · {ext}"
+            if size_label:
+                label += f" · {size_label}"
+            audio_opts.append(
+                {
+                    "selector": selector,
+                    "format_id": fmt_id,
+                    "label": label,
+                    "ext": ext,
+                    "abr": bitrate,
+                    "filesize": filesize,
+                }
+            )
+
+    video_ext_rank = {"mp4": 0, "m4v": 1, "webm": 2, "mkv": 3}
+    video_opts.sort(
+        key=lambda x: (
+            video_ext_rank.get(str(x.get("ext") or "").lower(), 9),
+            -_safe_int(x.get("height")),
+            -_safe_int(x.get("fps")),
+            0 if bool(x.get("has_audio")) else 1,
+        )
+    )
+    audio_opts.sort(key=lambda x: x.get("abr", 0), reverse=True)
+
+    video_defaults = [
+        {
+            "selector": (
+                "bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/"
+                "best[ext=mp4][height<=720]/bestvideo[height<=720]+bestaudio/"
+                "best[height<=720]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/"
+                "best[ext=mp4]/bestvideo+bestaudio/best"
+            ),
+            "format_id": "best-mp4",
+            "label": "Fast MP4 up to 720p (recommended)",
+            "ext": "mp4",
+            "height": 0,
+            "fps": 0,
+            "has_audio": True,
+            "filesize": 0,
+        },
+        {
+            "selector": "bestvideo+bestaudio/best",
+            "format_id": "best-auto",
+            "label": "Best available (any format)",
+            "ext": "auto",
+            "height": 0,
+            "fps": 0,
+            "has_audio": True,
+            "filesize": 0,
+        },
+    ]
+    audio_defaults = [
+        {
+            "selector": "bestaudio[ext=m4a]/bestaudio[acodec^=mp4a]/bestaudio",
+            "format_id": "best-audio",
+            "label": "Best available audio",
+            "ext": "m4a/webm",
+            "abr": 0,
+            "filesize": 0,
+        }
+    ]
+
+    return (
+        {
+            "video_id": vid,
+            "title": str(info.get("title") or f"youtube_{vid}"),
+            "thumbnail": str(info.get("thumbnail") or ""),
+            "duration_sec": _safe_int(info.get("duration")),
+            "uploader": str(info.get("uploader") or ""),
+            "video_options": video_defaults + video_opts[:24],
+            "audio_options": audio_defaults + audio_opts[:24],
+        },
+        "",
+    )
+
+
+def download_youtube_media(
+    url: str,
+    output_dir: Path,
+    kind: str = "video",
+    format_selector: str | None = None,
+    progress_callback: Callable[[dict], None] | None = None,
+) -> tuple[Path | None, str]:
+    """Download YouTube media to ``output_dir`` as ``youtube_{id}.<ext>``.
+
+    ``kind`` supports:
+    - ``video``: MP4-first bestvideo+bestaudio merge with compatibility fallbacks.
+    - ``audio``: best available audio-only stream.
 
     Public YouTube does not need browser cookies; skipping yt-dlp cookie flags.
     avoids slow/failed ``--cookies-from-browser`` runs in headless/server environments.
@@ -283,6 +739,12 @@ def download_youtube_video(url: str, output_dir: Path) -> tuple[Path | None, str
     vid = extract_youtube_id(raw)
     if not vid:
         return None, "not_youtube"
+    dl_kind = (kind or "video").strip().lower()
+    if dl_kind not in ("video", "audio"):
+        return None, "invalid_kind"
+    selector = (format_selector or "").strip()
+    if selector and not _youtube_selector_ok(selector):
+        return None, "invalid_format"
     ytdlp = _find_yt_dlp_bin()
     if not ytdlp:
         return None, "no_ytdlp"
@@ -291,10 +753,11 @@ def download_youtube_video(url: str, output_dir: Path) -> tuple[Path | None, str
     out_template = str(output_dir / f"youtube_{vid}.%(ext)s")
     base_head = [
         ytdlp,
-        "-f",
-        "bestvideo+bestaudio/best",
+        "--no-update",
         "--no-playlist",
-        # DASH fragments: retries reduce truncated downloads that sound like dropouts.
+        "--newline",
+        "--concurrent-fragments",
+        _yt_dlp_concurrent_fragments(),
         "--retries",
         "10",
         "--fragment-retries",
@@ -302,38 +765,96 @@ def download_youtube_video(url: str, output_dir: Path) -> tuple[Path | None, str
         "-o",
         out_template,
     ]
-    cmd_env = dict(os.environ)
+    started_at = time.time()
     attempts: list[list[str]] = [[]]
-    # MKV first: remux VP9/Opus without container-forced re-encode; then MP4 for compatibility.
-    merge_variants: list[list[str]] = [
-        ["--merge-output-format", "mkv"],
-        ["--merge-output-format", "mp4"],
-        [],
-    ]
+    if dl_kind == "video":
+        preferred_selectors = [selector] if selector else [
+            (
+                "bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/"
+                "best[ext=mp4][height<=720]/bestvideo[height<=720]+bestaudio/"
+                "best[height<=720]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/"
+                "best[ext=mp4]/bestvideo+bestaudio/best"
+            ),
+            "bestvideo+bestaudio/best",
+        ]
+        variants = []
+        for sel in preferred_selectors:
+            variants.extend(
+                [
+                    ["-f", sel, "--merge-output-format", "mp4"],
+                    ["-f", sel, "--merge-output-format", "mkv"],
+                    ["-f", sel],
+                ]
+            )
+    else:
+        variants = [
+            ["-f", "bestaudio[ext=m4a]/bestaudio[acodec^=mp4a]/bestaudio"],
+            ["-f", "bestaudio"],
+        ]
     last_stderr = ""
-    for merge_opt in merge_variants:
-        for extra in attempts:
-            cmd = base_head + merge_opt + extra + [raw]
-            try:
-                r = subprocess.run(
-                    cmd,
-                    cwd=output_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=600,
-                    env=cmd_env,
-                )
-                if r.returncode == 0:
-                    picked = _pick_youtube_merged_file(output_dir, vid)
-                    if picked is not None:
-                        return picked, ""
-                tail = (r.stderr or r.stdout or "").strip()
-                last_stderr = tail[-2000:] if tail else "yt-dlp failed"
-            except subprocess.TimeoutExpired:
-                last_stderr = "timeout"
-            except OSError as e:
-                last_stderr = str(e)
-    return None, last_stderr or "download_failed"
+
+    def _try_download(extractor_variants: list[list[str]]) -> Path | None:
+        nonlocal last_stderr
+        for extractor_extra in extractor_variants:
+            for variant in variants:
+                for extra in attempts:
+                    cmd = base_head + extractor_extra + variant + extra + [raw]
+                    try:
+                        if progress_callback:
+                            progress_callback({"stage": "starting", "percent": 1.0, "message": "Starting download"})
+                            r = _run_ytdlp_download_with_progress(
+                                cmd,
+                                timeout_sec=600,
+                                cwd=output_dir,
+                                progress_callback=progress_callback,
+                            )
+                        else:
+                            r = _run_ytdlp_with_proxy_fallback(
+                                cmd,
+                                timeout_sec=600,
+                                cwd=output_dir,
+                            )
+                        if r.returncode == 0:
+                            if progress_callback:
+                                progress_callback({"stage": "finalizing", "percent": 98.0, "message": "Finalizing file"})
+                            picked = _pick_youtube_merged_file(
+                                output_dir,
+                                vid,
+                                created_after=started_at,
+                            )
+                            if picked is None:
+                                # Fallback in case FS timestamp resolution is coarse.
+                                picked = _pick_youtube_merged_file(output_dir, vid)
+                            if picked is not None:
+                                cleanup_youtube_fragments(output_dir, vid)
+                                if progress_callback:
+                                    progress_callback({"stage": "complete", "percent": 100.0, "message": picked.name})
+                                return picked
+                        tail = (r.stderr or r.stdout or "").strip()
+                        last_stderr = tail[-2000:] if tail else "yt-dlp failed"
+                    except subprocess.TimeoutExpired:
+                        last_stderr = "timeout"
+                    except OSError as e:
+                        last_stderr = str(e)
+        return None
+
+    extractor_variants = _yt_dlp_youtube_extractor_arg_variants()
+    picked = _try_download(extractor_variants[:1])
+    if picked is None and _yt_dlp_is_youtube_challenge_error(last_stderr):
+        picked = _try_download(extractor_variants[1:])
+    if picked is not None:
+        return picked, ""
+    return None, _yt_dlp_add_youtube_hints(last_stderr or "download_failed")
+
+
+def download_youtube_video(url: str, output_dir: Path) -> tuple[Path | None, str]:
+    """Backward-compatible wrapper for video downloads."""
+    return download_youtube_media(url, output_dir, kind="video")
+
+
+def download_youtube_audio(url: str, output_dir: Path) -> tuple[Path | None, str]:
+    """Audio-only YouTube download helper."""
+    return download_youtube_media(url, output_dir, kind="audio")
 
 
 def _parse_srt_text(s: str) -> str:
@@ -377,19 +898,33 @@ def _pick_downloaded_media(work_dir: Path) -> Path | None:
     return files[0]
 
 
-def _download_with_yt_dlp(url: str, work_dir: Path, env: dict[str, str]) -> tuple[Path | None, str]:
+def _download_with_yt_dlp(
+    url: str,
+    work_dir: Path,
+    env: dict[str, str],
+    *,
+    audio_only: bool = False,
+) -> tuple[Path | None, str]:
     """Fallback downloader for platforms requiring browser cookies."""
     ytdlp = _find_yt_dlp_bin()
     if not ytdlp:
         return None, "yt-dlp executable not found (install yt-dlp or add to PATH)."
     attempts = _yt_dlp_attempt_extras(url)
+    selector = (
+        "bestaudio[ext=m4a]/bestaudio[acodec^=mp4a]/bestaudio/best[height<=360]/best"
+        if audio_only
+        else "bestvideo+bestaudio/best"
+    )
     base: list[str] = [ytdlp]
     if _yt_dlp_verbose():
         base.append("-v")
     base += [
         "-f",
-        "bestvideo+bestaudio/best",
+        selector,
         "--no-playlist",
+        "--newline",
+        "--concurrent-fragments",
+        _yt_dlp_concurrent_fragments(),
         "-o",
         str(work_dir / "%(title)s.%(ext)s"),
         url,
@@ -985,22 +1520,32 @@ def transcribe_best_effort(
                         if not media_path:
                             vc_err = (vc_err + "\nmobile API: " + mob_err).strip()
             elif vc_bin:
-                dl_vc = subprocess.run(
-                    [vc_bin, "download", resolved_url],
-                    cwd=work_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=240,
-                    env=cmd_env,
+                media_path, ytdl_err = _download_with_yt_dlp(
+                    resolved_url,
+                    work_dir,
+                    cmd_env,
+                    audio_only=True,
                 )
-                if dl_vc.returncode == 0:
-                    media_path = _pick_downloaded_media(work_dir)
-                else:
-                    vc_err = _stderr_tail(dl_vc, 1400)
                 if not media_path:
-                    media_path, ytdl_err = _download_with_yt_dlp(resolved_url, work_dir, cmd_env)
+                    dl_vc = subprocess.run(
+                        [vc_bin, "download", resolved_url],
+                        cwd=work_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=240,
+                        env=cmd_env,
+                    )
+                    if dl_vc.returncode == 0:
+                        media_path = _pick_downloaded_media(work_dir)
+                    else:
+                        vc_err = _stderr_tail(dl_vc, 1400)
             else:
-                media_path, ytdl_err = _download_with_yt_dlp(resolved_url, work_dir, cmd_env)
+                media_path, ytdl_err = _download_with_yt_dlp(
+                    resolved_url,
+                    work_dir,
+                    cmd_env,
+                    audio_only=True,
+                )
 
             if not media_path:
                 direct_audio = _resolve_audio_from_page(resolved_url)

@@ -27,7 +27,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _STATE_PATH = _PROJECT_ROOT / "config" / "china_crawler_instagram_state.json"
 
 _USER_AGENT = (
@@ -190,13 +190,14 @@ def _playwright_instagram(keywords: str, max_results: int, headless: bool) -> li
 def _ddg_instagram(keywords: str, max_results: int) -> list[dict]:
     """DuckDuckGo video/news search filtered to instagram.com."""
     try:
-        from duckduckgo_search import DDGS
+        from src.ddg_client import get_ddgs_class
+        DDGS = get_ddgs_class()
     except ImportError:
         return []
     query = f"site:instagram.com {keywords} reel"
     try:
         with DDGS() as ddgs:
-            raw = list(ddgs.videos(keywords=query, max_results=max_results))
+            raw = list(ddgs.videos(query, max_results=max_results))
         items = []
         for r in raw:
             url = r.get("content") or r.get("url") or ""

@@ -21,10 +21,14 @@ fi
 pkill -f "server.py" >/dev/null 2>&1 || true
 sleep 0.5
 
-# Proxy: yt-dlp/VideoCaptioner subprocesses need HTTP_PROXY in the shell env (not just .env).
-# Stable gost front; aligned with Cursor. Override: HTTP_PROXY=other ./scripts/dev-server.sh
-export HTTP_PROXY="${HTTP_PROXY:-http://127.0.0.1:18080}"
-export HTTPS_PROXY="${HTTPS_PROXY:-http://127.0.0.1:18080}"
+# Proxy: ViralLab auto-detects live macOS system proxies (including QuickQ floating SOCKS/HTTP
+# ports via `scutil --proxy`) and TUN VPN mode automatically via `src/proxy_env.py`.
+# If a local gost bridge happens to be listening on 127.0.0.1:18080, use it; otherwise leave
+# HTTP_PROXY unset so we never point requests at a dead port.
+if [ -z "${HTTP_PROXY:-}" ] && lsof -iTCP:18080 -sTCP:LISTEN >/dev/null 2>&1; then
+  export HTTP_PROXY="http://127.0.0.1:18080"
+  export HTTPS_PROXY="${HTTPS_PROXY:-http://127.0.0.1:18080}"
+fi
 export VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY="${VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY:-1}"
 # Douyin is CN-domestic — do not pass overseas proxy to its subprocesses
 export VIRALLAB_DOUYIN_SKIP_PROXY_RESTORE="${VIRALLAB_DOUYIN_SKIP_PROXY_RESTORE:-1}"

@@ -6,19 +6,28 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.hot_trending import fetch_all_platforms, CACHE_FILE
+from src.hot_trending import fetch_all_platforms, save_hot_trending_cache
+from src.proxy_env import load_dotenv_safe
+
+load_dotenv_safe(Path(__file__).resolve().parent.parent / ".env")
 
 
 def main():
-    import time
     try:
         zh, en = fetch_all_platforms()
-        CACHE_FILE.parent.mkdir(exist_ok=True)
-        CACHE_FILE.write_text(
-            json.dumps({"ts": time.time(), "topics_zh": zh, "topics_en": en}, ensure_ascii=False),
-            encoding="utf-8",
+        saved = save_hot_trending_cache(zh, en)
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "zh": len(zh),
+                    "en": len(en),
+                    "cached_zh": len(saved.get("topics_zh") or []),
+                    "cached_en": len(saved.get("topics_en") or []),
+                },
+                ensure_ascii=False,
+            )
         )
-        print(json.dumps({"ok": True, "zh": len(zh), "en": len(en)}, ensure_ascii=False))
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)

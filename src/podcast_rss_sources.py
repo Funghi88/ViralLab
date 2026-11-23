@@ -2,12 +2,35 @@
 
 Returns normalized items: {title, snippet, url, date, source}.
 """
+import html
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 import requests
+
+from src.proxy_env import requests_proxies_for
+
+_RSS_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+}
+
+
+def _clean_rss_snippet(text: str, max_len: int = 250) -> str:
+    if not text or not isinstance(text, str):
+        return ""
+    s = html.unescape(text)
+    s = re.sub(r"<[^>]*>?", "", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s[:max_len]
 
 
 def _has_feedparser() -> bool:
@@ -19,79 +42,67 @@ def _has_feedparser() -> bool:
         return False
 
 
-# Global English long-form writing — top-tier publications only.
-# Rule: must be globally recognisable brand or widely-cited newsletter.
+# Global English long-form writing — verified live top-tier publications & newsletters.
 LONGFORM_FEEDS_EN = [
     # Major magazine/newspaper long-form
     ("https://www.theatlantic.com/feed/all/", "The Atlantic"),
     ("https://www.newyorker.com/feed/everything", "The New Yorker"),
-    ("https://feeds.hbr.org/harvardbusiness/", "Harvard Business Review"),
-    ("https://nymag.com/feed/all", "New York Magazine"),
+    ("https://www.economist.com/international/rss.xml", "The Economist"),
     ("https://www.niemanlab.org/feed/", "Nieman Lab"),
     # Strategy & tech analysis (most-read newsletters)
     ("https://stratechery.com/feed/", "Stratechery"),
     ("https://www.ben-evans.com/benedictevans?format=rss", "Benedict Evans"),
-    ("https://open.substack.com/pub/lennysnewsletter/feed", "Lenny's Newsletter"),
     ("https://newsletter.pragmaticengineer.com/feed", "The Pragmatic Engineer"),
     ("https://www.notboring.co/feed", "Not Boring"),
-    ("https://open.substack.com/pub/oneusefulthing/feed", "One Useful Thing (Prof. Mollick)"),
-    # Creator economy & media business (must-reads in this space)
+    # Creator economy & media business
     ("https://bigtechnology.substack.com/feed", "Big Technology (Alex Kantrowitz)"),
-    ("https://hotpod.substack.com/feed", "Hot Pod (Spotify/audio)"),
     ("https://therebooting.substack.com/feed", "The Rebooting"),
     ("https://simonowens.substack.com/feed", "The Business of Content"),
-    ("https://review.firstround.com/rss/", "First Round Review"),
-    # Venture & startup
-    ("https://a16z.com/feed/", "a16z"),
-    ("https://open.substack.com/pub/thegeneralist/feed", "The Generalist"),
-    # Design & creativity
-    ("https://eyeondesign.aiga.org/feed/", "AIGA Eye on Design"),
-    ("https://www.itsnicethat.com/rss", "It's Nice That"),
+    # Behaviour, society & economy
+    ("https://theconversation.com/us/articles.atom", "The Conversation (US)"),
 ]
 
-# Chinese long-form — top-tier publications and widely-read newsletters.
+# Chinese long-form — verified live publications & deep analysis.
 LONGFORM_FEEDS_ZH = [
-    # 台灣 / 港澳 / 全球華文
-    ("https://www.thenewslens.com/rss", "關鍵評論網"),
+    # 全球华文深度报道
+    ("https://www.ftchinese.com/rss/news", "FT中文网"),
+    ("https://cn.nytimes.com/rss/", "纽约时报中文网"),
     ("https://www.twreporter.org/a/rss2.xml", "報導者"),
     ("https://theinitium.com/feed", "端傳媒"),
-    ("https://www.zaobao.com.sg/realtime/china/rss.xml", "联合早报"),
-    ("https://www.bnext.com.tw/rss", "數位時代"),
-    # 大陆 — 产品 / 创作者 / 商业
-    ("http://www.woshipm.com/feed", "人人都是产品经理"),
-    ("https://www.inside.com.tw/feed", "INSIDE"),
+    # 华语科技 / 产品 / 创作者深度
+    ("https://www.woshipm.com/feed", "人人都是产品经理"),
     ("https://buzzorange.com/techorange/feed", "TechOrange"),
-    ("https://jiemian.com/rss/", "界面新闻"),
+    ("https://www.ruanyifeng.com/blog/atom.xml", "阮一峰的网络日志"),
 ]
 
-# English podcasts — verified RSS, top-tier by audience and influence.
+# English podcasts — verified live RSS, top-tier by audience and influence.
 PODCAST_FEEDS_EN = [
-    # Business & entrepreneurship (massive audiences)
+    # Business & entrepreneurship
     ("https://feeds.npr.org/510313/podcast.xml", "How I Built This (NPR)"),
-    ("https://feeds.simplecast.com/Kf0D7OJ8", "Masters of Scale (Reid Hoffman)"),
-    ("https://feeds.megaphone.fm/all-in", "All-In Podcast"),
-    ("https://feeds.simplecast.com/n44TzStf", "My First Million"),
     ("https://rss.art19.com/tim-ferriss-show", "The Tim Ferriss Show"),
-    ("https://feeds.simplecast.com/7mQx7Hsy", "20VC"),
-    # Tech & AI (widely trusted)
-    ("https://feeds.lexfridman.com/lex-fridman-podcast", "Lex Fridman Podcast"),
+    # Tech & AI
     ("https://feeds.transistor.fm/acquired", "Acquired"),
     ("https://feeds.simplecast.com/tOjNXec5", "Lenny's Podcast"),
     ("https://feeds.simplecast.com/54nAGcIl", "a16z Podcast"),
-    # Creator economy & design
-    ("https://feeds.transistor.fm/design-better", "Design Better Podcast"),
+    ("https://feeds.simplecast.com/l2i9YnTd", "Hard Fork (NYT)"),
+    ("https://feeds.megaphone.fm/recodedecode", "Decoder with Nilay Patel"),
+    # Creators & operator KOLs
+    ("https://feeds.megaphone.fm/LI6529969937", "The Colin and Samir Show"),
+    # Behaviour, design & economics
     ("https://feeds.99percentinvisible.org/99percentinvisible", "99% Invisible"),
+    ("https://feeds.feedburner.com/hiddenbrain", "Hidden Brain (NPR)"),
+    ("https://feeds.simplecast.com/Y8lFbOT4", "Freakonomics Radio"),
+    ("https://feeds.npr.org/510289/podcast.xml", "Planet Money (NPR)"),
 ]
 
-# Chinese podcasts — only those with confirmed public RSS feeds.
+# Chinese podcasts — verified live public RSS feeds.
 PODCAST_FEEDS_ZH = [
     ("https://uxcoffee.typlog.io/episodes/feed.xml", "UX Coffee 设计咖"),
-    ("https://storyfm.com.cn/feed/episodes", "故事 FM"),
-    ("https://feed.xyzfm.space/gbmFM", "商业访谈播客"),
 ]
 
 LONGFORM_SOURCE_NAMES = {name for _, name in LONGFORM_FEEDS_EN + LONGFORM_FEEDS_ZH}
 PODCAST_SOURCE_NAMES = {name for _, name in PODCAST_FEEDS_EN + PODCAST_FEEDS_ZH}
+LONGFORM_SOURCE_ALIASES = {"DeepTech", "甲子光年", "阿里研究院"}
 
 # Region tags shown on /longform
 REGION_TAGS = ("CN", "TW", "SG", "Diaspora", "Global EN")
@@ -99,9 +110,11 @@ SOURCE_REGION_MAP = {
     # English ecosystem
     "The Atlantic": "Global EN",
     "The New Yorker": "Global EN",
+    "The Economist": "Global EN",
     "Harvard Business Review": "Global EN",
     "New York Magazine": "Global EN",
     "Nieman Lab": "Global EN",
+    "Stanford HAI": "Global EN",
     "Stratechery": "Global EN",
     "Benedict Evans": "Global EN",
     "Lenny's Newsletter": "Global EN",
@@ -117,6 +130,7 @@ SOURCE_REGION_MAP = {
     "The Generalist": "Global EN",
     "AIGA Eye on Design": "Global EN",
     "It's Nice That": "Global EN",
+    "The Conversation (US)": "Global EN",
     "How I Built This (NPR)": "Global EN",
     "Masters of Scale (Reid Hoffman)": "Global EN",
     "All-In Podcast": "Global EN",
@@ -127,9 +141,17 @@ SOURCE_REGION_MAP = {
     "Acquired": "Global EN",
     "Lenny's Podcast": "Global EN",
     "a16z Podcast": "Global EN",
+    "Hard Fork (NYT)": "Global EN",
+    "Decoder with Nilay Patel": "Global EN",
+    "The Colin and Samir Show": "Global EN",
     "Design Better Podcast": "Global EN",
     "99% Invisible": "Global EN",
+    "Hidden Brain (NPR)": "Global EN",
+    "Freakonomics Radio": "Global EN",
+    "Planet Money (NPR)": "Global EN",
     # Chinese ecosystem
+    "FT中文网": "Diaspora",
+    "纽约时报中文网": "Diaspora",
     "關鍵評論網": "TW",
     "報導者": "TW",
     "端傳媒": "Diaspora",
@@ -139,6 +161,8 @@ SOURCE_REGION_MAP = {
     "TechOrange": "TW",
     "人人都是产品经理": "CN",
     "界面新闻": "CN",
+    "腾讯研究院": "CN",
+    "阮一峰的网络日志": "CN",
     "UX Coffee 设计咖": "CN",
     "故事 FM": "CN",
     "商业访谈播客": "CN",
@@ -149,14 +173,22 @@ FOCUS_KEYWORDS_EN = (
     "layoff", "laid off", "job market", "career pivot", "career transition",
     "reskilling", "upskilling", "design engineer", "staff engineer", "frontend engineer",
     "designer", "product designer", "creative", "creativity", "ai workflow", "ai tools",
+    "openai", "anthropic", "gemini", "gpt", "llm", "machine learning", "neural",
+    "musk", "tesla", "spacex", "startup", "startups", "youtube", "creator", "podcast",
     "one-person", "solo founder", "indie hacker", "micro saas", "bootstrapped",
     "survival", "freelance", "portfolio", "consulting",
+    "burnout", "stress", "anxiety", "mental health", "depression", "therapy",
+    "recession", "unemployment", "economy", "inflation", "financial",
+    "belief", "superstition", "paranormal", "spiritual", "astrology", "manifest", "psychology",
 )
 FOCUS_KEYWORDS_ZH = (
     "裁员", "被裁", "失业", "转型", "再就业", "副业", "一人公司", "超级个体",
     "设计师", "程序员", "工程师", "生存", "求职", "作品集", "自由职业", "接单",
     "AI 时代", "AIGC", "创意", "创造力", "设计", "品牌设计", "工业设计",
     "有效实践", "成功路径", "增长路径",
+    "焦虑", "内耗", "抑郁", "心理", "疗愈", "身心灵",
+    "经济下行", "通胀", "收入", "就业",
+    "玄学", "占星", "塔罗", "运势", "灵修", "能量",
 )
 
 THEME_KEYWORDS = {
@@ -172,6 +204,20 @@ THEME_KEYWORDS = {
         "en": ("designer", "design", "creative", "creativity", "ai workflow", "ai tools", "product designer", "design engineer"),
         "zh": ("设计师", "设计", "创意", "创造力", "AI 时代", "AIGC", "品牌设计", "工业设计", "程序员", "工程师"),
     },
+    "collective_wellbeing": {
+        "en": (
+            "burnout", "stress", "anxiety", "mental health", "depression",
+            "recession", "layoff", "unemployment", "economy",
+            "superstition", "paranormal", "spiritual", "belief", "astrology",
+            "manifest", "wellness",
+        ),
+        "zh": (
+            "焦虑", "内耗", "心理", "情绪", "抑郁",
+            "裁员", "失业", "下岗", "经济下行", "副业",
+            "玄学", "塔罗", "占卜", "星座", "运势",
+            "疗愈", "身心灵", "灵修", "能量",
+        ),
+    },
 }
 
 
@@ -180,7 +226,7 @@ def classify_source_type(source_name: str) -> str:
     s = (source_name or "").strip()
     if s in PODCAST_SOURCE_NAMES:
         return "podcast"
-    if s in LONGFORM_SOURCE_NAMES:
+    if s in LONGFORM_SOURCE_NAMES or s in LONGFORM_SOURCE_ALIASES:
         return "longform"
     return "news"
 
@@ -257,6 +303,7 @@ def classify_focus_theme(title: str, snippet: str, lang: str) -> str:
         "transition": 0,
         "one_person_business": 0,
         "design_creativity_ai": 0,
+        "collective_wellbeing": 0,
     }
     for theme, buckets in THEME_KEYWORDS.items():
         for kw in buckets[lang_key]:
@@ -273,24 +320,78 @@ def _read_rss_items(
         return [], []
     import feedparser
 
-    def _fetch_one(url: str, source_name: str) -> tuple[str, list[dict[str, Any]]]:
+    def _normalize_http_url(raw_url: str, base_url: str = "") -> str:
+        u = (raw_url or "").strip()
+        if not u:
+            return ""
+        if u.startswith("//"):
+            u = f"https:{u}"
+        elif not (u.startswith("http://") or u.startswith("https://")) and base_url:
+            u = urljoin(base_url, u)
         try:
-            r = requests.get(url, timeout=4)
+            p = urlparse(u)
+            if p.scheme in ("http", "https") and p.netloc:
+                return u
+        except Exception:
+            return ""
+        return ""
+
+    def _extract_entry_url(entry: Any, feed_home_url: str = "") -> str:
+        candidates = [
+            entry.get("link", ""),
+            entry.get("id", ""),
+            entry.get("guid", ""),
+        ]
+        for l in entry.get("links", []) or []:
+            candidates.append((l or {}).get("href", ""))
+        for c in candidates:
+            normalized = _normalize_http_url(c, feed_home_url)
+            if normalized:
+                return normalized
+        return ""
+
+    def _fetch_one(url: str, source_name: str) -> tuple[str, list[dict[str, Any]]]:
+        proxies = requests_proxies_for(overseas=True)
+        try:
+            r = requests.get(url, timeout=7, headers=_RSS_HEADERS, proxies=proxies)
             r.raise_for_status()
             parsed = feedparser.parse(r.content)
+            feed_home_url = _normalize_http_url(parsed.feed.get("link", ""))
             local_items: list[dict[str, Any]] = []
             for entry in parsed.entries[:max_per_feed]:
+                snippet = _clean_rss_snippet(entry.get("summary", "") or "", max_len=250)
                 local_items.append(
                     {
-                        "title": entry.get("title", "N/A"),
-                        "snippet": (entry.get("summary", "") or "")[:250] or default_snippet,
-                        "url": entry.get("link", ""),
+                        "title": (entry.get("title") or "N/A").strip(),
+                        "snippet": snippet or default_snippet,
+                        "url": _extract_entry_url(entry, feed_home_url),
                         "date": entry.get("published", "") or entry.get("updated", ""),
                         "source": source_name,
                     }
                 )
             return source_name, local_items
         except Exception:
+            if proxies:
+                try:
+                    r = requests.get(url, timeout=7, headers=_RSS_HEADERS, proxies={})
+                    r.raise_for_status()
+                    parsed = feedparser.parse(r.content)
+                    feed_home_url = _normalize_http_url(parsed.feed.get("link", ""))
+                    local_items = []
+                    for entry in parsed.entries[:max_per_feed]:
+                        snippet = _clean_rss_snippet(entry.get("summary", "") or "", max_len=250)
+                        local_items.append(
+                            {
+                                "title": (entry.get("title") or "N/A").strip(),
+                                "snippet": snippet or default_snippet,
+                                "url": _extract_entry_url(entry, feed_home_url),
+                                "date": entry.get("published", "") or entry.get("updated", ""),
+                                "source": source_name,
+                            }
+                        )
+                    return source_name, local_items
+                except Exception:
+                    pass
             return source_name, []
 
     items: list[dict[str, Any]] = []

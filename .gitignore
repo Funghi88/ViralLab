@@ -7,5 +7,7 @@ docs/
 .local/
 config/ytdlp_cookies.txt
 
-# yt-dlp artifacts under output/ (often > GitHub's file size limit)
+# yt-dlp artifacts and transient caches under output/
 output/youtube_*
+output/viral_cache_*
+output/handoff_*

@@ -1,7 +1,11 @@
 """Fetch platform-wide hot topics for creators. Multi-source for better reference."""
 import json
 import re
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+
+from src.proxy_env import requests_proxies_for
 
 # 笒鬼鬼 API - 中文区聚合热榜
 HOTLIST_URL = "https://api-v2.cenguigui.cn/api/juhe/hotlist.php"
@@ -13,8 +17,7 @@ PLATFORMS_ZH = [
     ("bilihot", "B站"),  # 哔哩哔哩热搜
     ("sspai", "少数派"),  # 效率工具、数码、创作者
 ]
-# 英文区：多源覆盖
-REDDIT_SUBS = ["technology", "Entrepreneur", "SideProject", "YouTubeCreators", "content_marketing"]
+# 英文区：多源覆盖（避免社交帖源，优先技术与媒体站点）
 HN_TOP = "https://hacker-news.firebaseio.com/v0/topstories.json"
 HN_ITEM = "https://hacker-news.firebaseio.com/v0/item/{}.json"
 LOBSTERS_URL = "https://lobste.rs/hottest.json"
@@ -42,12 +45,14 @@ CREATOR_KEYWORDS_ZH = frozenset({
     "创作", "爆款", "网红", "UP主", "私域", "品牌", "营销", "教程", "AI", "小红书",
     "抖音", "B站", "知乎", "好物", "测评", "开箱", "vlog", "剪辑", "涨粉", "变现",
     "流量", "算法", "运营", "干货", "攻略", "分享", "推荐", "榜单", "热门", "遊戲",
+    "焦虑", "内耗", "心理", "疗愈", "玄学", "占星", "副业",
 })
 CREATOR_KEYWORDS_EN = frozenset({
     "creator", "viral", "trending", "AI", "YouTube", "TikTok", "content", "marketing",
     "startup", "SaaS", "tool", "growth", "monetization", "subscriber", "algorithm",
     "tutorial", "review", "unboxing", "vlog", "podcast", "newsletter", "influencer",
     "developer", "open source", "framework", "API", "build", "launch",
+    "burnout", "anxiety", "mental health", "wellness", "recession",
 })
 
 
@@ -94,7 +99,8 @@ def _fetch_pearktrue_dailyhot(platform_title: str, platform_name: str) -> list[t
         r = requests.get(
             f"{PEARKTRUE_DAILYHOT_URL}?title={platform_title}",
             headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
-            timeout=8,
+            timeout=4,
+            proxies={},
         )
         r.raise_for_status()
         data = r.json()
@@ -118,7 +124,8 @@ def _fetch_ptt_hotboards() -> list[tuple[str, str, int]]:
         r = requests.get(
             PTT_HOTBOARDS_URL,
             headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
-            timeout=6,
+            timeout=4,
+            proxies=requests_proxies_for(overseas=True),
         )
         r.raise_for_status()
         html = r.text
@@ -144,7 +151,8 @@ def _fetch_platform_zh(platform_id: str, platform_name: str) -> list[tuple[str, 
         r = requests.get(
             f"{HOTLIST_URL}?type={platform_id}",
             headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"},
-            timeout=8,
+            timeout=4,
+            proxies={},
         )
         r.raise_for_status()
         data = r.json()
@@ -162,48 +170,48 @@ def _fetch_platform_zh(platform_id: str, platform_name: str) -> list[tuple[str, 
 
 
 def _fetch_hn() -> list[tuple[str, int]]:
-    """Fetch Hacker News top stories. Returns [(title, creator_score), ...]."""
+    """Fetch Hacker News top stories via single fast Algolia request (fallback to Firebase)."""
     try:
         import requests
-        r = requests.get(HN_TOP, timeout=5)
-        ids = r.json()[:15]
+        proxies = requests_proxies_for(overseas=True)
+        r = requests.get(
+            "https://hn.algolia.com/api/v1/search_by_date",
+            params={"tags": "front_page", "hitsPerPage": 18},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6,
+            proxies=proxies,
+        )
+        r.raise_for_status()
         result = []
-        for i in ids:
+        for hit in (r.json().get("hits") or [])[:18]:
+            title = (hit.get("title") or hit.get("story_title") or "").strip()
+            if title and not _is_noise_en(title):
+                result.append((title, _creator_score(title, "en")))
+        if result:
+            return result
+    except Exception:
+        pass
+    try:
+        import requests
+        proxies = requests_proxies_for(overseas=True)
+        r = requests.get(HN_TOP, timeout=5, proxies=proxies)
+        ids = r.json()[:15]
+
+        def _one(i):
             try:
-                s = requests.get(HN_ITEM.format(i), timeout=2).json()
+                s = requests.get(HN_ITEM.format(i), timeout=3, proxies=proxies).json()
                 title = (s.get("title") or "").strip()
                 if title and not _is_noise_en(title):
-                    score = _creator_score(title, "en")
-                    result.append((title, score))
+                    return (title, _creator_score(title, "en"))
             except Exception:
-                continue
-        return result
-    except Exception:
-        return []
+                return None
+            return None
 
-
-def _fetch_reddit() -> list[tuple[str, int]]:
-    """Fetch Reddit hot from creator-relevant subs. May timeout from some networks."""
-    try:
-        import requests
-        headers = {"User-Agent": "ViralLab/1.0 (creator trends; +https://github.com)"}
         result = []
-        for sub in REDDIT_SUBS[:2]:
-            try:
-                r = requests.get(
-                    f"https://www.reddit.com/r/{sub}/hot.json?limit=10",
-                    headers=headers,
-                    timeout=4,
-                )
-                if r.status_code != 200:
-                    continue
-                for c in r.json().get("data", {}).get("children", [])[:6]:
-                    title = (c.get("data", {}).get("title") or "").strip()
-                    if title and not _is_noise_en(title):
-                        score = _creator_score(title, "en")
-                        result.append((title, score))
-            except Exception:
-                continue
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            for item in ex.map(_one, ids):
+                if item:
+                    result.append(item)
         return result
     except Exception:
         return []
@@ -213,7 +221,12 @@ def _fetch_lobsters() -> list[tuple[str, int]]:
     """Fetch Lobste.rs hottest. Tech/creator community."""
     try:
         import requests
-        r = requests.get(LOBSTERS_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
+        r = requests.get(
+            LOBSTERS_URL,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6,
+            proxies=requests_proxies_for(overseas=True),
+        )
         r.raise_for_status()
         items = r.json()[:15]
         result = []
@@ -231,7 +244,12 @@ def _fetch_devto() -> list[tuple[str, int]]:
     """Fetch Dev.to top articles. Developer/creator content."""
     try:
         import requests
-        r = requests.get(DEVTO_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=5)
+        r = requests.get(
+            DEVTO_URL,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6,
+            proxies=requests_proxies_for(overseas=True),
+        )
         r.raise_for_status()
         items = r.json()[:12]
         result = []
@@ -249,7 +267,12 @@ def _fetch_github_trending() -> list[tuple[str, int]]:
     """Fetch GitHub trending repos. Use description as topic when meaningful."""
     try:
         import requests
-        r = requests.get(GITHUB_TRENDING_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        r = requests.get(
+            GITHUB_TRENDING_URL,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=6,
+            proxies=requests_proxies_for(overseas=True),
+        )
         r.raise_for_status()
         items = r.json()[:12]
         result = []
@@ -265,44 +288,106 @@ def _fetch_github_trending() -> list[tuple[str, int]]:
         return []
 
 
+def _fetch_zh_direct_fallback() -> list[tuple[str, str, int]]:
+    """Resilient direct ZH trending fallback (Bilibili popular + reliable ZH tech RSS)."""
+    out: list[tuple[str, str, int]] = []
+    try:
+        import requests
+        r = requests.get(
+            "https://api.bilibili.com/x/web-interface/popular",
+            params={"ps": 15, "pn": 1},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Referer": "https://www.bilibili.com/",
+            },
+            timeout=6,
+            proxies={},
+        )
+        if r.ok:
+            data = r.json()
+            if data.get("code") == 0:
+                for v in (data.get("data", {}).get("list") or [])[:15]:
+                    t = (v.get("title") or "").strip()
+                    if t and not _is_noise_zh(t):
+                        out.append((t, "B站", _creator_score(t, "zh")))
+    except Exception:
+        pass
+    try:
+        import feedparser
+        import requests
+        for url, label in (
+            ("https://36kr.com/feed", "36氪"),
+            ("https://sspai.com/feed", "少数派"),
+            ("https://www.qbitai.com/feed", "量子位"),
+            ("https://www.ifanr.com/feed", "爱范儿"),
+        ):
+            try:
+                r = requests.get(
+                    url,
+                    headers={"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"},
+                    timeout=5,
+                    proxies={},
+                )
+                if not r.ok:
+                    continue
+                d = feedparser.parse(r.content)
+                for e in d.entries[:6]:
+                    t = (e.get("title") or "").strip()
+                    if t and not _is_noise_zh(t, max_len=80):
+                        out.append((t, label, _creator_score(t, "zh")))
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return out
+
+
 def fetch_all_platforms_zh() -> list[str]:
-    """Fetch ZH platforms (含台湾 PTT), merge, prioritize creator-relevant."""
+    """Fetch ZH platforms in parallel (含台湾 PTT + direct fallback), merge, prioritize creator-relevant."""
+    tasks = []
+    for platform_id, platform_name in PLATFORMS_ZH:
+        tasks.append((_fetch_platform_zh, (platform_id, platform_name)))
+    tasks.append((_fetch_ptt_hotboards, ()))
+    for platform_title, platform_name in PEARKTRUE_PLATFORMS:
+        tasks.append((_fetch_pearktrue_dailyhot, (platform_title, platform_name)))
+
+    raw: list[tuple[str, str, int]] = []
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = [ex.submit(fn, *args) for fn, args in tasks]
+        for fut in as_completed(futs):
+            try:
+                raw.extend(fut.result(timeout=10) or [])
+            except Exception:
+                continue
+
+    if len(raw) < 10:
+        raw.extend(_fetch_zh_direct_fallback())
+
     seen = set()
     scored = []
-    for platform_id, platform_name in PLATFORMS_ZH:
-        for topic, _pn, score in _fetch_platform_zh(platform_id, platform_name):
-            tl = topic.lower().strip()
-            if tl not in seen:
-                seen.add(tl)
-                scored.append((topic, score))
-    # 台湾 PTT 熱門看板
-    for topic, _pn, score in _fetch_ptt_hotboards():
+    for topic, _pn, score in raw:
         tl = topic.lower().strip()
         if tl not in seen:
             seen.add(tl)
             scored.append((topic, score))
-    # Pearktrue 补充：IT之家、36氪、今日头条
-    for platform_title, platform_name in PEARKTRUE_PLATFORMS:
-        for topic, _pn, score in _fetch_pearktrue_dailyhot(platform_title, platform_name):
-            tl = topic.lower().strip()
-            if tl not in seen:
-                seen.add(tl)
-                scored.append((topic, score))
     scored.sort(key=lambda x: -x[1])
     return [t for t, _ in scored[:40]]
 
 
 def fetch_all_platforms_en() -> list[str]:
-    """Fetch EN platforms (HN, Reddit, Lobsters, Dev.to, GitHub), merge, prioritize creator-relevant."""
+    """Fetch EN platforms in parallel (HN, Lobsters, Dev.to, GitHub), merge, prioritize creator-relevant."""
+    fns = (_fetch_hn, _fetch_lobsters, _fetch_devto, _fetch_github_trending)
+    raw: list[tuple[str, int]] = []
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = [ex.submit(fn) for fn in fns]
+        for fut in as_completed(futs):
+            try:
+                raw.extend(fut.result(timeout=10) or [])
+            except Exception:
+                continue
     seen = set()
     scored = []
-    for topic, score in (
-        _fetch_hn()
-        + _fetch_reddit()
-        + _fetch_lobsters()
-        + _fetch_devto()
-        + _fetch_github_trending()
-    ):
+    for topic, score in raw:
         tl = topic.lower().strip()
         if tl not in seen:
             seen.add(tl)
@@ -339,6 +424,19 @@ AUDIENCE_SEGMENTS = {
         "keywords_zh": frozenset(CREATOR_KEYWORDS_ZH),
         "keywords_en": frozenset(CREATOR_KEYWORDS_EN),
     },
+    "geopolitics": {
+        "name_en": "US–China",
+        "name_zh": "中美政经",
+        "keywords_zh": frozenset({
+            "中美", "美国", "中国", "华盛顿", "北京", "关税", "贸易", "台海", "台湾", "芯片",
+            "半导体", "制裁", "外交", "出口", "禁令", "冷战", "拜登", "特朗普", "国会",
+        }),
+        "keywords_en": frozenset({
+            "us-china", "u.s.-china", "china trade", "beijing", "washington", "taiwan",
+            "tariff", "trade war", "export control", "sanctions", "semiconductor", "chips",
+            "strait", "ccp", "xi jinping", "biden", "trump", "congress", "pentagon",
+        }),
+    },
 }
 
 
@@ -367,23 +465,47 @@ def rerank_topics_by_segment(topics: list[str], lang: str, segment: str) -> list
     return [t for _, _, t in scored]
 
 
+def save_hot_trending_cache(zh: list[str], en: list[str], *, now: float | None = None) -> dict:
+    """Write hot_trending.json without overwriting previously valid lists with empty lists."""
+    ts = now if now is not None else time.time()
+    prev: dict = {}
+    if CACHE_FILE.exists():
+        try:
+            prev = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            prev = {}
+    final_zh = zh if zh else (prev.get("topics_zh") or [])
+    final_en = en if en else (prev.get("topics_en") or [])
+    payload = {
+        "ts": ts if (zh or en) else prev.get("ts", ts),
+        "topics_zh": final_zh,
+        "topics_en": final_en,
+    }
+    if final_zh or final_en or not CACHE_FILE.exists():
+        CACHE_FILE.parent.mkdir(exist_ok=True)
+        CACHE_FILE.write_text(
+            json.dumps(payload, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    return payload
+
+
 def get_cached_or_fetch(lang: str = "zh") -> tuple[list[str], bool]:
     """Get hot topics from cache or fetch fresh. Returns (topics, from_cache)."""
-    now = __import__("time").time()
+    now = time.time()
     key = "topics_zh" if lang == "zh" else "topics_en"
+    prev_topics: list[str] = []
     if CACHE_FILE.exists():
         try:
             data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
-            if now - data.get("ts", 0) < CACHE_TTL:
-                topics = data.get(key, [])
-                if topics:
-                    return topics, True
+            prev_topics = data.get(key, []) or []
+            if now - data.get("ts", 0) < CACHE_TTL and prev_topics:
+                return prev_topics, True
         except Exception:
             pass
     zh, en = fetch_all_platforms()
-    CACHE_FILE.parent.mkdir(exist_ok=True)
-    CACHE_FILE.write_text(
-        json.dumps({"ts": now, "topics_zh": zh, "topics_en": en}, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    return (zh if lang == "zh" else en), False
+    saved = save_hot_trending_cache(zh, en, now=now)
+    fresh = zh if lang == "zh" else en
+    if fresh:
+        return fresh, False
+    return (saved.get(key) or prev_topics), True

@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -22,15 +23,41 @@ from src.media_transcribe import (
     _normalize_local_media_ref,
     _netscape_cookie_names_in_file,
     _pick_youtube_merged_file,
+    _run_ytdlp_with_proxy_fallback,
     _try_transcribe_candidates,
     _yt_cookie_extras_nonempty,
     _yt_dlp_verbose,
     _find_yt_dlp_bin,
+    download_youtube_media,
+    download_youtube_audio,
     download_youtube_video,
+    probe_youtube_formats,
 )
 
 
 class MediaTranscribeTests(unittest.TestCase):
+    def test_ytdlp_retries_direct_when_configured_proxy_is_refused(self) -> None:
+        failed = subprocess.CompletedProcess(
+            ["yt-dlp"], 1, stdout="", stderr="ERROR: Unable to connect to proxy: Connection refused"
+        )
+        succeeded = subprocess.CompletedProcess(["yt-dlp"], 0, stdout="ok", stderr="")
+        with patch.dict(
+            os.environ,
+            {
+                "HTTP_PROXY": "http://127.0.0.1:18080",
+                "HTTPS_PROXY": "http://127.0.0.1:18080",
+                "VIRALLAB_MEDIA_DOWNLOAD_USE_ENV_PROXY": "1",
+            },
+            clear=False,
+        ), patch("src.media_transcribe.subprocess.run", side_effect=[failed, succeeded]) as run:
+            result = _run_ytdlp_with_proxy_fallback(["yt-dlp"], timeout_sec=10)
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(run.call_count, 2)
+        retry_env = run.call_args_list[1].kwargs["env"]
+        self.assertNotIn("HTTP_PROXY", retry_env)
+        self.assertNotIn("HTTPS_PROXY", retry_env)
+
     def test_yt_dlp_verbose_env(self) -> None:
         with patch.dict(
             os.environ,
@@ -279,11 +306,167 @@ class MediaTranscribeTests(unittest.TestCase):
             self.assertTrue(path.name.startswith("youtube_"))
             self.assertEqual(path.read_bytes(), b"x")
 
+    def test_download_youtube_video_prefers_mp4_merge_first(self) -> None:
+        calls: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):  # noqa: ANN001
+            calls.append(cmd)
+            out_dir = Path(kwargs.get("cwd", "."))
+            f = out_dir / "youtube_TESTVIDE012.mp4"
+            f.write_bytes(b"x")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            url = "https://www.youtube.com/watch?v=TESTVIDE012"
+            with patch("src.media_transcribe.subprocess.run", side_effect=fake_run):
+                with patch("src.media_transcribe._find_yt_dlp_bin", return_value="/bin/yt-dlp"):
+                    path, err = download_youtube_video(url, td_path)
+            self.assertEqual(err, "")
+            self.assertIsNotNone(path)
+            self.assertTrue(calls)
+            first = calls[0]
+            self.assertIn("--no-update", first)
+            self.assertIn("--merge-output-format", first)
+            self.assertEqual(first[first.index("--merge-output-format") + 1], "mp4")
+            self.assertIn("-f", first)
+            selector = first[first.index("-f") + 1]
+            self.assertIn("bestvideo[ext=mp4]", selector)
+            self.assertIn("bestaudio[ext=m4a]", selector)
+
+    def test_download_youtube_video_retries_challenge_with_alt_clients(self) -> None:
+        calls: list[list[str]] = []
+        primary_extractor = "youtube:player_client=android,ios,tv;player_skip=webpage,configs"
+
+        def fake_run(cmd, **kwargs):  # noqa: ANN001
+            calls.append(cmd)
+            out_dir = Path(kwargs.get("cwd", "."))
+            extractor = ""
+            if "--extractor-args" in cmd:
+                extractor = cmd[cmd.index("--extractor-args") + 1]
+            if extractor == primary_extractor:
+                return subprocess.CompletedProcess(
+                    cmd,
+                    1,
+                    stdout="",
+                    stderr=(
+                        "WARNING: [youtube] [jsc] Remote components challenge solver script "
+                        "(deno) and NPM package (deno) were not found"
+                    ),
+                )
+            f = out_dir / "youtube_TESTVIDE012.mp4"
+            f.write_bytes(b"x")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            url = "https://www.youtube.com/watch?v=TESTVIDE012"
+            with patch("src.media_transcribe.subprocess.run", side_effect=fake_run):
+                with patch("src.media_transcribe._find_yt_dlp_bin", return_value="/bin/yt-dlp"):
+                    path, err = download_youtube_video(url, td_path)
+            self.assertEqual(err, "")
+            self.assertIsNotNone(path)
+            self.assertGreaterEqual(len(calls), 2)
+            self.assertTrue(any("--extractor-args" in c for c in calls))
+
     def test_download_youtube_video_rejects_non_youtube(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             path, err = download_youtube_video("https://example.com/x", Path(td))
             self.assertIsNone(path)
             self.assertEqual(err, "not_youtube")
+
+    def test_download_youtube_audio_success_writes_file(self) -> None:
+        def fake_run(cmd, **kwargs):  # noqa: ANN001
+            out_dir = Path(kwargs.get("cwd", "."))
+            f = out_dir / "youtube_TESTVIDE012.m4a"
+            f.write_bytes(b"audio")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            url = "https://www.youtube.com/watch?v=TESTVIDE012"
+            with patch("src.media_transcribe.subprocess.run", side_effect=fake_run):
+                with patch("src.media_transcribe._find_yt_dlp_bin", return_value="/bin/yt-dlp"):
+                    path, err = download_youtube_audio(url, td_path)
+            self.assertEqual(err, "")
+            self.assertIsNotNone(path)
+            assert path is not None
+            self.assertEqual(path.suffix, ".m4a")
+            self.assertEqual(path.read_bytes(), b"audio")
+
+    def test_download_youtube_media_rejects_invalid_kind(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path, err = download_youtube_media(
+                "https://www.youtube.com/watch?v=TESTVIDE012", Path(td), kind="documentary"
+            )
+            self.assertIsNone(path)
+            self.assertEqual(err, "invalid_kind")
+
+    def test_download_youtube_media_rejects_invalid_format_selector(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path, err = download_youtube_media(
+                "https://www.youtube.com/watch?v=TESTVIDE012",
+                Path(td),
+                kind="video",
+                format_selector="bad format selector",
+            )
+            self.assertIsNone(path)
+            self.assertEqual(err, "invalid_format")
+
+    def test_probe_youtube_formats_returns_video_and_audio_options(self) -> None:
+        payload = {
+            "title": "Test Video",
+            "uploader": "Uploader",
+            "duration": 123,
+            "thumbnail": "https://img.example/thumb.jpg",
+            "formats": [
+                {
+                    "format_id": "137",
+                    "ext": "mp4",
+                    "vcodec": "avc1",
+                    "acodec": "none",
+                    "height": 1080,
+                    "fps": 30,
+                    "filesize": 3_000_000,
+                },
+                {
+                    "format_id": "22",
+                    "ext": "mp4",
+                    "vcodec": "avc1",
+                    "acodec": "mp4a.40.2",
+                    "height": 720,
+                    "fps": 30,
+                    "filesize": 2_000_000,
+                },
+                {
+                    "format_id": "140",
+                    "ext": "m4a",
+                    "vcodec": "none",
+                    "acodec": "mp4a.40.2",
+                    "abr": 128,
+                    "filesize": 400_000,
+                },
+            ],
+        }
+        cp = subprocess.CompletedProcess(
+            ["yt-dlp", "--dump-single-json"], 0, stdout=json.dumps(payload), stderr=""
+        )
+        with patch("src.media_transcribe._find_yt_dlp_bin", return_value="/bin/yt-dlp"):
+            with patch("src.media_transcribe.subprocess.run", return_value=cp):
+                data, err = probe_youtube_formats("https://www.youtube.com/watch?v=TESTVIDE012")
+        self.assertEqual(err, "")
+        self.assertIsNotNone(data)
+        assert data is not None
+        self.assertEqual(data["title"], "Test Video")
+        self.assertTrue(
+            any(
+                x["selector"] == "137+bestaudio[ext=m4a]/bestaudio/best"
+                for x in data["video_options"]
+            )
+        )
+        self.assertTrue(any(x["selector"] == "22" for x in data["video_options"]))
+        self.assertTrue(any(x["selector"] == "140" for x in data["audio_options"]))
+        self.assertEqual(data["video_options"][0]["format_id"], "best-mp4")
 
     def test_netscape_cookie_names_parses_sixth_field(self) -> None:
         with tempfile.NamedTemporaryFile(

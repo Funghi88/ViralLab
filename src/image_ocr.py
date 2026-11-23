@@ -16,6 +16,8 @@ import numpy as np
 import requests
 from PIL import Image, UnidentifiedImageError
 
+from src.proxy_env import requests_proxies_for
+
 _MAX_IMAGE_BYTES = 12 * 1024 * 1024
 _DEFAULT_TIMEOUT = 25
 _IMG_EXT_RE = re.compile(r"\.(jpe?g|png|webp|gif)(\?|#|$)", re.I)
@@ -150,12 +152,24 @@ def ocr_image_bytes(data: bytes) -> tuple[list[dict[str, Any]], str]:
 
 def fetch_url_bytes(url: str, timeout: float = _DEFAULT_TIMEOUT) -> tuple[bytes, str]:
     cur = normalize_page_url(url)
-    headers = {"User-Agent": "ViralLab-ImageOCR/1.0"}
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        )
+    }
+    proxies = requests_proxies_for(overseas=True)
     try:
         for _ in range(8):
             if not url_allowed_for_fetch(cur):
                 return b"", "url_not_allowed"
-            r = requests.get(cur, timeout=timeout, allow_redirects=False, headers=headers)
+            try:
+                r = requests.get(cur, timeout=timeout, allow_redirects=False, headers=headers, proxies=proxies)
+            except (requests.exceptions.ProxyError, requests.exceptions.ConnectionError):
+                if not proxies:
+                    raise
+                proxies = {}
+                r = requests.get(cur, timeout=timeout, allow_redirects=False, headers=headers, proxies={})
             if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("Location"):
                 cur = urljoin(cur, r.headers["Location"].strip())
                 continue

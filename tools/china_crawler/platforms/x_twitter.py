@@ -24,7 +24,7 @@ from __future__ import annotations
 import urllib.parse
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _STATE_PATH = _PROJECT_ROOT / "config" / "china_crawler_x_state.json"
 
 _USER_AGENT = (
@@ -94,13 +94,14 @@ def _nitter_rss(keywords: str, max_results: int) -> list[dict]:
 def _ddg_x(keywords: str, max_results: int) -> list[dict]:
     """DuckDuckGo news search filtered to x.com — last-resort fallback."""
     try:
-        from duckduckgo_search import DDGS
+        from src.ddg_client import get_ddgs_class
+        DDGS = get_ddgs_class()
     except ImportError:
         return []
     query = f"site:x.com {keywords}"
     try:
         with DDGS() as ddgs:
-            raw = list(ddgs.news(keywords=query, max_results=max_results))
+            raw = list(ddgs.news(query, max_results=max_results))
         items = []
         for r in raw:
             url = r.get("url") or ""

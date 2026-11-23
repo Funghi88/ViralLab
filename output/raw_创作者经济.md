@@ -1,85 +1,85 @@
 # Raw news results: 创作者经济
 
-## 1. 电视内容行业如何拥抱创作者经济？ - 今日流媒体
+## 1. 视频采集卡市场展望2035：创作者经济与直播需求驱动增长 - 新闻和统计 - IndexBox
 
-电视内容行业如何拥抱创作者经济？&nbsp;&nbsp;今日流媒体
-
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMia0FVX3lxTE1LdVEyN2hxeXVobi11NlF6WVRDSzVyemt5RktHWUtyaFd1WTJMUk1ROWJoZ3RaRWFmTW9HT0pWREY2QkNOUGNnQ204aVNrNFRFcmpWc0loTDQyUHVsd2QwQm92anI4TjNBMXVF?oc=5
-
-## 2. 创作者经济市场规模及份额 | 2026-2035年预测报告 - Research Nester
-
-创作者经济市场规模及份额 | 2026-2035年预测报告&nbsp;&nbsp;Research Nester
+视频采集卡市场展望2035：创作者经济与直播需求驱动增长 - 新闻和统计 IndexBox
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMieEFVX3lxTFA1RTczWFdsTE9CQ09xLVM1THVsVE1xMGlJWUhnNTRvbFVYczEzTlY4V19VQkd6TnRpT1ktNlhZc09zdk9hQVlYa0lrd2ZGMnhBdXVjSmluRFRoNDJBNDRlTUg0dE1oX3hMMl85RnRfV0N3bXZRemY1NQ?oc=5
+URL: https://news.google.com/rss/articles/CBMizgFBVV95cUxQNUY0RUlPT1VpSklxY3dHRm9jOUpra3pVeWtCMkFxTlZvZ29XSWVrb0ZMd2lXcTNiTm94d1B1UUZzN3B0WEJwRHdMaGotVW9ZQk13X3p0VHNfbGtWbG8tMS10cHBnZ1hsOU9kcVVUMG15QWFfdVlGLUl3ZjRENkUySjVTRmQ5bFByQ2tVbUpXZUVhQTFBVTFBZkxXbGl0bHAtQVpaNndEWDkyZklLNE92bEQwRXV0VHFHNVQ5Mkl6MTNqeTdhRDdGQ1FreGdqZw?oc=5
 
-## 3. AI创作者经济论坛 鲍德熹:AI创作不能追求便宜快捷 - 华人头条
+## 2. 创作者经济市场规模、份额、行业报告，2034年 - Fortune Business Insights
 
-AI创作者经济论坛 鲍德熹:AI创作不能追求便宜快捷&nbsp;&nbsp;华人头条
-
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMilwFBVV95cUxQN0U2MGxpczlPd01fdHlnNGJlZWtlbFF4MVpUMGxPaHVxOHVMdUQta3QxNkFLM0JMaHhqWEl0R0s5WXp2X1JLTlJ4RjVBQXFZb2hob0JjQVFqdXF2dU1uQlUtU3I4YzVJZmY1eW44bUdXMUFGdzVmWjRvUjlVV1dWVWc0RTVHLXY0WHlDQWRUYWY0WDNZeHJR?oc=5
-
-## 4. 中传联合承办第十三届中国网络视听大会“AI创作者经济论坛” 多项成果亮相成都 - thepaper.cn
-
-中传联合承办第十三届中国网络视听大会“AI创作者经济论坛” 多项成果亮相成都&nbsp;&nbsp;thepaper.cn
+创作者经济市场规模、份额、行业报告，2034年 Fortune Business Insights
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMiXkFVX3lxTFBweHdUdXpqQUN5WENiMnhKRERkblYyTlY2WEhWN3RiLURWdjNPa1RPWGpvUzRXNWp6emRoUDhEaDJtNEttMGZzWnVaU2l0NTY4b25KMnZ2ZEpfUkFfb0E?oc=5
+URL: https://news.google.com/rss/articles/CBMifEFVX3lxTE91RThDejlqNWxkQlJ0Y2Y5NG1hTGEycE12eU5FUjhJMXZGRl9UajBIUEpIcDVtLTctUXhPcVI0ZzA2LUxtUG1vLWhtYVQ3V0x0dnE3VlJfdHpxUUhObGM2MmtoQUNSY0hxTjFjb0w1VVJsRTVtbEp5NVJ3T3M?oc=5
 
-## 5. 第十三届中国网络视听大会·AI创作者经济论坛在成都举行 业界共议人机共创新生态 - 新浪财经
+## 3. 2026年创作者经济洞察报告丨内容行业新周期：海外市场现状、发展逻辑与创新玩法 - AgeClub
 
-第十三届中国网络视听大会·AI创作者经济论坛在成都举行 业界共议人机共创新生态&nbsp;&nbsp;新浪财经
-
-Source: Google News
-URL: https://news.google.com/rss/articles/CBMihwFBVV95cUxPcU1ORmdHMXZTNHdmcm1SZ09yOE1uRUV1OUpqcW9yc25WRmdlNVJBSmVPd21OX0tRMWYyclFmS2MwSXFsNUg3akdqQVlKdHpfUHpaUjdkTE9CaDJFT2JPdHJUc0l3S2txNFc0VlJXcXRqdWljZVpXcTlyb1NwRVR6WmRVR0g1TXM?oc=5
-
-## 6. 音乐NFT如何赋能创作者经济——5款音乐NFT概述 - PANews
-
-音乐NFT如何赋能创作者经济——5款音乐NFT概述&nbsp;&nbsp;PANews
+2026年创作者经济洞察报告丨内容行业新周期：海外市场现状、发展逻辑与创新玩法 AgeClub
 
 Source: Google News
-URL: https://news.google.com/rss/articles/CBMiWkFVX3lxTFAwM3BuamtZQkZGY0ZwMTBXZE4zWVBtUjdiaUM0dXprZ3ZxdUZoWkpSb2Roa3g3N210d0lhaWNGX2xKX1hncU8tcDAwWUhDNEVuNnMweUduSTRMUQ?oc=5
+URL: https://news.google.com/rss/articles/CBMiU0FVX3lxTE81Y0NhZXdwMzBZUWZ3dnVmRDN0QWhWN0o5WDdKZHdTSFpDNzRBZS1udHBhMEVBSkRZVmN5QjQtVEtBUmxlU0tIU3YtNVBMc0h3UmNv?oc=5
 
-## 7. 36氪首发 | 航空航天电气系统互联组件方案商获数千万融资，细分赛道市占率第一
+## 4. AI如何重塑全球创作者经济？iFLYTalent在VidCon现场给出答案 - 中国日报网
 
-作者 | 乔钰杰 编辑 | 袁斯来 硬氪获悉，青岛北辰航天航天科技有限公司（下称“北辰航天”）近日完成数千万元天使轮融资，由云启资本独家投资，翊荣资本担任长期独家财务顾问。 北辰航天旗下全资子公司青岛北辰数智科技有限公司成立于2014年，长期深耕航空航天电气系统互联组件研制领域，提供从设计到组装的系统工程解决方案。 电气系统互联是航天器的五大核心组成之一，类似于人体的“神经与血管”，承担电源分配、信号传输、测量控制等关键功能，具有高复杂度与高可靠性要求。随着商业航天、深空探测及低空飞行器的发展，
+AI如何重塑全球创作者经济？iFLYTalent在VidCon现场给出答案 中国日报网
 
-Source: 36氪
-URL: https://36kr.com/p/3801398177324550?f=rss
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMifEFVX3lxTFBnc193Um1Tc2xfYWRGMnRIOWxXZWU3aGNtXy01OE5JN2gwUU5rcVBYMFVKSVk5b3pBSzlnMllfSF9TR0ljYkdUMDNrOGxDTFhzeEwxc1VvM1Q1elFyQ1pjYm1MY0VwanNJSzlXRWdiNmRPcnpQS25BekI3bzU?oc=5
 
-## 8. 获高秉强、蓝驰领投数千万融资，浙大00后创业者从远景观测切入AI智能影像｜硬氪首发
+## 5. The Influencer Marketing Factory:《2026创作者经济报告》 - 发现报告
 
-作者｜黄楠 编辑｜袁斯来 硬氪获悉，星识（宁波）科技有限公司（以下简称“星识科技”）近日连续完成天使+轮和天使++轮融资，累计金额达数千万元。两轮融资分别由高秉强教授旗下高锋耐心资本和蓝驰创投领投、松禾资本跟投，老股东清水湾二期基金及奇绩创坛持续加注。本轮资金将主要用于智能影像核心技术研发、新品矩阵打造和产品体验的迭代优化，以及生产体系与供应链能力建设。此前，公司已获得李泽湘教授旗下宁波智能技术研究院、清水湾二期基金及奇绩创坛的种子轮及天使轮投资。 星识科技是一家专注智能影像技术研发与硬件制造的
+The Influencer Marketing Factory:《2026创作者经济报告》 发现报告
 
-Source: 36氪
-URL: https://36kr.com/p/3797202414820359?f=rss
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMiUEFVX3lxTE52Y2dianowbUJkSHRURWFSYlA4ZmFaaWd2Q3NxTERZeXJFdi12b3U4LXRhME41TmxYT3lyUnQ0RVJCVU1POVJTS3BNYUxiTUFO?oc=5
 
-## 9. OSMO Pocket 4P，是大疆自己打响的「云台相机下半场」第一枪
+## 6. 高盛观点 | 2027年创作者经济规模可接近5000亿美元 - Goldman Sachs
 
-「手持云台相机」品类里，大疆独行时代的最后一年。 作者｜张勇毅 编辑｜靖宇 2025 年的某段时间，打开抖音、小红书、B 站，很多人都会有一种隐约的视觉重复——一台黑色的、屏幕能旋转的小相机，反复出现。 当时这台「小相机」，无论是国内的视频创作者，还是海外的 YouTuber，几乎人手一台。旅行 Vlog、家庭记录、街头美食、宠物日常，那个机身造型成了一种共同的视觉符号。Pocket 这个名字第一次穿透了科技圈的边界，渗透到普通人对「拍视频」这件事的本能想象里。这是大疆此前任何一款产品都没有达到
+高盛观点 | 2027年创作者经济规模可接近5000亿美元 Goldman Sachs
 
-Source: 极客公园
-URL: http://www.geekpark.net/news/363872
+Source: Google News
+URL: https://news.google.com/rss/articles/CBMigwFBVV95cUxOOWs0QjhRdkQybFVfREgtUnZSWktRZHR6Z3R1UG51a09PMk5IanY4VFZVaVAzcDlPT2VMcnJCNU01bVcycmJ0bXBCcEdia255TV91U1dJZ29rdTkteXFqbmc5QUl2LTI4NXk3aVdkTlZxOGFNTEJBT3h2T2FhNlFZMDNYYw?oc=5
 
-## 10. 550 亿美元！马斯克的「芯片工厂」开始成为现实
+## 7. 算力周期更迭，数据复合增长：为何存储经济性对中国规模化 AI 至关重要
 
-作者｜ 桦林舞王 编辑｜ 靖宇 1980 年代，日本半导体产业如日中天，一度占据全球芯片市场超过 50% 的份额。 美国人坐不住了——不是因为买不到芯片，而是因为他们意识到，一个国家如果无法掌控自己的「硅」，就等于把战略命脉交给了别人。于是有了《半导体协议》，有了后来的 Intel 复兴，有了今天的《芯片法案》。 四十年后，同样的焦虑以一种更私人的方式，出现在了伊隆·马斯克身上。 只不过这一次，想要掌控「硅」的，不是一个国家，而是一个人——以及他旗下的一簇公司。 5 月 6 日，Bloomber
+AI 的未来将依赖能够在数据全生命周期中平衡性能、可靠性与经济性的存储架构。
 
-Source: 极客公园
-URL: http://www.geekpark.net/news/363854
+Source: 量子位
+URL: https://www.qbitai.com/2026/11/511989.html
 
-## 11. 扫地机祖师爷再创业：造了一只懂你的「人造赛博宠物」
+## 8. 金正恩亲受各国大使国书 专家分析朝鲜或外交转向
 
-作者｜ Moonshot 编辑｜ 靖宇 当下的科技圈，具身智能的叙事出奇地一致。 波士顿动力的 Atlas 正在展示跑酷，特斯拉的 Optimus 试图精准捏起一颗鸡蛋，Figure 01 已经进驻宝马工厂开始搬运箱子。仿佛所有人都在比拼，谁能成为第一个「史塔克工业」（《钢铁侠》中的公司）。 就在这股人形劳工狂热中，一家名为 Familiar Machines 的初创公司出现了。虽是初创，其创始人 Colin Angle 却堪称家庭机器人的祖师爷 。 Colin Angle 与 iRobot R
+朝中社报道称，朝鲜领导人金正恩打破外交惯例亲自接受了俄罗斯等十国新任大使的国书。上周，美国总统特朗普暗示想要在APEC期间安排与金正恩会晤，但并未成行。专家分析，或许朝鲜寻求外交转向。
 
-Source: 极客公园
-URL: http://www.geekpark.net/news/363853
+Source: 德国之声中文
+URL: https://www.dw.com/zh/金正恩亲受各国大使国书-专家分析朝鲜或外交转向/a-80018841?maca=chi-rss-chi-all-1127-xml-mrss
 
-## 12. 品牌危机的底层逻辑变了
+## 9. 特朗普称普京为“朋友” 美国国家情报总监克莱顿称“完全恰当”
 
-愤怒经济学已形成完整的生态系统，从愤怒诱饵到发泄经济，四种角色各司其职。品牌危机不再是偶然事件，而成为产业链的常规业务。本文深度剖析农夫山泉、东方甄选等案例，揭示愤怒流量的利润分配机制，并给出应对这场『情绪战争』的实战策略。 愤怒经济学这个词，去年很多人都听过。 牛津2025年把rage bait选成了年度词汇，翻译过来就是「愤怒诱饵」。当时各路自媒体都跟着写，热热闹闹聊了几天，之后就没人再认真琢磨这件事了。 可现实里的变化从没停过，品牌危机变得越来越频繁，公关团队反应也越来越快，但最终的结果反
+美国总统特朗普上周在与俄罗斯总统普京会晤时称对方为“朋友”，引发争议。美国国家情报总监克莱顿为特朗普辩护，认为在外交会谈的背景下，使用“朋友”一词“完全恰当”。
 
-Source: 人人都是产品经理
-URL: https://www.woshipm.com/share/6392179.html
+Source: 德国之声中文
+URL: https://www.dw.com/zh/特朗普称普京为-朋友-美国国家情报总监克莱顿称-完全恰当/a-80017869?maca=chi-rss-chi-all-1127-xml-mrss
+
+## 10. 墙外文摘：“不支持台湾独立”？特朗普到底说了啥？
+
+APEC深圳峰会上，习近平没有与高市早苗举行双边会谈。有评论指出，这与北京近来要求日本撤回涉台言论一起看，像是主办国在传递政治警告；而川习会后由中国官媒代为宣布的那句“美国不支持台独”，美方始终没有独立证实。
+
+Source: 德国之声中文
+URL: https://www.dw.com/zh/墙外文摘：-不支持台湾独立-？特朗普到底说了啥？/a-80013997?maca=chi-rss-chi-all-1127-xml-mrss
+
+## 11. COP31气候大会未能通过最终决议,欧盟及130多个国家要求加强气候行动
+
+历时最长的联合国气候大会最终谈判破裂。欧盟拒绝接受一份连化石燃料都未明确提及的决议草案，沙特等产油国则反对重申逐步摆脱煤炭、石油和天然气的承诺。
+
+Source: 德国之声中文
+URL: https://www.dw.com/zh/cop31气候大会未能通过最终决议-欧盟及130多个国家要求加强气候行动/a-80013909?maca=chi-rss-chi-all-1127-xml-mrss
+
+## 12. 德国政府再呼吁欧洲接管TikTok
+
+继美国控股TikTok在当地的运营后，欧洲也开始酝酿类似的步骤。德国文化国务部长希望TikTok出售在欧洲业务的高达八成股份，被后者斥为“无稽之谈”。
+
+Source: 德国之声中文
+URL: https://www.dw.com/zh/德国政府再呼吁欧洲接管tiktok/a-80013862?maca=chi-rss-chi-all-1127-xml-mrss

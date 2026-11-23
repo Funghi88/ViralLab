@@ -46,16 +46,23 @@ def lang_to_whisper_code(lang: str) -> str | None:
 
 
 def _pick_device() -> str:
+    """Pick compute device for WhisperX/ctranslate2.
+
+    Note: faster-whisper / ctranslate2 supports only `cpu` and `cuda` (not Apple `mps`),
+    so auto-selection on Apple Silicon returns `cpu` (with int8 quantization) to avoid
+    `ValueError: unsupported device mps`.
+    """
     d = (os.environ.get("VIRALLAB_WHISPER_DEVICE") or "auto").strip().lower()
-    if d in ("cpu", "cuda", "mps"):
+    if d in ("cpu", "cuda"):
         return d
+    if d == "mps":
+        # ctranslate2 cannot execute on MPS; fall back safely to CPU.
+        return "cpu"
     try:
         import torch
 
         if torch.cuda.is_available():
             return "cuda"
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return "mps"
     except Exception:
         pass
     return "cpu"

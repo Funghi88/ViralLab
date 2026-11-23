@@ -14,9 +14,9 @@ ViralLab now includes professional, project-level skill workflows for:
 - strict Minto Pyramid structuring (conclusion-first, grouped logic, evidence mapping)
 - multi-source crawling + SEO discovery for bilingual tag coverage
 
-**English and Chinese channels use different sources.** The English channel pulls from DuckDuckGo, YouTube, Hacker News, Reddit. The Chinese channel uses Weibo, Zhihu, Douyin, Baidu, Bilibili, 少数派, IT之家, 36氪, 今日头条, 掘金, and PTT (Taiwan). Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
+**English and Chinese channels use different sources.** The English daily digest pulls from tech/media RSS, DuckDuckGo & Google News (Reddit/forum URLs are filtered out), and Hacker News. Optional: YouTube, NewsAPI. The Chinese channel uses Weibo, Zhihu, Douyin, Baidu, Bilibili, 少数派, IT之家, 36氪, 今日头条, 掘金, and PTT (Taiwan). Bilingual users can switch between channels to digest content from each ecosystem based on their preference.
 
-**英文与中文频道使用不同来源。** 英文频道来自 DuckDuckGo、YouTube、Hacker News、Reddit；中文频道来自微博、知乎、抖音、百度、B站、少数派、IT之家、36氪、今日头条、掘金、PTT（台湾）。双语用户可按偏好切换频道，获取不同生态的内容。
+**英文与中文频道使用不同来源。** 英文每日新闻来自科技媒体 RSS、DuckDuckGo/Google 新闻（会过滤 Reddit 等论坛链）、Hacker News；可选 YouTube、NewsAPI。中文频道来自微博、知乎、抖音、百度、B站、少数派、IT之家、36氪、今日头条、掘金、PTT（台湾）。双语用户可按偏好切换频道，获取不同生态的内容。
 
 ---
 
@@ -90,6 +90,9 @@ Open **[http://127.0.0.1:5001](http://127.0.0.1:5001)** in your browser.
 ### In the app
 
 - **Daily News** — Top stories for creators (EN/ZH). With `server.py` running, the digest refreshes about every **30 minutes**; if `output/daily_news_updated.txt` is older than **~8 hours**, opening `/daily` also kicks off a **debounced background refresh**. Use **立即刷新** anytime, or `GET /api/refresh-daily` from cron on sleeping hosts. See `.env.example` (`DAILY_REFRESH_INTERVAL_MINUTES`, etc.).
+- **AI Authority Brief** — On `/daily`, a dedicated section tracks authoritative AI sources and auto-labels each card into four strategy layers (`Research`, `Industry`, `Investment`, `Strategy & Society`) plus cadence (`Daily/Weekly/Monthly/Quarterly`). Full brief: `output/daily_ai_authority.md`; cron endpoint: `GET /api/refresh-ai-authority`.
+- **Strict language split** — English content stays in English pages/files, Chinese content stays in Chinese pages/files (including AI Authority and topic news).
+- **News vs long-form split** — `/daily` and `/news` keep news-only cards; blogs/newsletters/research-report style sources are routed to `/longform`.
 - **Your field** — Choose your field (fashion, tech, food, beauty, content) for curated trends, color forecasting, and reliable resources.
 - **Viral Videos** — Search by topic (YouTube or Bilibili). Berger score, content angles, trend lifecycle.
 - **Long-form & Podcasts** — Dedicated page for deep articles + podcast signals, with EN/ZH hot-tag references.

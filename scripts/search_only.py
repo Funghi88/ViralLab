@@ -3,7 +3,13 @@
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.proxy_env import load_dotenv_safe
+
+load_dotenv_safe(PROJECT_ROOT / ".env")
 
 
 def search_news(topic: str, max_results: int = 12) -> str:
@@ -50,6 +56,12 @@ def main():
     raw = search_news(topic)
     safe_topic = raw_topic_file_stem(topic)
     out_file = output_dir / f"raw_{safe_topic}.md"
+    # Never clobber an existing non-empty topic file with an empty/error placeholder.
+    if raw.startswith(("# No news found", "# Search error")) and out_file.is_file():
+        existing = out_file.read_text(encoding="utf-8", errors="replace")
+        if "\n## 1. " in existing:
+            print(f"[search_only] WARN: empty/error result for {topic!r}; keeping existing {out_file.name}")
+            return out_file
     out_file.write_text(raw, encoding="utf-8")
 
     # Record run for lifecycle

@@ -6,7 +6,7 @@ Optional: save session with `.venv/bin/python -m tools.china_crawler login --pla
 import urllib.parse
 from pathlib import Path
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _STATE_PATH = _PROJECT_ROOT / "config" / "china_crawler_shipinhao_state.json"
 
 _USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

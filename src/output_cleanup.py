@@ -28,6 +28,9 @@ _EPHEMERAL_PREFIXES = (
     "videos_",
     "transcript_",
     "article_rewrite_",
+    "youtube_",
+    "viral_cache_",
+    "handoff_",
 )
 
 
@@ -36,6 +39,24 @@ def _should_prune_file(name: str) -> bool:
         return False
     stem = Path(name).stem
     return any(stem.startswith(p) for p in _EPHEMERAL_PREFIXES)
+
+
+def cleanup_youtube_fragments(output_dir: Path, video_id: str) -> list[str]:
+    """Remove leftover yt-dlp intermediate fragment files like `youtube_<id>.f401.mp4`."""
+    import re
+
+    removed: list[str] = []
+    if not output_dir.is_dir() or not video_id:
+        return removed
+    frag_re = re.compile(rf"^youtube_{re.escape(video_id)}\.(?:f\d+|temp)\.", re.IGNORECASE)
+    for p in output_dir.iterdir():
+        if p.is_file() and (frag_re.match(p.name) or p.name.endswith(".part")):
+            try:
+                p.unlink()
+                removed.append(p.name)
+            except OSError:
+                pass
+    return removed
 
 
 def cleanup_ephemeral_output(

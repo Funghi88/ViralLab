@@ -95,28 +95,91 @@ def _fetch_youtube_search(query: str, max_results: int) -> list[dict]:
         return []
 
 
-def fetch_trending_videos(query: str = "trending viral youtube", max_results: int = 10) -> list[dict]:
-    """Fetch hot/trending videos via DuckDuckGo (no API key). Retries on rate limit; falls back to YouTube API if set."""
-    DDGS = get_ddgs_class()
-    last_err = None
-    for attempt in range(3):
-        try:
-            with DDGS() as ddgs:
-                results = list(ddgs.videos(query, max_results=max_results, timelimit="w"))
-            break
-        except Exception as e:
-            last_err = e
-            err_str = str(e).lower()
-            if "ratelimit" in err_str or "202" in err_str:
-                time.sleep(2 ** attempt)  # 1s, 2s, 4s
+def _fetch_ytdlp_search(query: str, max_results: int) -> list[dict]:
+    """Fallback: search YouTube via yt-dlp ytsearch when DDG returns empty/rate-limited."""
+    import json
+    import shutil
+    import subprocess
+    from pathlib import Path
+    from src.proxy_env import env_for_overseas
+
+    venv_yt = Path(__file__).resolve().parent.parent / ".venv" / "bin" / "yt-dlp"
+    yt = str(venv_yt) if venv_yt.is_file() else (shutil.which("yt-dlp") or "")
+    if not yt:
+        return []
+    cmd = [
+        yt,
+        "--flat-playlist",
+        "--dump-json",
+        "--no-warnings",
+        "--ignore-errors",
+        f"ytsearch{min(max(max_results, 1), 25)}:{query}",
+    ]
+    try:
+        r = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=25,
+            env=env_for_overseas(os.environ),
+        )
+        out = []
+        for line in (r.stdout or "").splitlines():
+            s = line.strip()
+            if not s.startswith("{"):
                 continue
-            raise RuntimeError(f"Video search error: {e}") from e
-    else:
-        # All retries failed — try YouTube API fallback
-        fallback = _fetch_youtube_search(query, max_results)
-        if fallback:
-            return fallback
-        raise RuntimeError(f"Video search error: {last_err}") from last_err
+            try:
+                d = json.loads(s)
+            except json.JSONDecodeError:
+                continue
+            vid = d.get("id") or ""
+            url = d.get("webpage_url") or d.get("url") or (f"https://www.youtube.com/watch?v={vid}" if vid else "")
+            if not url:
+                continue
+            if not url.startswith("http") and vid:
+                url = f"https://www.youtube.com/watch?v={vid}"
+            views = d.get("view_count")
+            out.append({
+                "title": d.get("title") or "N/A",
+                "url": url,
+                "description": (d.get("description") or "")[:300],
+                "views": str(views) if views is not None else None,
+                "views_int": _parse_views(views),
+                "duration": d.get("duration_string") or d.get("duration"),
+                "uploader": d.get("channel") or d.get("uploader"),
+            })
+        return out[:max_results]
+    except Exception:
+        return []
+
+
+def fetch_trending_videos(query: str = "trending viral youtube", max_results: int = 10) -> list[dict]:
+    """Fetch hot/trending videos via DuckDuckGo, with no-timelimit retry, YouTube API, and yt-dlp fallbacks."""
+    DDGS = get_ddgs_class()
+    results = []
+    last_err = None
+    # Try weekly timelimit first, then broader (no timelimit) if DDG returns empty/No results.
+    for timelimit in ("w", None):
+        for attempt in range(2):
+            try:
+                with DDGS(timeout=8) as ddgs:
+                    kw = {"max_results": max_results}
+                    if timelimit:
+                        kw["timelimit"] = timelimit
+                    results = list(ddgs.videos(query, **kw))
+                if results:
+                    break
+            except Exception as e:
+                last_err = e
+                err_str = str(e).lower()
+                if "no results" in err_str:
+                    break
+                if "ratelimit" in err_str or "202" in err_str:
+                    time.sleep(2 ** attempt)
+                    continue
+                break
+        if results:
+            break
 
     out = []
     for r in results:
@@ -134,7 +197,20 @@ def fetch_trending_videos(query: str = "trending viral youtube", max_results: in
             "duration": r.get("duration"),
             "uploader": r.get("uploader") or r.get("publisher"),
         })
-    return out
+    if out:
+        return out
+
+    # Fallback 1: YouTube Data API (if key set)
+    fallback = _fetch_youtube_search(query, max_results)
+    if fallback:
+        return fallback
+    # Fallback 2: yt-dlp ytsearch (no API key required)
+    ytdlp_fallback = _fetch_ytdlp_search(query, max_results)
+    if ytdlp_fallback:
+        return ytdlp_fallback
+    if last_err:
+        raise RuntimeError(f"Video search error: {last_err}") from last_err
+    return []
 
 
 def fetch_viral_videos(query: str = "viral youtube", max_results: int = 15) -> list[dict]:
